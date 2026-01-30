@@ -2,13 +2,20 @@
 // تحقق من https://console.firebase.google.com
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCB1r7e9k1ReJPYEEZAYja5jkMJzeRNfcE",
+    authDomain: "student-skills-platform.firebaseapp.com",
+    projectId: "student-skills-platform",
+    storageBucket: "student-skills-platform.firebasestorage.app",
+    messagingSenderId: "270628922936",
+    appId: "1:270628922936:web:e079dd34a7fedae8b268cd"
 };
+
+// تهيئة Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let isUsingFirebase = true; // تشغيل/إيقاف Firebase
+const app = initializeApp(firebaseConfig);
 
 // تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
