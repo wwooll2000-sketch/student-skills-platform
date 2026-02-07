@@ -1,0 +1,28 @@
+{
+  "app": {
+    "name": "نظام مهارات الطلاب",
+    "version": "1.0.0",
+    "language": "ar",
+    "direction": "rtl"
+  },
+  "security": {
+    "adminPassword": "admin",
+    "sessionTimeout": 3600000,
+    "maxLoginAttempts": 5,
+    "minStudentCodeLength": 4
+  },
+  "features": {
+    "enablePWA": true,
+    "enableOfflineMode": true,
+    "enableDataBackup": true,
+    "enableExport": true
+  },
+  "api": {
+    "timeout": 5000,
+    "retryAttempts": 3
+  },
+  "storage": {
+    "type": "database",
+    "apiEndpoint": "/api"
+  }
+}

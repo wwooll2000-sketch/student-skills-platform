@@ -1,0 +1,116 @@
+<!-- أضف هذا الجزء داخل div#adminControls في لوحة تحكم المعلم -->
+
+<div id="advancedAdminPanel" class="hidden mt-8 p-6 bg-purple-50 rounded-xl border border-purple-100">
+    <h3 class="text-lg font-bold text-purple-900 mb-4">🛠️ أدوات متقدمة</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <button onclick="exportAllData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-bold">
+            📥 تصدير البيانات
+        </button>
+        <button onclick="importDataFile()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-bold">
+            📤 استيراد البيانات
+        </button>
+        <button onclick="viewActivityLogs()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition text-sm font-bold">
+            📋 عرض السجلات
+        </button>
+        <button onclick="clearAllData()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-bold">
+            🗑️ مسح البيانات
+        </button>
+    </div>
+    <input id="importFileInput" type="file" accept=".json" style="display: none;">
+</div>
+
+<script>
+    // إظهار/إخفاء اللوحة المتقدمة عند تسجيل دخول المعلم
+    const originalUpdateAdminUI = window.updateAdminUI;
+    window.updateAdminUI = function() {
+        originalUpdateAdminUI();
+        document.getElementById('advancedAdminPanel').classList.remove('hidden');
+    };
+
+    // تحديث دالة تسجيل الخروج
+    const originalLogoutAdmin = window.logoutAdmin;
+    window.logoutAdmin = function() {
+        document.getElementById('advancedAdminPanel').classList.add('hidden');
+        originalLogoutAdmin();
+    };
+
+    // تصدير البيانات
+    function exportAllData() {
+        if (!isAdmin) return alert('لا تملك صلاحية للقيام بهذا الإجراء');
+        const result = dataBackup.exportToJSON(students, `students_data_${new Date().toISOString().slice(0,10)}.json`);
+        if (result.success) {
+            securityManager.logActivity('data_exported', { count: students.length });
+            alert('تم تصدير البيانات بنجاح');
+        } else {
+            alert(result.message);
+        }
+    }
+
+    // استيراد البيانات
+    function importDataFile() {
+        if (!isAdmin) return alert('لا تملك صلاحية للقيام بهذا الإجراء');
+        const fileInput = document.getElementById('importFileInput');
+        fileInput.click();
+        
+        fileInput.addEventListener('change', async function(e) {
+            if (!e.target.files[0]) return;
+            
+            const result = await dataBackup.importFromJSON(e.target.files[0]);
+            if (result.success && Array.isArray(result.data)) {
+                if (confirm('هل تريد استبدال البيانات الحالية بالبيانات المستوردة؟')) {
+                    students = result.data;
+                    dataBackup.createBackup(students);
+                    securityManager.logActivity('data_imported', { count: students.length });
+                    alert('تم استيراد البيانات بنجاح');
+                    renderAdminStudents();
+                }
+            } else {
+                alert(result.message || 'فشل استيراد البيانات');
+            }
+            fileInput.value = '';
+        });
+    }
+
+    // عرض سجلات الأنشطة
+    function viewActivityLogs() {
+        if (!isAdmin) return alert('لا تملك صلاحية للقيام بهذا الإجراء');
+        
+        const logs = securityManager.getActivityLogs();
+        if (logs.length === 0) {
+            alert('لا توجد سجلات نشاط بعد');
+            return;
+        }
+
+        let logsText = 'سجل الأنشطة:\n\n';
+        logs.slice(-20).reverse().forEach((log, index) => {
+            logsText += `${index + 1}. ${log.timestamp}\n`;
+            logsText += `   العملية: ${log.action}\n`;
+            if (log.details) {
+                logsText += `   التفاصيل: ${JSON.stringify(log.details)}\n`;
+            }
+            logsText += '\n';
+        });
+
+        // فتح نافذة لعرض السجلات
+        const logWindow = window.open('', 'Logs', 'width=600,height=400');
+        logWindow.document.write(`
+            <pre style="font-family: Tajawal, sans-serif; direction: rtl; padding: 20px; font-size: 12px;">
+            ${logsText}
+            </pre>
+        `);
+    }
+
+    // مسح جميع البيانات
+    function clearAllData() {
+        if (!isAdmin) return alert('لا تملك صلاحية للقيام بهذا الإجراء');
+        
+        if (confirm('⚠️ تحذير: هذا سيحذف جميع البيانات بشكل نهائي. هل أنت متأكد؟')) {
+            if (confirm('آخر تحذير: هل أنت متأكد تماماً؟')) {
+                students = [];
+                securityManager.logActivity('all_data_cleared', { timestamp: new Date().toISOString() });
+                alert('تم مسح جميع البيانات');
+                renderAdminStudents();
+            }
+        }
+    }
+</script>
