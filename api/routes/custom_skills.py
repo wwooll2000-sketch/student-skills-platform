@@ -3,9 +3,18 @@ from flask import Blueprint, request, jsonify
 import uuid
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from auth import verify_admin
-from database import get_db, return_db
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+try:
+    from auth import verify_admin
+    from database import get_db, return_db
+except ImportError:
+    from api.auth import verify_admin
+    from api.database import get_db, return_db
 
 custom_skills_bp = Blueprint('custom_skills', __name__, url_prefix='/api/custom-skills')
 

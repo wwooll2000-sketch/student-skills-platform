@@ -12,6 +12,11 @@ db_pool = None
 def init_db_pool():
     """Initialize database connection pool with SSL support"""
     global db_pool
+    
+    if not DATABASE_URL:
+        print("⚠️ DATABASE_URL not set, skipping pool initialization")
+        return False
+    
     try:
         # Add SSL mode to connection string if not present
         db_url = DATABASE_URL
@@ -53,6 +58,9 @@ def get_db():
     max_retries = 3
     retry_delay = 1
     
+    if not DATABASE_URL:
+        raise Exception("DATABASE_URL environment variable is not set")
+    
     # Lazy initialization of pool for serverless environments
     if db_pool is None:
         try:
@@ -72,7 +80,7 @@ def get_db():
             else:
                 # Fallback to direct connection if pool not initialized
                 db_url = DATABASE_URL
-                if 'sslmode' not in db_url:
+                if db_url and 'sslmode' not in db_url:
                     separator = '&' if '?' in db_url else '?'
                     db_url = f"{db_url}{separator}sslmode=require"
                 return psycopg2.connect(db_url, connect_timeout=10)

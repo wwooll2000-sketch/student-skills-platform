@@ -2,8 +2,16 @@
 from flask import Blueprint, request, jsonify
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database import get_db, return_db
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+try:
+    from database import get_db, return_db
+except ImportError:
+    from api.database import get_db, return_db
 
 student_bp = Blueprint('student', __name__, url_prefix='/api/student')
 

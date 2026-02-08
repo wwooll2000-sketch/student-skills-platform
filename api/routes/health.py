@@ -1,37 +1,51 @@
 # Health Check and Static Routes
 from flask import Blueprint, jsonify, send_from_directory
 from datetime import datetime
-import sys
 import os
 
-# Add parent directory to path to import database module
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from database import init_database
-
 health_bp = Blueprint('health', __name__)
-
-# Track if database has been initialized
-_db_initialized = False
 
 @health_bp.route('/api/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    global _db_initialized
-    
-    # Lazy database initialization on first health check
-    if not _db_initialized:
-        try:
-            init_database()
-            _db_initialized = True
-        except Exception as e:
-            print(f"⚠️ Database initialization skipped or failed: {e}")
-            # Continue anyway - tables might already exist
-    
     return jsonify({
         'success': True, 
         'message': 'الخادم يعمل بشكل صحيح', 
         'timestamp': datetime.now().isoformat()
     })
+
+@health_bp.route('/api/debug', methods=['GET'])
+def debug_info():
+    """Debug endpoint to check environment"""
+    return jsonify({
+        'success': True,
+        'has_database_url': bool(os.environ.get('DATABASE_URL')),
+        'has_jwt_secret': bool(os.environ.get('JWT_SECRET')),
+        'has_admin_password': bool(os.environ.get('ADMIN_PASSWORD')),
+        'python_path': os.environ.get('PYTHONPATH', 'not set'),
+        'cwd': os.getcwd(),
+        'timestamp': datetime.now().isoformat()
+    })
+
+@health_bp.route('/api/init-db', methods=['POST'])
+def init_db_endpoint():
+    """Initialize database tables - call this once after deployment"""
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+        from database import init_database
+        
+        init_database()
+        return jsonify({
+            'success': True,
+            'message': 'Database initialized successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Database initialization failed: {str(e)}'
+        }), 500
 
 @health_bp.route('/')
 def serve_index():

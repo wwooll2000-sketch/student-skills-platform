@@ -13,3 +13,50 @@ Vercel is working correctly.
 500: INTERNAL_SERVER_ERROR
 Code: FUNCTION_INVOCATION_FAILED
 ID: dxb1::6wxcw-1770540745885-5b2485f64c15
+
+----------
+
+11:55:13.589 
+Running build in Portland, USA (West) – pdx1
+11:55:13.589 
+Build machine configuration: 2 cores, 8 GB
+11:55:13.712 
+Cloning github.com/omarx11/arabic-grammar-analyzer222 (Branch: main, Commit: c4bc5bf)
+11:55:13.713 
+Previous build caches not available.
+11:55:14.516 
+Cloning completed: 804.000ms
+11:55:14.845 
+Running "vercel build"
+11:55:15.786 
+Vercel CLI 50.11.0
+11:55:17.392 
+No Python version specified in .python-version, pyproject.toml, or Pipfile.lock. Using python version: 3.12
+11:55:17.400 
+Creating virtual environment at "/vercel/path0/.vercel/python/.venv"...
+11:55:19.930 
+Using uv at "/usr/local/bin/uv"
+11:55:19.931 
+Installing required dependencies from requirements.txt with uv...
+11:55:20.554 
+Build Completed in /vercel/output [4s]
+11:55:20.722 
+Deploying outputs...
+11:55:28.138 
+Deployment completed
+11:55:29.169 
+Creating build cache...
+11:55:29.233 
+Skipping cache upload because no files were prepared
+
+This Serverless Function has crashed.
+
+Your connection is working correctly.
+
+Vercel is working correctly.
+
+500: INTERNAL_SERVER_ERROR
+Code: FUNCTION_INVOCATION_FAILED
+ID: dxb1::djwvd-1770540962934-d617bfb2a5ea
+
+same issue!

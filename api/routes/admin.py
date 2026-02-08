@@ -5,9 +5,19 @@ from datetime import datetime
 import uuid
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from auth import verify_admin, get_jwt_secret, get_admin_password
-from database import get_db, return_db
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+try:
+    from auth import verify_admin, get_jwt_secret, get_admin_password
+    from database import get_db, return_db
+except ImportError:
+    # Fallback for different import contexts
+    from api.auth import verify_admin, get_jwt_secret, get_admin_password
+    from api.database import get_db, return_db
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
