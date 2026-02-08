@@ -36,13 +36,15 @@ def create_app():
     
     return app
 
+# Initialize database pool and create app at module level
+init_db_pool()
+init_database()
+
+# Create app instance for Vercel/WSGI servers
+app = create_app()
+
 if __name__ == '__main__':
-    # Initialize application
-    print("🚀 Starting application...")
-    init_db_pool()
-    init_database()
+    # Run development server
+    print("🚀 Starting development server...")
     print("🎉 Application ready!")
-    
-    # Create and run app
-    app = create_app()
     app.run(host='0.0.0.0', port=5000, debug=True)
