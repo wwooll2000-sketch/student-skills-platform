@@ -136,7 +136,7 @@
         // Initialize on load - check for admin login in localStorage
         window.addEventListener('load', async function () {
             console.log('✅ تطبيق جاهز - البيانات تُحمّل من قاعدة البيانات فقط');
-            
+
             // Check if admin is already logged in
             if (adminAPI.isAuthorized()) {
                 isAdmin = true;
