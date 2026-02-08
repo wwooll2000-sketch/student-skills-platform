@@ -1,7 +1,9 @@
-const CACHE_NAME = 'students-skills-v1';
+const CACHE_NAME = 'students-skills-v2';
 const urlsToCache = [
     '/',
     '/index.html',
+    '/app.js',
+    '/main.js',
     '/manifest.json',
     'https://cdn.tailwindcss.com',
     'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap'

@@ -204,7 +204,8 @@ class AdminAPI {
                 body: JSON.stringify({ name, code, email, class: studentClass })
             });
 
-            return await response.json();
+            const result = await response.json();
+            return result;
         } catch (error) {
             console.error("خطأ في إضافة الطالب:", error);
             return {
@@ -332,6 +333,7 @@ class AdminAPI {
         const now = Date.now();
 
         if (!token || now - loginTime > this.sessionTimeout) {
+            this.authToken = null;
             return false;
         }
 
@@ -459,3 +461,6 @@ class StudentAPI {
         return !(!studentId || now - loginTime > 86400000);
     }
 }
+
+const adminAPI = new AdminAPI();
+const studentAPI = new StudentAPI();

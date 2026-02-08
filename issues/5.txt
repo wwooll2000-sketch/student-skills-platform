@@ -1,0 +1,84 @@
+(venv) PS student-skills-platform> python .\api\index.py
+ * Serving Flask app 'index'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production 
+deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [08/Feb/2026 08:11:19] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [08/Feb/2026 08:11:19] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+127.0.0.1 - - [08/Feb/2026 08:11:19] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Feb/2026 08:11:20] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Feb/2026 08:11:20] "GET /manifest.json HTTP/1.1" 200 -
+[AUTH] Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2...
+[AUTH] Token extracted: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiY...
+127.0.0.1 - - [08/Feb/2026 08:11:20] "GET /favicon.ico HTTP/1.1" 404 
+-
+[AUTH] JWT_SECRET being used: 81d2c2e604b17872e26e...
+[AUTH] Token decoded successfully: {'role': 'admin', 'adminId': 'admin-console', 'loginTime': '2026-02-08T08:09:32.615601'}
+[AUTH] Unexpected error: UndefinedTable: relation "students" does not exist
+LINE 1: SELECT * FROM students ORDER BY name ASC
+                      ^
+
+127.0.0.1 - - [08/Feb/2026 08:11:22] "GET /api/admin/students HTTP/1.1" 401 -
+[AUTH] Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2...
+[AUTH] Token extracted: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiY...
+[AUTH] JWT_SECRET being used: 81d2c2e604b17872e26e...
+[AUTH] Token decoded successfully: {'role': 'admin', 'adminId': 'admin-console', 'loginTime': '2026-02-08T08:09:32.615601'}
+[2026-02-08 08:11:22,137] ERROR in app: Exception on /api/custom-skills [GET]
+Traceback (most recent call last):
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 869, in 
+full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask_cors\extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs))) 
+                                                ~^^^^^^^^^^^^^^^^^   
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 867, in 
+full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 852, in 
+dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\api\index.py", line 241, in get_custom_skills      
+    cur.execute('SELECT DISTINCT name, description FROM skills WHERE 
+category = %s', ('custom',))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "skills" does not exist     
+LINE 1: SELECT DISTINCT name, description FROM skills WHERE category...
+                                               ^
+
+127.0.0.1 - - [08/Feb/2026 08:11:22] "GET /api/custom-skills HTTP/1.1" 500 -
+[AUTH] Unexpected error: UndefinedTable: relation "students" does not exist
+LINE 1: SELECT * FROM students ORDER BY name ASC
+                      ^
+
+127.0.0.1 - - [08/Feb/2026 08:11:23] "GET /api/admin/students HTTP/1.1" 401 -
+[2026-02-08 08:11:25,319] ERROR in app: Exception on /api/custom-skills [GET]
+Traceback (most recent call last):
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 869, in 
+full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask_cors\extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs))) 
+                                                ~^^^^^^^^^^^^^^^^^   
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 867, in 
+full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 852, in 
+dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\api\index.py", line 241, in get_custom_skills      
+    cur.execute('SELECT DISTINCT name, description FROM skills WHERE 
+category = %s', ('custom',))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "skills" does not exist     
+LINE 1: SELECT DISTINCT name, description FROM skills WHERE category...
+                                               ^
+
+127.0.0.1 - - [08/Feb/2026 08:11:25] "GET /api/custom-skills HTTP/1.1" 500 -

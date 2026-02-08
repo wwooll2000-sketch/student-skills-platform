@@ -14,53 +14,85 @@
             font-family: 'Tajawal', sans-serif;
             background-color: #f8fafc;
         }
+
+        /* Mobile touch improvements */
+        @media (max-width: 768px) {
+
+            input,
+            button,
+            select {
+                min-height: 44px;
+                /* Better touch targets */
+            }
+
+            .mobile-scroll {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Smooth animations */
+        #customModal {
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 
-<body class="p-4 md:p-8">
-    <div id="app" class="max-w-4xl mx-auto">
-        <div class="flex justify-end mb-6">
+<body class="p-2 sm:p-4 md:p-8">
+    <div id="loadingScreen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center px-4">
+            <div class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-4 border-indigo-600 mx-auto mb-4">
+            </div>
+            <p class="text-slate-600 text-base sm:text-lg">جاري التحميل...</p>
+        </div>
+    </div>
+    <div id="app" class="max-w-4xl mx-auto" style="display: none;">
+        <div class="flex justify-end mb-4 sm:mb-6 gap-2">
             <button id="loginBtn" type="button" onclick="toggleAdminLoginModal()"
-                class="text-2xl hover:scale-110 transition-transform p-2 cursor-pointer" title="دخول المعلم">⚙️</button>
+                class="text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
+                title="دخول المعلم">⚙️</button>
             <button id="logoutBtn" type="button" onclick="logoutAdmin()"
-                class="hidden text-sm bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
+                class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
                 خروج المعلم</button>
         </div>
 
-        <div id="studentLoginView" class="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200">
-            <h1 class="text-3xl font-bold text-slate-800 mb-6">نظام متابعة مهارات لغتي</h1>
-            <p class="text-slate-500 mb-8">يرجى إدخال رقم الطالب الخاص بك للدخول</p>
+        <div id="studentLoginView"
+            class="text-center py-12 sm:py-20 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6 px-4">نظام متابعة مهارات لغتي</h1>
+            <p class="text-slate-500 mb-6 sm:mb-8 px-4 text-sm sm:text-base">يرجى إدخال رقم الطالب الخاص بك للدخول</p>
             <div class="max-w-xs mx-auto px-4">
                 <input id="studentCodeInput" type="text" placeholder="أدخل رقم الطالب"
-                    class="w-full p-4 text-center border-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xl font-bold tracking-widest mb-4">
+                    class="w-full p-3 sm:p-4 text-center border-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-lg sm:text-xl font-bold tracking-widest mb-3 sm:mb-4">
                 <button onclick="accessWithCode()"
-                    class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition">دخول</button>
+                    class="w-full bg-indigo-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:bg-indigo-700 transition text-base sm:text-lg">دخول</button>
             </div>
         </div>
 
         <div id="adminDashboardView" class="hidden">
-            <header class="text-center mb-10">
-                <h1 class="text-3xl font-bold text-slate-800">لوحة تحكم المعلم</h1>
+            <header class="text-center mb-6 sm:mb-10">
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">لوحة تحكم المعلم</h1>
             </header>
 
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-                <h3 class="text-lg font-bold text-indigo-900 mb-4">إضافة طالب جديد</h3>
-                <div class="flex gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6 sm:mb-8">
+                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إضافة طالب جديد</h3>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <input id="newStudentName" type="text" placeholder="اسم الطالب الثلاثي"
-                        class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base">
                     <button onclick="addNewStudent()"
-                        class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">توليد رقم
+                        class="bg-green-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-green-700 transition text-sm sm:text-base whitespace-nowrap">توليد
+                        رقم
                         الطالب</button>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 font-bold">قائمة الطلاب المضافين</div>
+                <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm sm:text-base">قائمة
+                    الطلاب المضافين</div>
                 <div id="adminStudentsList" class="divide-y divide-slate-100"></div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-8">
-                <h3 class="text-lg font-bold text-indigo-900 mb-4">إدارة المهارات المحفوظة</h3>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6 sm:mt-8">
+                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إدارة المهارات المحفوظة</h3>
                 <div id="savedSkillsList" class="space-y-2"></div>
             </div>
         </div>
@@ -70,9 +102,6 @@
                 <h2 id="currentStudentTitle" class="text-2xl font-bold text-indigo-700"></h2>
                 <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium">← خروج</button>
             </div>
-            <footer class="text-center py-6 text-slate-500">
-                <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
-            </footer>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-right border-collapse">
@@ -88,643 +117,59 @@
                 </table>
             </div>
 
-            <div id="adminControls" class="hidden mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-100">
-                <h3 class="text-lg font-bold text-indigo-900 mb-4">إضافة مهارة</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="adminControls"
+                class="hidden mt-6 sm:mt-8 p-4 sm:p-6 bg-indigo-50 rounded-xl border border-indigo-100">
+                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إضافة مهارة</h3>
+                <div class="grid grid-cols-1 gap-3 sm:gap-4">
                     <select id="skillDropdown"
-                        class="p-3 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="p-3 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base">
                         <option value="">-- اختر مهارة --</option>
                         <option value="custom">✍️ مهارة أخرى...</option>
                     </select>
                     <input id="manualSkillInput" type="text" placeholder="اكتب المهارة يدوياً"
-                        class="hidden p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        class="hidden p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base">
                     <input id="newFileLink" type="text" placeholder="رابط الملف"
-                        class="p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        class="p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base">
                 </div>
                 <button onclick="saveNewSkill()"
-                    class="mt-4 bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition">إضافة</button>
+                    class="mt-4 bg-indigo-600 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-indigo-700 transition text-sm sm:text-base w-full sm:w-auto">إضافة</button>
             </div>
         </div>
     </div>
 
     <div id="adminLoginModal"
         class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl">
-            <h3 class="text-xl font-bold mb-4 text-center">دخول المعلم</h3>
+        <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl">
+            <h3 class="text-lg sm:text-xl font-bold mb-4 text-center">دخول المعلم</h3>
             <input id="adminPasswordInput" type="password" placeholder="كلمة المرور"
-                class="w-full p-3 border rounded-lg mb-4 outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
+                class="w-full p-3 border rounded-lg mb-4 outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                autofocus>
             <div class="flex gap-2">
                 <button onclick="verifyAdminLogin()"
-                    class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">دخول</button>
+                    class="flex-1 bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-indigo-700 text-sm sm:text-base font-medium">دخول</button>
                 <button onclick="toggleAdminLoginModal()"
-                    class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg">إلغاء</button>
+                    class="flex-1 bg-slate-200 text-slate-700 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium">إلغاء</button>
             </div>
         </div>
-        <footer class="text-center py-6 text-slate-500">
-            <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
-        </footer>
+    </div>
+
+    <footer class="text-center py-4 sm:py-6 text-slate-500 text-xs sm:text-sm">
+        <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
+    </footer>
+
+    <!-- Custom Modal -->
+    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-95"
+            id="modalContent">
+            <div id="modalIcon" class="text-center mb-4 text-5xl"></div>
+            <h3 id="modalTitle" class="text-xl font-bold mb-3 text-center text-slate-800"></h3>
+            <p id="modalMessage" class="text-center text-slate-600 mb-6 leading-relaxed"></p>
+            <div id="modalButtons" class="flex gap-3"></div>
+        </div>
     </div>
 
     <script src="app.js"></script>
-    <script>
-        let isAdmin = false;
-        let selectedStudentId = null;
-        let selectedStudent = null;
-        let adminAPI = new AdminAPI();
-        let studentAPI = new StudentAPI();
-
-        // Initialize on load - check for admin login in localStorage
-        window.addEventListener('load', async function () {
-            console.log('✅ تطبيق جاهز - البيانات تُحمّل من قاعدة البيانات فقط');
-
-            // Check if admin is already logged in
-            if (adminAPI.isAuthorized()) {
-                isAdmin = true;
-                updateAdminUI();
-                document.getElementById('studentLoginView').classList.add('hidden');
-                document.getElementById('adminDashboardView').classList.remove('hidden');
-                await loadStudentsFromDatabase();
-                renderAdminStudents();
-                console.log('✅ تم تسجيل دخول المعلم تلقائياً');
-            }
-        });
-
-        function toggleAdminLoginModal() {
-            const modal = document.getElementById('adminLoginModal');
-            if (modal) {
-                modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) {
-                    document.getElementById('adminPasswordInput').value = '';
-                    document.getElementById('adminPasswordInput').focus();
-                }
-            }
-        }
-
-        async function verifyAdminLogin() {
-            const pass = document.getElementById('adminPasswordInput').value.trim();
-            if (!pass) {
-                alert("يرجى إدخال كلمة المرور");
-                return;
-            }
-
-            const result = await adminAPI.login(pass);
-
-            if (result.success) {
-                isAdmin = true;
-                updateAdminUI();
-                toggleAdminLoginModal();
-                document.getElementById('studentLoginView').classList.add('hidden');
-                document.getElementById('adminDashboardView').classList.remove('hidden');
-                await loadStudentsFromDatabase();
-                renderAdminStudents();
-                alert("🎉 مرحباً بك في لوحة التحكم!");
-            } else {
-                alert("❌ " + (result.message || "كلمة المرور غير صحيحة"));
-            }
-        }
-
-        function updateAdminUI() {
-            document.getElementById('loginBtn').classList.add('hidden');
-            document.getElementById('logoutBtn').classList.remove('hidden');
-            document.getElementById('adminControls').classList.remove('hidden');
-        }
-
-        function logoutAdmin() {
-            isAdmin = false;
-            adminAPI.logout();
-            document.getElementById('loginBtn').classList.remove('hidden');
-            document.getElementById('logoutBtn').classList.add('hidden');
-            document.getElementById('adminControls').classList.add('hidden');
-            document.getElementById('adminDashboardView').classList.add('hidden');
-            document.getElementById('skillsDetailView').classList.add('hidden');
-            document.getElementById('studentLoginView').classList.remove('hidden');
-        }
-
-        function generateRandomCode() {
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
-
-        async function addNewStudent() {
-            const name = document.getElementById('newStudentName').value.trim();
-            if (!name) {
-                alert("يرجى إدخال اسم الطالب");
-                return;
-            }
-
-            const code = generateRandomCode();
-            const result = await adminAPI.addStudent(name, code, null, null);
-
-            if (result.success) {
-                document.getElementById('newStudentName').value = '';
-                alert(`✅ ${result.message}\nالاسم: ${name}\nالرقم: ${code}`);
-                // إعادة تحميل قائمة الطلاب من قاعدة البيانات
-                await loadStudentsFromDatabase();
-                renderAdminStudents();
-            } else {
-                alert("❌ " + (result.message || "خطأ في إضافة الطالب"));
-            }
-        }
-
-        async function deleteStudent(id) {
-            if (!isAdmin) return;
-
-            // احصل على بيانات الطالب من قاعدة البيانات
-            const result = await adminAPI.getAllStudents();
-            if (!result.success) {
-                alert("❌ خطأ في جلب بيانات الطالب");
-                return;
-            }
-
-            const student = result.students.find(s => s.id === id);
-            if (!student) {
-                alert("❌ الطالب غير موجود");
-                return;
-            }
-
-            if (confirm(`هل أنت متأكد من حذف الطالب: ${student.name}؟`)) {
-                const deleteResult = await adminAPI.deleteStudent(id);
-
-                if (deleteResult.success) {
-                    alert("✅ تم حذف الطالب بنجاح");
-                    // إعادة تحميل قائمة الطلاب من قاعدة البيانات
-                    await loadStudentsFromDatabase();
-                    renderAdminStudents();
-                } else {
-                    alert("❌ " + (deleteResult.message || "خطأ في حذف الطالب"));
-                }
-            }
-        }
-
-        async function loadStudentsFromDatabase() {
-            try {
-                const result = await adminAPI.getAllStudents();
-                if (result.success) {
-                    console.log('✅ تم تحميل', result.students.length, 'طالب من قاعدة البيانات');
-                    return result.students;
-                } else {
-                    console.warn('⚠️ خطأ في تحميل الطلاب:', result.message);
-                    return [];
-                }
-            } catch (error) {
-                console.error('❌ خطأ في الاتصال بقاعدة البيانات:', error);
-                return [];
-            }
-        }
-
-        async function renderAdminStudents() {
-            const container = document.getElementById('adminStudentsList');
-            container.innerHTML = '<div class="p-4 text-center text-slate-400">جاري تحميل البيانات...</div>';
-
-            const students = await loadStudentsFromDatabase();
-
-            container.innerHTML = '';
-            if (students.length === 0) {
-                container.innerHTML = '<div class="p-8 text-center text-slate-400">لا يوجد طلاب - أضف طالب جديد</div>';
-                renderSavedSkills();
-                return;
-            }
-
-            students.forEach(student => {
-                const div = document.createElement('div');
-                div.className = "p-4 flex justify-between items-center hover:bg-slate-50 transition";
-                div.innerHTML = `
-                    <div>
-                        <span class="font-bold text-slate-800">${student.name}</span>
-                        <span class="mr-4 text-indigo-600 font-mono bg-indigo-50 px-2 py-1 rounded">رقم: ${student.code}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="showStudentSkills('${student.id}')" class="text-sm text-indigo-500 hover:underline">عرض المهارات</button>
-                        <button onclick="deleteStudent('${student.id}')" class="text-sm text-red-500 hover:text-red-700">🗑️ حذف</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-
-            // عرض المهارات المحفوظة
-            renderSavedSkills();
-        }
-
-        async function renderSavedSkills() {
-            const container = document.getElementById('savedSkillsList');
-            const savedSkills = await fetchCustomSkills();
-            container.innerHTML = '';
-
-            if (!savedSkills || savedSkills.length === 0) {
-                container.innerHTML = '<div class="p-4 text-center text-slate-400">لا توجد مهارات محفوظة</div>';
-                return;
-            }
-
-            savedSkills.forEach(skill => {
-                const div = document.createElement('div');
-                div.className = "p-3 flex justify-between items-center bg-slate-50 rounded-lg hover:bg-slate-100 transition";
-                div.innerHTML = `
-                    <div class="flex-1">
-                        <span class="font-medium text-slate-800">${skill.name}</span>
-                        <a href="${skill.url}" target="_blank" class="mr-2 text-indigo-500 text-sm hover:underline">🔗 الرابط</a>
-                    </div>
-                    <button onclick="deleteSkillFromList('${skill.name.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-sm px-3 py-1">🗑️ حذف</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        async function accessWithCode() {
-            const code = document.getElementById('studentCodeInput').value.trim();
-            if (!code) {
-                alert("يرجى إدخال الرقم");
-                return;
-            }
-
-            // محاولة تسجيل الدخول عبر API
-            const result = await studentAPI.login(code);
-
-            if (result.success) {
-                selectedStudentId = result.student.id;
-                selectedStudent = result.student;
-                document.getElementById('studentLoginView').classList.add('hidden');
-                document.getElementById('adminDashboardView').classList.add('hidden');
-                document.getElementById('skillsDetailView').classList.remove('hidden');
-
-                document.getElementById('currentStudentTitle').innerText = result.student.name;
-
-                // تحميل مهارات الطالب من قاعدة البيانات
-                await renderStudentSkillsFromDB(result.student.id);
-            } else {
-                alert("❌ " + (result.message || "الرقم غير صحيح"));
-            }
-        }
-
-        async function loadStudentsFromDatabase() {
-            try {
-                const result = await adminAPI.getAllStudents();
-
-                if (result.success) {
-                    console.log('✅ تم تحميل', result.students.length, 'طالب من قاعدة البيانات');
-                    return result.students;
-                } else {
-                    console.warn('⚠️ لم يتم تحميل الطلاب:', result.message);
-                    return [];
-                }
-            } catch (error) {
-                console.error('❌ خطأ في الاتصال بقاعدة البيانات:', error);
-                return [];
-            }
-        }
-
-        async function showStudentSkills(id) {
-            selectedStudentId = id;
-
-            // جلب بيانات الطالب من قاعدة البيانات
-            const result = await adminAPI.getAllStudents();
-            const student = result.students.find(s => s.id === id);
-
-            if (!student) {
-                alert("❌ الطالب غير موجود");
-                return;
-            }
-
-            selectedStudent = student;
-            document.getElementById('currentStudentTitle').innerText = student.name;
-
-            // تحميل ومعالجة المهارات من قاعدة البيانات
-            await renderStudentSkillsFromDB(id);
-
-            document.getElementById('studentLoginView').classList.add('hidden');
-            document.getElementById('adminDashboardView').classList.add('hidden');
-            document.getElementById('skillsDetailView').classList.remove('hidden');
-        }
-
-        async function renderStudentSkillsFromDB(studentId) {
-            // جلب المهارات من قاعدة البيانات
-            const skillsResult = await studentAPI.getSkills();
-
-            const tbody = document.getElementById('skillsTableBody');
-            tbody.innerHTML = '';
-
-            if (isAdmin) {
-                document.getElementById('adminHeaderDelete').classList.remove('hidden');
-            } else {
-                document.getElementById('adminHeaderDelete').classList.add('hidden');
-            }
-
-            if (!skillsResult.success || !skillsResult.data || skillsResult.data.skills.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
-                return;
-            }
-
-            const skills = skillsResult.data.skills;
-            skills.forEach((skill, index) => {
-                const row = document.createElement('tr');
-                row.className = "border-b border-slate-100";
-
-                const skillName = skill.name || 'مهارة بدون عنوان';
-                const skillUrl = skill.description || '#';
-                const isDone = skill.level === 3 || skill.level === 2;
-
-                const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
-                const statusColor = isDone ? 'text-green-600' : 'text-red-400';
-
-                let deleteBtn = isAdmin ? `<td class="p-4 text-center"><button onclick="deleteSkill('${skill.id}')" class="text-red-500 hover:text-red-700">🗑️</button></td>` : '';
-
-                row.innerHTML = `
-                    <td class="p-4 text-slate-700">${skillName}</td>
-                    <td class="p-4 text-center">
-                        <a href="${skillUrl}" target="_blank" class="text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
-                            📂
-                        </a>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="toggleSkill('${skill.id}')" class="${statusColor} font-bold px-3 py-1 hover:opacity-80">
-                            ${statusText}
-                        </button>
-                    </td>
-                    ${deleteBtn}
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function renderStudentSkills(student) {
-            document.getElementById('currentStudentTitle').innerText = student.name;
-            // سيتم استدعاء renderStudentSkillsFromDB بدلاً من هذا
-        }
-
-        async function toggleSkill(skillId) {
-            if (!isAdmin) return;
-
-            const skillsResult = await studentAPI.getSkills();
-            if (!skillsResult.success) {
-                alert("❌ خطأ في تحميل المهارات");
-                return;
-            }
-
-            const skill = skillsResult.data.skills.find(s => s.id === skillId);
-            if (!skill) {
-                alert("❌ المهارة غير موجودة");
-                return;
-            }
-
-            // تبديل المستوى: 1 أو 2 -> 3 (مكتمل)، 3 -> 1 (غير مكتمل)
-            const newLevel = skill.level === 3 ? 1 : 3;
-
-            const result = await adminAPI.updateSkill(
-                skillId,
-                skill.name,
-                newLevel,
-                skill.description || '',
-                skill.category || '',
-                skill.notes || ''
-            );
-
-            if (result.success) {
-                await renderStudentSkillsFromDB(selectedStudentId);
-            } else {
-                alert("❌ خطأ في تحديث المهارة: " + (result.message || ''));
-            }
-        }
-
-        async function deleteSkill(skillId) {
-            if (!isAdmin) return;
-
-            if (confirm("هل أنت متأكد من حذف المهارة؟")) {
-                const result = await adminAPI.deleteSkill(skillId);
-
-                if (result.success) {
-                    alert("✅ تم حذف المهارة بنجاح");
-                    await renderStudentSkillsFromDB(selectedStudentId);
-                } else {
-                    alert("❌ خطأ في حذف المهارة: " + (result.message || ''));
-                }
-            }
-        }
-
-        function backToHome() {
-            document.getElementById('skillsDetailView').classList.add('hidden');
-            if (isAdmin) {
-                document.getElementById('adminDashboardView').classList.remove('hidden');
-            } else {
-                document.getElementById('studentLoginView').classList.remove('hidden');
-                studentAPI.logout();
-                document.getElementById('studentCodeInput').value = '';
-                selectedStudent = null;
-            }
-        }
-
-        document.getElementById('skillDropdown').addEventListener('change', function () {
-            const manual = document.getElementById('manualSkillInput');
-            if (this.value === 'custom') {
-                manual.classList.remove('hidden');
-            } else {
-                manual.classList.add('hidden');
-                manual.value = '';
-            }
-        });
-
-        async function saveNewSkill() {
-            const drop = document.getElementById('skillDropdown');
-            let skillName = drop.value === 'custom' ? document.getElementById('manualSkillInput').value.trim() : drop.value;
-            const url = document.getElementById('newFileLink').value.trim();
-
-            if (!skillName || !url) {
-                alert("أكمل البيانات");
-                return;
-            }
-
-            // إضافة المهارة عبر API
-            const result = await adminAPI.addSkill(
-                selectedStudentId,
-                skillName,
-                1,
-                url,
-                null,
-                null
-            );
-
-            if (result.success) {
-                // إذا كانت مهارة مخصصة، احفظها في القائمة مع الرابط
-                if (drop.value === 'custom' && skillName) {
-                    addSkillToDropdown(skillName, url);
-                }
-
-                drop.value = '';
-                document.getElementById('manualSkillInput').value = '';
-                document.getElementById('manualSkillInput').classList.add('hidden');
-                document.getElementById('newFileLink').value = '';
-
-                // تحديث المهارات من قاعدة البيانات
-                await renderStudentSkillsFromDB(selectedStudentId);
-                alert("✅ تم إضافة المهارة بنجاح");
-            } else {
-                alert("❌ خطأ في إضافة المهارة: " + (result.message || ''));
-            }
-        }
-
-        // إضافة مهارة جديدة إلى القائمة المنسدلة مع الرابط
-        async function addSkillToDropdown(skillName, url) {
-            const dropdown = document.getElementById('skillDropdown');
-
-            // احصل على المهارات المحفوظة من قاعدة البيانات
-            let savedSkills = await fetchCustomSkills() || [];
-
-            // تحقق من عدم وجود المهارة مسبقاً
-            const exists = savedSkills.some(skill => skill.name === skillName);
-            if (exists) return;
-
-            // إضافة المهارة في قاعدة البيانات
-            await saveCustomSkillToDatabase(skillName, url);
-
-            // أضف المهارة قبل خيار "مهارة أخرى"
-            const customOption = dropdown.querySelector('option[value="custom"]');
-            const newOption = document.createElement('option');
-            newOption.value = skillName;
-            newOption.textContent = skillName;
-            newOption.setAttribute('data-url', url);
-            dropdown.insertBefore(newOption, customOption);
-        }
-
-        // حذف مهارة من القائمة المحفوظة
-        async function deleteSkillFromList(skillName) {
-            if (confirm(`هل تريد حذف المهارة: ${skillName} من القائمة؟`)) {
-                // حذف من قاعدة البيانات
-                await deleteCustomSkillFromDatabase(skillName);
-
-                // إعادة تحميل القائمة المنسدلة
-                reloadSkillsDropdown();
-                // تحديث عرض المهارات المحفوظة
-                renderSavedSkills();
-                alert("✅ تم حذف المهارة من القائمة");
-            }
-        }
-
-        // إعادة تحميل القائمة المنسدلة
-        async function reloadSkillsDropdown() {
-            const dropdown = document.getElementById('skillDropdown');
-
-            // حذف المهارات المخصصة فقط
-            const options = Array.from(dropdown.options);
-            options.forEach(option => {
-                if (option.value !== '' && option.value !== 'التمييز بين ال الشمسية وال القمرية' && option.value !== 'custom') {
-                    option.remove();
-                }
-            });
-
-            // إعادة تحميل المهارات المخصصة من قاعدة البيانات
-            const savedSkills = await fetchCustomSkills() || [];
-            const customOption = dropdown.querySelector('option[value="custom"]');
-
-            savedSkills.forEach(skill => {
-                const newOption = document.createElement('option');
-                newOption.value = skill.name;
-                newOption.textContent = skill.name;
-                newOption.setAttribute('data-url', skill.url);
-                dropdown.insertBefore(newOption, customOption);
-            });
-        }
-
-        // ملء رابط الملف تلقائياً عند اختيار مهارة محفوظة
-        document.getElementById('skillDropdown').addEventListener('change', function () {
-            const manual = document.getElementById('manualSkillInput');
-            const fileLink = document.getElementById('newFileLink');
-
-            if (this.value === 'custom') {
-                manual.classList.remove('hidden');
-                fileLink.value = '';
-            } else {
-                manual.classList.add('hidden');
-                manual.value = '';
-
-                // ملء الرابط تلقائياً إذا كانت مهارة محفوظة
-                const selectedOption = this.options[this.selectedIndex];
-                const url = selectedOption.getAttribute('data-url');
-                if (url) {
-                    fileLink.value = url;
-                } else {
-                    fileLink.value = '';
-                }
-            }
-        });
-
-        // تحميل المهارات المخصصة عند بدء التشغيل
-        window.addEventListener('load', async function () {
-            const savedSkills = await fetchCustomSkills() || [];
-            const dropdown = document.getElementById('skillDropdown');
-            const customOption = dropdown.querySelector('option[value="custom"]');
-
-            savedSkills.forEach(skill => {
-                const newOption = document.createElement('option');
-                newOption.value = skill.name;
-                newOption.textContent = skill.name;
-                newOption.setAttribute('data-url', skill.url);
-                dropdown.insertBefore(newOption, customOption);
-            });
-        });
-
-        // دوال قاعدة البيانات للمهارات المخصصة
-        async function fetchCustomSkills() {
-            try {
-                const response = await fetch('/api/custom-skills', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.skills || [];
-                }
-            } catch (error) {
-                console.error('خطأ في جلب المهارات المخصصة:', error);
-            }
-            return [];
-        }
-
-        async function saveCustomSkillToDatabase(name, url) {
-            try {
-                const response = await fetch('/api/custom-skills', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                    },
-                    body: JSON.stringify({ name, url })
-                });
-                if (response.ok) {
-                    reloadSkillsDropdown();
-                    renderSavedSkills();
-                }
-            } catch (error) {
-                console.error('خطأ في حفظ المهارة:', error);
-            }
-        }
-
-        async function deleteCustomSkillFromDatabase(name) {
-            try {
-                const response = await fetch(`/api/custom-skills/${encodeURIComponent(name)}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                    }
-                });
-                if (response.ok) {
-                    reloadSkillsDropdown();
-                    renderSavedSkills();
-                    alert('✅ تم حذف المهارة من القائمة');
-                }
-            } catch (error) {
-                console.error('خطأ في حذف المهارة:', error);
-            }
-        }
-
-        // دوال Firebase placeholder - تم إزالتها لأننا نستخدم قاعدة البيانات الآن
-        async function loadStudentsFromFirebase() {
-            // تم استبدالها بـ loadStudentsFromDatabase
-            return null;
-        }
-
-        function saveStudentsToFirebase(data) {
-            // تم استبدالها بـ API calls
-            console.log('ملاحظة: البيانات الآن تُحفظ في قاعدة البيانات عبر API');
-        }
-    </script>
+    <script src="main.js"></script>
 </body>
 
 </html>

@@ -1,5 +1,3 @@
--------------------------
-
 this project over here is from my friend he sends me! but the issue is it's alot of code that not needed and alot of explanations that are not needed so i want you to remove all the unnecessary code and explanations and remove all the .md files insted the readme.md file should be the only one that is there and don't change the readme.md file at all just remove the other ones and remove all the code that is not needed and just keep the code that is needed and optimize it to be more efficient and faster and remove all the comments that are not needed and make the code more clean and organized and make sure to test the code after optimizing it to make sure it works correctly and doesn't have any bugs or errors and also don't document your finsal summary to me just give do the optimized code.
 
 You can also reduce the number of files in the project by combining related code into fewer files, or make a folder structure to organize the code better.
@@ -21,3 +19,39 @@ and note that don't ever create/edit .md files to summarize the changes.
 -------------------------
 
 remove anything files that are not needed for the project! if i want to run the project locally i just run python api/index.py and it should work without any issues!
+
+-------------------------
+
+i don't know why but i takes so much time to show "🎉 مرحباً بك في لوحة التحكم!" after i login as admin why? can we imrove it or even refactor it to make imaditly!
+
+also all other tasks takes time to load like fetching students or adding new student or deleting student or any other task.. please make sure to optimize the code to make it faster and more efficient and also add some loading indicators to show the user that the task is in progress on every task that takes time to load or process!
+
+don't create any .md files to summarize the changes just do the changes.
+
+-------------------------
+
+i want you to read the whole project and remove duplicate code or duplicate api calls or any code that is not needed for the project, and i noticed that the index.html has alot of js code please remove any js code that is not needed or duplicate code and also make sure to optimize the js code to be more efficient and faster and move the js code to a separate file and link it to the index.html
+
+don't create any .md files to summarize the changes just do the changes.
+
+-------------------------
+
+there is an issue the when i press عرض المهارات for a student it shows the loading indicator then it goes me to the page but when i press the ← خروج it goes back but the loading indicator is still there and don't disappear until i refresh the page!
+
+-------------------------
+
+alright! i want you now to do somthing! i want you to repleace any alert or confirm with a custom modal that is more user friendly.
+
+also another thing is that make the app user friendly for mobile devices.
+
+-------------------------
+
+I want you to read the app and understand very well and then i want you to create a new features which helps the admin or helps the students, for example in the قائمة الطلاب المضافين add a search bar and a button to delete all students at once, or any othe minor or major features that you think will be useful for this project.
+
+don't create any .md files to summarize the changes just do the changes.
+
+-------------------------
+
+update the readme.md file to reflect the changes, and make sure it's not complicated and it's easy to understand for even not technical users, don't include the instructions for running the project, make the readme.md file small and concise and to the point, and also mention "صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي" at the end.
+
+update the how-to.txt file to say for the user how to run the project locally with user friendly instructions.
