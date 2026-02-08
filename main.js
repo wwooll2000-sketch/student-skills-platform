@@ -348,31 +348,19 @@ async function renderAdminStudents() {
 
     const students = await loadStudentsFromDatabase();
 
+    // Cache students for search and filter
+    allStudentsCache = students;
+
     // Load saved skills in parallel with better caching
     if (!customSkillsCache) {
         customSkillsCache = await fetchCustomSkills();
     }
 
-    container.innerHTML = '';
-    if (students.length === 0) {
-        container.innerHTML = '<div class="p-8 text-center text-slate-400">لا يوجد طلاب - أضف طالب جديد</div>';
-    } else {
-        students.forEach(student => {
-            const div = document.createElement('div');
-            div.className = "p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-50 transition gap-2 sm:gap-0";
-            div.innerHTML = `
-                <div class="flex-1">
-                    <span class="font-bold text-slate-800 text-sm sm:text-base">${student.name}</span>
-                    <span class="mr-2 sm:mr-4 text-indigo-600 font-mono bg-indigo-50 px-2 py-1 rounded text-xs sm:text-sm">رقم: ${student.code}</span>
-                </div>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <button onclick="showStudentSkills('${student.id}')" class="flex-1 sm:flex-none text-xs sm:text-sm text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-lg transition">عرض المهارات</button>
-                    <button onclick="deleteStudent('${student.id}')" class="text-xs sm:text-sm text-white bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg transition">🗑️ حذف</button>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
+    // Update statistics
+    updateStatistics();
+
+    // Render students using the filter function
+    applySortAndFilter();
 
     renderSavedSkillsList(customSkillsCache);
 }
@@ -466,16 +454,30 @@ async function renderStudentSkillsFromDB(studentId) {
 
     if (isAdmin) {
         document.getElementById('adminHeaderDelete').classList.remove('hidden');
+        // Show report button for admin
+        const reportBtn = document.getElementById('studentReportBtn');
+        if (reportBtn) reportBtn.classList.remove('hidden');
     } else {
         document.getElementById('adminHeaderDelete').classList.add('hidden');
+        // Hide report button for students
+        const reportBtn = document.getElementById('studentReportBtn');
+        if (reportBtn) reportBtn.classList.add('hidden');
     }
 
     if (!skillsResult.success || !skillsResult.data || skillsResult.data.skills.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
+        updateStudentProgressBar(0, 0);
         return;
     }
 
     const skills = skillsResult.data.skills;
+    allSkillsCache = skills; // Cache for filtering
+    
+    // Calculate progress
+    const completedCount = skills.filter(s => s.level === 3 || s.level === 2).length;
+    const totalCount = skills.length;
+    updateStudentProgressBar(completedCount, totalCount);
+
     skills.forEach((skill) => {
         const row = document.createElement('tr');
         row.className = "border-b border-slate-100";
@@ -579,6 +581,13 @@ async function deleteSkill(skillId) {
 
 function backToHome() {
     document.getElementById('skillsDetailView').classList.add('hidden');
+    
+    // Reset skill filter
+    const skillFilter = document.getElementById('skillFilterSelect');
+    if (skillFilter) {
+        skillFilter.value = 'all';
+    }
+    
     if (isAdmin) {
         document.getElementById('adminDashboardView').classList.remove('hidden');
         renderAdminStudents(); // Refresh the students list to remove loading state
@@ -799,3 +808,434 @@ async function deleteCustomSkillFromDatabase(name) {
         return false;
     }
 }
+
+// ============================================
+// NEW FEATURES
+// ============================================
+
+// Global variables for search and filter
+let allStudentsCache = [];
+let allSkillsCache = [];
+
+// Update statistics dashboard
+async function updateStatistics() {
+    const result = await adminAPI.getAllStudents();
+    if (!result.success) return;
+
+    const students = result.students;
+    let totalSkills = 0;
+    let completedSkills = 0;
+
+    // Count skills for each student
+    for (const student of students) {
+        selectedStudentId = student.id;
+        const skillsResult = await studentAPI.getSkills();
+        if (skillsResult.success) {
+            totalSkills += skillsResult.data.skills.length;
+            completedSkills += skillsResult.data.skills.filter(s => s.level === 3 || s.level === 2).length;
+        }
+    }
+
+    const completionRate = totalSkills > 0 ? ((completedSkills / totalSkills) * 100).toFixed(1) : 0;
+
+    document.getElementById('totalStudentsCount').textContent = students.length;
+    document.getElementById('totalSkillsCount').textContent = totalSkills;
+    document.getElementById('completedSkillsCount').textContent = completedSkills;
+    document.getElementById('completionRate').textContent = completionRate + '%';
+}
+
+// Search and filter students
+function applySortAndFilter() {
+    const searchTerm = document.getElementById('studentSearchInput').value.trim().toLowerCase();
+    const sortBy = document.getElementById('studentSortSelect').value;
+
+    let filteredStudents = [...allStudentsCache];
+
+    // Apply search filter
+    if (searchTerm) {
+        filteredStudents = filteredStudents.filter(student => 
+            student.name.toLowerCase().includes(searchTerm) || 
+            student.code.includes(searchTerm)
+        );
+    }
+
+    // Apply sorting
+    filteredStudents.sort((a, b) => {
+        switch(sortBy) {
+            case 'name-asc':
+                return a.name.localeCompare(b.name, 'ar');
+            case 'name-desc':
+                return b.name.localeCompare(a.name, 'ar');
+            case 'code-asc':
+                return a.code.localeCompare(b.code);
+            case 'code-desc':
+                return b.code.localeCompare(a.code);
+            default:
+                return 0;
+        }
+    });
+
+    renderFilteredStudents(filteredStudents);
+}
+
+// Render filtered students
+function renderFilteredStudents(students) {
+    const container = document.getElementById('adminStudentsList');
+    const countDisplay = document.getElementById('studentCountDisplay');
+    
+    container.innerHTML = '';
+
+    // Update count display
+    if (countDisplay) {
+        const totalCount = allStudentsCache.length;
+        const shownCount = students.length;
+        if (shownCount < totalCount) {
+            countDisplay.textContent = `عرض ${shownCount} من ${totalCount} طالب`;
+        } else {
+            countDisplay.textContent = `إجمالي: ${totalCount} طالب`;
+        }
+    }
+
+    if (students.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-400">لا توجد نتائج</div>';
+        return;
+    }
+
+    students.forEach(student => {
+        const div = document.createElement('div');
+        div.className = "p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-50 transition gap-2 sm:gap-0";
+        div.innerHTML = `
+            <div class="flex-1">
+                <span class="font-bold text-slate-800 text-sm sm:text-base">${student.name}</span>
+                <span class="mr-2 sm:mr-4 text-indigo-600 font-mono bg-indigo-50 px-2 py-1 rounded text-xs sm:text-sm">رقم: ${student.code}</span>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="showStudentSkills('${student.id}')" class="flex-1 sm:flex-none text-xs sm:text-sm text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-lg transition">عرض المهارات</button>
+                <button onclick="deleteStudent('${student.id}')" class="text-xs sm:text-sm text-white bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg transition">🗑️ حذف</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Export students data
+async function exportStudentsData() {
+    const result = await adminAPI.getAllStudents();
+    if (!result.success) {
+        customAlert("خطأ في تصدير البيانات", { icon: '❌', title: 'خطأ' });
+        return;
+    }
+
+    const students = result.students;
+    const exportData = {
+        exportDate: new Date().toISOString(),
+        totalStudents: students.length,
+        students: []
+    };
+
+    // Gather all student data with skills
+    for (const student of students) {
+        selectedStudentId = student.id;
+        const skillsResult = await studentAPI.getSkills();
+        
+        exportData.students.push({
+            id: student.id,
+            name: student.name,
+            code: student.code,
+            skills: skillsResult.success ? skillsResult.data.skills : []
+        });
+    }
+
+    // Create download
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `students_data_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    customAlert("تم تصدير البيانات بنجاح", { icon: '✅', title: 'نجحت العملية' });
+}
+
+// Import students data
+async function importStudentsData() {
+    if (!isAdmin) return;
+
+    const fileInput = document.getElementById('importFileInput');
+    if (!fileInput) return;
+
+    // Trigger file selection
+    fileInput.click();
+
+    // Handle file selection
+    fileInput.onchange = async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            customAlert("يرجى اختيار ملف JSON صالح", { icon: '⚠️', title: 'تنبيه' });
+            return;
+        }
+
+        try {
+            const fileContent = await file.text();
+            const importData = JSON.parse(fileContent);
+
+            // Validate data structure
+            if (!importData.students || !Array.isArray(importData.students)) {
+                customAlert("صيغة الملف غير صحيحة", { icon: '❌', title: 'خطأ' });
+                return;
+            }
+
+            // Confirm import
+            customConfirm(
+                `هل تريد استيراد ${importData.students.length} طالب؟\n\nملاحظة: سيتم إضافة الطلاب الجدد فقط، ولن يتم تعديل البيانات الموجودة.`,
+                async () => {
+                    await processImport(importData.students);
+                },
+                {
+                    icon: '📤',
+                    title: 'تأكيد الاستيراد',
+                    confirmText: 'استيراد',
+                    cancelText: 'إلغاء'
+                }
+            );
+        } catch (error) {
+            console.error('خطأ في قراءة الملف:', error);
+            customAlert("خطأ في قراءة الملف. تأكد من أن الملف بصيغة JSON صحيحة", { icon: '❌', title: 'خطأ' });
+        }
+
+        // Reset file input
+        fileInput.value = '';
+    };
+}
+
+// Process import of students data
+async function processImport(studentsData) {
+    showLoading('adminStudentsList', `جاري استيراد ${studentsData.length} طالب...`);
+
+    let successCount = 0;
+    let skipCount = 0;
+    let errorCount = 0;
+
+    // Get existing students to check for duplicates
+    const existingResult = await adminAPI.getAllStudents();
+    const existingCodes = existingResult.success 
+        ? existingResult.students.map(s => s.code) 
+        : [];
+
+    for (const studentData of studentsData) {
+        try {
+            // Skip if student code already exists
+            if (existingCodes.includes(studentData.code)) {
+                skipCount++;
+                continue;
+            }
+
+            // Add student
+            const result = await adminAPI.addStudent(
+                studentData.name,
+                studentData.code,
+                null,
+                null
+            );
+
+            if (result.success) {
+                successCount++;
+
+                // Add skills if available
+                if (studentData.skills && studentData.skills.length > 0) {
+                    const newStudentId = result.student.id;
+                    
+                    for (const skill of studentData.skills) {
+                        await adminAPI.addSkill(
+                            newStudentId,
+                            skill.name,
+                            skill.level || 1,
+                            skill.description || '',
+                            skill.category || '',
+                            skill.notes || ''
+                        );
+                    }
+                }
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            console.error('خطأ في استيراد طالب:', error);
+            errorCount++;
+        }
+    }
+
+    const message = `تم الاستيراد بنجاح:\n` +
+                    `✅ تمت الإضافة: ${successCount} طالب\n` +
+                    (skipCount > 0 ? `⏭️ تم تخطي: ${skipCount} طالب (موجود مسبقاً)\n` : '') +
+                    (errorCount > 0 ? `❌ فشل: ${errorCount} طالب` : '');
+
+    customAlert(message, {
+        icon: errorCount > 0 ? '⚠️' : '✅',
+        title: 'نتيجة الاستيراد',
+        onClose: () => renderAdminStudents()
+    });
+}
+
+// Delete all students
+async function deleteAllStudents() {
+    if (!isAdmin) return;
+
+    const result = await adminAPI.getAllStudents();
+    if (!result.success) {
+        customAlert("خطأ في جلب بيانات الطلاب", { icon: '❌', title: 'خطأ' });
+        return;
+    }
+
+    const students = result.students;
+    if (students.length === 0) {
+        customAlert("لا يوجد طلاب لحذفهم", { icon: '⚠️', title: 'تنبيه' });
+        return;
+    }
+
+    customConfirm(
+        `هل أنت متأكد من حذف جميع الطلاب (${students.length} طالب)؟\n\nتحذير: لا يمكن التراجع عن هذا الإجراء!`,
+        async () => {
+            showLoading('adminStudentsList', `جاري حذف ${students.length} طالب...`);
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const student of students) {
+                const deleteResult = await adminAPI.deleteStudent(student.id);
+                if (deleteResult.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            }
+
+            const message = failCount > 0 
+                ? `تم حذف ${successCount} طالب بنجاح\nفشل حذف ${failCount} طالب`
+                : `تم حذف جميع الطلاب (${successCount}) بنجاح`;
+
+            customAlert(message, {
+                icon: failCount > 0 ? '⚠️' : '✅',
+                title: 'نتيجة الحذف',
+                onClose: () => renderAdminStudents()
+            });
+        },
+        {
+            icon: '⚠️',
+            title: 'تأكيد حذف جميع الطلاب',
+            confirmText: 'حذف الجميع',
+            cancelText: 'إلغاء'
+        }
+    );
+}
+
+// Filter skills by completion status
+function applySkillFilter() {
+    const filterValue = document.getElementById('skillFilterSelect').value;
+    const tbody = document.getElementById('skillsTableBody');
+    const rows = tbody.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const statusCell = row.querySelector('td:nth-child(3)');
+        if (!statusCell) return;
+
+        const isCompleted = statusCell.textContent.includes('✅ تم');
+
+        if (filterValue === 'all') {
+            row.style.display = '';
+        } else if (filterValue === 'completed' && isCompleted) {
+            row.style.display = '';
+        } else if (filterValue === 'incomplete' && !isCompleted) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Update student progress bar
+function updateStudentProgressBar(completedCount, totalCount) {
+    const progressBar = document.getElementById('studentProgressBar');
+    if (!progressBar) return;
+
+    const percentage = totalCount > 0 ? ((completedCount / totalCount) * 100).toFixed(1) : 0;
+    
+    progressBar.innerHTML = `
+        <div class="flex items-center gap-2 text-xs sm:text-sm">
+            <div class="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-green-400 to-green-600 h-full transition-all duration-500" style="width: ${percentage}%"></div>
+            </div>
+            <span class="font-bold text-slate-700 min-w-[60px]">${completedCount}/${totalCount} (${percentage}%)</span>
+        </div>
+    `;
+}
+
+// Export individual student report
+async function exportStudentReport() {
+    if (!selectedStudent || !selectedStudentId) {
+        customAlert("لا يوجد طالب محدد", { icon: '⚠️', title: 'تنبيه' });
+        return;
+    }
+
+    const skillsResult = await studentAPI.getSkills();
+    
+    if (!skillsResult.success) {
+        customAlert("خطأ في جلب بيانات المهارات", { icon: '❌', title: 'خطأ' });
+        return;
+    }
+
+    const skills = skillsResult.data.skills;
+    const completedSkills = skills.filter(s => s.level === 3 || s.level === 2);
+    const incompleteSkills = skills.filter(s => s.level !== 3 && s.level !== 2);
+
+    const reportData = {
+        studentName: selectedStudent.name,
+        studentCode: selectedStudent.code,
+        reportDate: new Date().toISOString(),
+        summary: {
+            totalSkills: skills.length,
+            completedSkills: completedSkills.length,
+            incompleteSkills: incompleteSkills.length,
+            completionRate: skillsResult.data.completionRate
+        },
+        skills: {
+            completed: completedSkills.map(s => ({ name: s.name, url: s.description })),
+            incomplete: incompleteSkills.map(s => ({ name: s.name, url: s.description }))
+        }
+    };
+
+    // Create download
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `تقرير_${selectedStudent.name}_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    customAlert("تم تصدير تقرير الطالب بنجاح", { icon: '✅', title: 'نجحت العملية' });
+}
+
+// Add event listener for search input
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('studentSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', applySortAndFilter);
+        
+        // Add keyboard shortcut (Ctrl+F or Cmd+F) to focus search
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f' && isAdmin) {
+                const adminDashboard = document.getElementById('adminDashboardView');
+                if (!adminDashboard.classList.contains('hidden')) {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
+            }
+        });
+    }
+});

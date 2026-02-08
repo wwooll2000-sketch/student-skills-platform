@@ -52,6 +52,20 @@ don't create any .md files to summarize the changes just do the changes.
 
 -------------------------
 
+don't show the تقرير الطالب for the studnents.. just for the admin.
+
+also you added the 📥 تصدير البيانات button wich is to make a backup but also i want a button in the إضافة طالب جديد or next to it for add these students.
+
+-------------------------
+
+is there more features that you can add to the project to make it also more useful for the students or the admin? "useful features" can be anything that you think will be useful
+
+-------------------------
+
+the main.js file is getting too big and it's hard to manage it! so please make sure to split the code in the main.js file into multiple files and organize them in a way that makes it easy to manage and understand! also make sure if there is any big file other than main.js that is big and hard to manage please split it into multiple files and organize them in a way that makes it easy to manage and understand!
+
+-------------------------
+
 update the readme.md file to reflect the changes, and make sure it's not complicated and it's easy to understand for even not technical users, don't include the instructions for running the project, make the readme.md file small and concise and to the point, and also mention "صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي" at the end.
 
-update the how-to.txt file to say for the user how to run the project locally with user friendly instructions.
+update the how-to.txt file to say for the user how to run the project locally with user friendly instructions. Note: also mention that how to create the .env file and where to get the database credentials from the neon postgres database in vercel + how to create the JWT_SECRET and where to put the secret inside the file.

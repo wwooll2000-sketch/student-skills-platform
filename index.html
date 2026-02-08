@@ -82,12 +82,72 @@
                         class="bg-green-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-green-700 transition text-sm sm:text-base whitespace-nowrap">توليد
                         رقم
                         الطالب</button>
+                    <button onclick="importStudentsData()"
+                        class="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base whitespace-nowrap">📤
+                        استيراد
+                        بيانات</button>
+                </div>
+                <input type="file" id="importFileInput" accept=".json" class="hidden">
+            </div>
+
+            <!-- Statistics Dashboard -->
+            <div id="statisticsDashboard" class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg sm:text-xl font-bold">📊 إحصائيات عامة</h3>
+                    <button onclick="renderAdminStudents()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-lg text-xs sm:text-sm transition" title="تحديث الإحصائيات">
+                        🔄 تحديث
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="totalStudentsCount">0</div>
+                        <div class="text-xs sm:text-sm opacity-90">إجمالي الطلاب</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="totalSkillsCount">0</div>
+                        <div class="text-xs sm:text-sm opacity-90">إجمالي المهارات</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="completedSkillsCount">0</div>
+                        <div class="text-xs sm:text-sm opacity-90">المهارات المكتملة</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="completionRate">0%</div>
+                        <div class="text-xs sm:text-sm opacity-90">نسبة الإنجاز</div>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 font-bold text-sm sm:text-base">قائمة
-                    الطلاب المضافين</div>
+                <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h3 class="font-bold text-sm sm:text-base">قائمة الطلاب المضافين</h3>
+                            <p id="studentCountDisplay" class="text-xs text-slate-500 mt-1"></p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <input id="studentSearchInput" type="text" placeholder="🔍 ابحث عن طالب..."
+                                class="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none flex-1 sm:flex-none sm:w-48">
+                            <select id="studentSortSelect" onchange="applySortAndFilter()"
+                                class="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="name-asc">ترتيب: الاسم (أ-ي)</option>
+                                <option value="name-desc">ترتيب: الاسم (ي-أ)</option>
+                                <option value="code-asc">ترتيب: الرقم (تصاعدي)</option>
+                                <option value="code-desc">ترتيب: الرقم (تنازلي)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 mt-3">
+                        <button onclick="exportStudentsData()" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-xs sm:text-sm">
+                            📥 تصدير البيانات
+                        </button>
+                        <button onclick="deleteAllStudents()" 
+                            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-xs sm:text-sm">
+                            🗑️ حذف جميع الطلاب
+                        </button>
+                    </div>
+                </div>
                 <div id="adminStudentsList" class="divide-y divide-slate-100"></div>
             </div>
 
@@ -98,12 +158,31 @@
         </div>
 
         <div id="skillsDetailView" class="hidden">
-            <div class="flex items-center justify-between mb-6 bg-white p-4 rounded-lg shadow-sm">
-                <h2 id="currentStudentTitle" class="text-2xl font-bold text-indigo-700"></h2>
-                <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium">← خروج</button>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 bg-white p-4 rounded-lg shadow-sm gap-3">
+                <div class="flex-1">
+                    <h2 id="currentStudentTitle" class="text-xl sm:text-2xl font-bold text-indigo-700"></h2>
+                    <div id="studentProgressBar" class="mt-2"></div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="studentReportBtn" onclick="exportStudentReport()" class="hidden text-xs sm:text-sm bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition" title="تصدير تقرير الطالب">
+                        📄 تقرير
+                    </button>
+                    <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium">← خروج</button>
+                </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h3 class="font-bold text-sm sm:text-base">المهارات</h3>
+                        <select id="skillFilterSelect" onchange="applySkillFilter()"
+                            class="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="all">جميع المهارات</option>
+                            <option value="completed">المهارات المكتملة</option>
+                            <option value="incomplete">المهارات غير المكتملة</option>
+                        </select>
+                    </div>
+                </div>
                 <table class="w-full text-right border-collapse">
                     <thead>
                         <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
