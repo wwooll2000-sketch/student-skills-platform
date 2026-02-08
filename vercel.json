@@ -1,24 +1,26 @@
 {
   "version": 2,
-  "buildCommand": "echo 'Build complete'",
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
   "env": {
     "DATABASE_URL": "@database_url",
     "JWT_SECRET": "@jwt_secret",
-    "ADMIN_PASSWORD": "@admin_password",
-    "NODE_ENV": "production"
+    "ADMIN_PASSWORD": "@admin_password"
   },
-  "functions": {
-    "api/**/*.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

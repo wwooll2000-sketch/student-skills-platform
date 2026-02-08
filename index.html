@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,25 +9,32 @@
     <link rel="manifest" href="manifest.json">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: #f8fafc;
         }
     </style>
 </head>
+
 <body class="p-4 md:p-8">
     <div id="app" class="max-w-4xl mx-auto">
         <div class="flex justify-end mb-6">
-            <button id="loginBtn" type="button" onclick="toggleAdminLoginModal()" class="text-2xl hover:scale-110 transition-transform p-2 cursor-pointer" title="دخول المعلم">⚙️</button>
-            <button id="logoutBtn" type="button" onclick="logoutAdmin()" class="hidden text-sm bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل خروج المعلم</button>
+            <button id="loginBtn" type="button" onclick="toggleAdminLoginModal()"
+                class="text-2xl hover:scale-110 transition-transform p-2 cursor-pointer" title="دخول المعلم">⚙️</button>
+            <button id="logoutBtn" type="button" onclick="logoutAdmin()"
+                class="hidden text-sm bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
+                خروج المعلم</button>
         </div>
 
         <div id="studentLoginView" class="text-center py-20 bg-white rounded-2xl shadow-sm border border-slate-200">
             <h1 class="text-3xl font-bold text-slate-800 mb-6">نظام متابعة مهارات لغتي</h1>
             <p class="text-slate-500 mb-8">يرجى إدخال رقم الطالب الخاص بك للدخول</p>
             <div class="max-w-xs mx-auto px-4">
-                <input id="studentCodeInput" type="text" placeholder="أدخل رقم الطالب" class="w-full p-4 text-center border-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xl font-bold tracking-widest mb-4">
-                <button onclick="accessWithCode()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition">دخول</button>
+                <input id="studentCodeInput" type="text" placeholder="أدخل رقم الطالب"
+                    class="w-full p-4 text-center border-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xl font-bold tracking-widest mb-4">
+                <button onclick="accessWithCode()"
+                    class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition">دخول</button>
             </div>
         </div>
 
@@ -38,8 +46,11 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
                 <h3 class="text-lg font-bold text-indigo-900 mb-4">إضافة طالب جديد</h3>
                 <div class="flex gap-4">
-                    <input id="newStudentName" type="text" placeholder="اسم الطالب الثلاثي" class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <button onclick="addNewStudent()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">توليد رقم الطالب</button>
+                    <input id="newStudentName" type="text" placeholder="اسم الطالب الثلاثي"
+                        class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button onclick="addNewStudent()"
+                        class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">توليد رقم
+                        الطالب</button>
                 </div>
             </div>
 
@@ -59,7 +70,9 @@
                 <h2 id="currentStudentTitle" class="text-2xl font-bold text-indigo-700"></h2>
                 <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium">← خروج</button>
             </div>
-                        <footer class="text-center py-6 text-slate-500"> <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p> </footer>
+            <footer class="text-center py-6 text-slate-500">
+                <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
+            </footer>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-right border-collapse">
@@ -78,46 +91,62 @@
             <div id="adminControls" class="hidden mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-100">
                 <h3 class="text-lg font-bold text-indigo-900 mb-4">إضافة مهارة</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select id="skillDropdown" class="p-3 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="skillDropdown"
+                        class="p-3 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="">-- اختر مهارة --</option>
                         <option value="custom">✍️ مهارة أخرى...</option>
                     </select>
-                    <input id="manualSkillInput" type="text" placeholder="اكتب المهارة يدوياً" class="hidden p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <input id="newFileLink" type="text" placeholder="رابط الملف" class="p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input id="manualSkillInput" type="text" placeholder="اكتب المهارة يدوياً"
+                        class="hidden p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input id="newFileLink" type="text" placeholder="رابط الملف"
+                        class="p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
-                <button onclick="saveNewSkill()" class="mt-4 bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition">إضافة</button>
+                <button onclick="saveNewSkill()"
+                    class="mt-4 bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition">إضافة</button>
             </div>
         </div>
     </div>
 
-    <div id="adminLoginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div id="adminLoginModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl">
             <h3 class="text-xl font-bold mb-4 text-center">دخول المعلم</h3>
-            <input id="adminPasswordInput" type="password" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-4 outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
+            <input id="adminPasswordInput" type="password" placeholder="كلمة المرور"
+                class="w-full p-3 border rounded-lg mb-4 outline-none focus:ring-2 focus:ring-indigo-500" autofocus>
             <div class="flex gap-2">
-                <button onclick="verifyAdminLogin()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">دخول</button>
-                <button onclick="toggleAdminLoginModal()" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg">إلغاء</button>
+                <button onclick="verifyAdminLogin()"
+                    class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">دخول</button>
+                <button onclick="toggleAdminLoginModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg">إلغاء</button>
             </div>
         </div>
-                        <footer class="text-center py-6 text-slate-500"> <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p> </footer>
+        <footer class="text-center py-6 text-slate-500">
+            <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
+        </footer>
     </div>
 
-    <script src="security.js"></script>
-    <script src="backup-data.js"></script>
-    <script src="enhancements.js"></script>
-    <script src="api-admin.js"></script>
-    <script src="api-student.js"></script>
-
+    <script src="app.js"></script>
     <script>
         let isAdmin = false;
         let selectedStudentId = null;
-        let selectedStudent = null; // Store current student object from DB
+        let selectedStudent = null;
         let adminAPI = new AdminAPI();
         let studentAPI = new StudentAPI();
 
-        // Initialize on load - no localStorage for students data
-        window.addEventListener('load', async function() {
+        // Initialize on load - check for admin login in localStorage
+        window.addEventListener('load', async function () {
             console.log('✅ تطبيق جاهز - البيانات تُحمّل من قاعدة البيانات فقط');
+            
+            // Check if admin is already logged in
+            if (adminAPI.isAuthorized()) {
+                isAdmin = true;
+                updateAdminUI();
+                document.getElementById('studentLoginView').classList.add('hidden');
+                document.getElementById('adminDashboardView').classList.remove('hidden');
+                await loadStudentsFromDatabase();
+                renderAdminStudents();
+                console.log('✅ تم تسجيل دخول المعلم تلقائياً');
+            }
         });
 
         function toggleAdminLoginModal() {
@@ -139,7 +168,7 @@
             }
 
             const result = await adminAPI.login(pass);
-            
+
             if (result.success) {
                 isAdmin = true;
                 updateAdminUI();
@@ -198,23 +227,23 @@
 
         async function deleteStudent(id) {
             if (!isAdmin) return;
-            
+
             // احصل على بيانات الطالب من قاعدة البيانات
             const result = await adminAPI.getAllStudents();
             if (!result.success) {
                 alert("❌ خطأ في جلب بيانات الطالب");
                 return;
             }
-            
+
             const student = result.students.find(s => s.id === id);
             if (!student) {
                 alert("❌ الطالب غير موجود");
                 return;
             }
-            
+
             if (confirm(`هل أنت متأكد من حذف الطالب: ${student.name}؟`)) {
                 const deleteResult = await adminAPI.deleteStudent(id);
-                
+
                 if (deleteResult.success) {
                     alert("✅ تم حذف الطالب بنجاح");
                     // إعادة تحميل قائمة الطلاب من قاعدة البيانات
@@ -308,16 +337,16 @@
 
             // محاولة تسجيل الدخول عبر API
             const result = await studentAPI.login(code);
-            
+
             if (result.success) {
                 selectedStudentId = result.student.id;
                 selectedStudent = result.student;
                 document.getElementById('studentLoginView').classList.add('hidden');
                 document.getElementById('adminDashboardView').classList.add('hidden');
                 document.getElementById('skillsDetailView').classList.remove('hidden');
-                
+
                 document.getElementById('currentStudentTitle').innerText = result.student.name;
-                
+
                 // تحميل مهارات الطالب من قاعدة البيانات
                 await renderStudentSkillsFromDB(result.student.id);
             } else {
@@ -328,7 +357,7 @@
         async function loadStudentsFromDatabase() {
             try {
                 const result = await adminAPI.getAllStudents();
-                
+
                 if (result.success) {
                     console.log('✅ تم تحميل', result.students.length, 'طالب من قاعدة البيانات');
                     return result.students;
@@ -344,19 +373,19 @@
 
         async function showStudentSkills(id) {
             selectedStudentId = id;
-            
+
             // جلب بيانات الطالب من قاعدة البيانات
             const result = await adminAPI.getAllStudents();
             const student = result.students.find(s => s.id === id);
-            
+
             if (!student) {
                 alert("❌ الطالب غير موجود");
                 return;
             }
-            
+
             selectedStudent = student;
             document.getElementById('currentStudentTitle').innerText = student.name;
-            
+
             // تحميل ومعالجة المهارات من قاعدة البيانات
             await renderStudentSkillsFromDB(id);
 
@@ -368,7 +397,7 @@
         async function renderStudentSkillsFromDB(studentId) {
             // جلب المهارات من قاعدة البيانات
             const skillsResult = await studentAPI.getSkills();
-            
+
             const tbody = document.getElementById('skillsTableBody');
             tbody.innerHTML = '';
 
@@ -387,11 +416,11 @@
             skills.forEach((skill, index) => {
                 const row = document.createElement('tr');
                 row.className = "border-b border-slate-100";
-                
+
                 const skillName = skill.name || 'مهارة بدون عنوان';
                 const skillUrl = skill.description || '#';
                 const isDone = skill.level === 3 || skill.level === 2;
-                
+
                 const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
                 const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
@@ -422,13 +451,13 @@
 
         async function toggleSkill(skillId) {
             if (!isAdmin) return;
-            
+
             const skillsResult = await studentAPI.getSkills();
             if (!skillsResult.success) {
                 alert("❌ خطأ في تحميل المهارات");
                 return;
             }
-            
+
             const skill = skillsResult.data.skills.find(s => s.id === skillId);
             if (!skill) {
                 alert("❌ المهارة غير موجودة");
@@ -437,7 +466,7 @@
 
             // تبديل المستوى: 1 أو 2 -> 3 (مكتمل)، 3 -> 1 (غير مكتمل)
             const newLevel = skill.level === 3 ? 1 : 3;
-            
+
             const result = await adminAPI.updateSkill(
                 skillId,
                 skill.name,
@@ -456,10 +485,10 @@
 
         async function deleteSkill(skillId) {
             if (!isAdmin) return;
-            
+
             if (confirm("هل أنت متأكد من حذف المهارة؟")) {
                 const result = await adminAPI.deleteSkill(skillId);
-                
+
                 if (result.success) {
                     alert("✅ تم حذف المهارة بنجاح");
                     await renderStudentSkillsFromDB(selectedStudentId);
@@ -481,7 +510,7 @@
             }
         }
 
-        document.getElementById('skillDropdown').addEventListener('change', function() {
+        document.getElementById('skillDropdown').addEventListener('change', function () {
             const manual = document.getElementById('manualSkillInput');
             if (this.value === 'custom') {
                 manual.classList.remove('hidden');
@@ -521,7 +550,7 @@
                 document.getElementById('manualSkillInput').value = '';
                 document.getElementById('manualSkillInput').classList.add('hidden');
                 document.getElementById('newFileLink').value = '';
-                
+
                 // تحديث المهارات من قاعدة البيانات
                 await renderStudentSkillsFromDB(selectedStudentId);
                 alert("✅ تم إضافة المهارة بنجاح");
@@ -533,17 +562,17 @@
         // إضافة مهارة جديدة إلى القائمة المنسدلة مع الرابط
         async function addSkillToDropdown(skillName, url) {
             const dropdown = document.getElementById('skillDropdown');
-            
+
             // احصل على المهارات المحفوظة من قاعدة البيانات
             let savedSkills = await fetchCustomSkills() || [];
-            
+
             // تحقق من عدم وجود المهارة مسبقاً
             const exists = savedSkills.some(skill => skill.name === skillName);
             if (exists) return;
 
             // إضافة المهارة في قاعدة البيانات
             await saveCustomSkillToDatabase(skillName, url);
-            
+
             // أضف المهارة قبل خيار "مهارة أخرى"
             const customOption = dropdown.querySelector('option[value="custom"]');
             const newOption = document.createElement('option');
@@ -558,7 +587,7 @@
             if (confirm(`هل تريد حذف المهارة: ${skillName} من القائمة؟`)) {
                 // حذف من قاعدة البيانات
                 await deleteCustomSkillFromDatabase(skillName);
-                
+
                 // إعادة تحميل القائمة المنسدلة
                 reloadSkillsDropdown();
                 // تحديث عرض المهارات المحفوظة
@@ -570,7 +599,7 @@
         // إعادة تحميل القائمة المنسدلة
         async function reloadSkillsDropdown() {
             const dropdown = document.getElementById('skillDropdown');
-            
+
             // حذف المهارات المخصصة فقط
             const options = Array.from(dropdown.options);
             options.forEach(option => {
@@ -578,11 +607,11 @@
                     option.remove();
                 }
             });
-            
+
             // إعادة تحميل المهارات المخصصة من قاعدة البيانات
             const savedSkills = await fetchCustomSkills() || [];
             const customOption = dropdown.querySelector('option[value="custom"]');
-            
+
             savedSkills.forEach(skill => {
                 const newOption = document.createElement('option');
                 newOption.value = skill.name;
@@ -593,17 +622,17 @@
         }
 
         // ملء رابط الملف تلقائياً عند اختيار مهارة محفوظة
-        document.getElementById('skillDropdown').addEventListener('change', function() {
+        document.getElementById('skillDropdown').addEventListener('change', function () {
             const manual = document.getElementById('manualSkillInput');
             const fileLink = document.getElementById('newFileLink');
-            
+
             if (this.value === 'custom') {
                 manual.classList.remove('hidden');
                 fileLink.value = '';
             } else {
                 manual.classList.add('hidden');
                 manual.value = '';
-                
+
                 // ملء الرابط تلقائياً إذا كانت مهارة محفوظة
                 const selectedOption = this.options[this.selectedIndex];
                 const url = selectedOption.getAttribute('data-url');
@@ -616,11 +645,11 @@
         });
 
         // تحميل المهارات المخصصة عند بدء التشغيل
-        window.addEventListener('load', async function() {
+        window.addEventListener('load', async function () {
             const savedSkills = await fetchCustomSkills() || [];
             const dropdown = document.getElementById('skillDropdown');
             const customOption = dropdown.querySelector('option[value="custom"]');
-            
+
             savedSkills.forEach(skill => {
                 const newOption = document.createElement('option');
                 newOption.value = skill.name;
@@ -635,7 +664,7 @@
             try {
                 const response = await fetch('/api/custom-skills', {
                     headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
                     }
                 });
                 if (response.ok) {
@@ -654,7 +683,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
                     },
                     body: JSON.stringify({ name, url })
                 });
@@ -672,7 +701,7 @@
                 const response = await fetch(`/api/custom-skills/${encodeURIComponent(name)}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
                     }
                 });
                 if (response.ok) {
@@ -699,9 +728,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
