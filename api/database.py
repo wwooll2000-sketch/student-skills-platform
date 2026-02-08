@@ -49,8 +49,16 @@ def init_db_pool():
 
 def get_db():
     """Get a connection from the pool with retry logic"""
+    global db_pool
     max_retries = 3
     retry_delay = 1
+    
+    # Lazy initialization of pool for serverless environments
+    if db_pool is None:
+        try:
+            init_db_pool()
+        except Exception as e:
+            print(f"⚠️ Could not initialize pool, will use direct connections: {e}")
     
     for attempt in range(max_retries):
         try:

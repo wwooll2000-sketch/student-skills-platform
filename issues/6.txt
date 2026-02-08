@@ -1,1 +1,15 @@
 Error: No flask entrypoint found. Add an 'app' script in pyproject.toml or define an entrypoint in one of: app.py, src/app.py, app/app.py, api/app.py, index.py, src/index.py, app/index.py, api/index.py, server.py, src/server.py, app/server.py, api/server.py, main.py, src/main.py, app/main.py, api/main.py, wsgi.py, src/wsgi.py, app/wsgi.py, api/wsgi.py, asgi.py, src/asgi.py, app/asgi.py, api/asgi.py.
+
+----------
+
+now the app deployed but it shows this:
+
+This Serverless Function has crashed.
+
+Your connection is working correctly.
+
+Vercel is working correctly.
+
+500: INTERNAL_SERVER_ERROR
+Code: FUNCTION_INVOCATION_FAILED
+ID: dxb1::6wxcw-1770540745885-5b2485f64c15
