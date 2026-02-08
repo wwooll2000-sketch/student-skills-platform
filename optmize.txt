@@ -38,9 +38,33 @@ don't create any .md files to summarize the changes just do the changes.
 
 there is an issue the when i press عرض المهارات for a student it shows the loading indicator then it goes me to the page but when i press the ← خروج it goes back but the loading indicator is still there and don't disappear until i refresh the page!
 
+also the ← خروج button should be "رجوع" instead of "خروج" because it's not exiting the app it's just going back to the previous page!
+
 -------------------------
 
-alright! i want you now to do somthing! i want you to repleace any alert or confirm with a custom modal that is more user friendly.
+there is an issue with the المهارات in the admin page.. for example when i add a new مهارة to a student nothing shows in the المهارات list of the student even if i refresh the page! but when i logged in as a the student that i added the مهارة to it and i go to the عرض المهارات page i can see the new مهارة that i added! so please fix this issue, and also when i click the 📄 تقرير button it shows خطأ في جلب بيانات المهارات
+
+-------------------------
+
+and one more thing is i want you to remove the 📄 تقرير button and its funcunalaty complatly from the app.
+
+i want when i click the عرض المهارات for any student then when i refresh the page it should stay in the عرض المهارات page for the same student and not go back to the main page.
+
+-------------------------
+
+when i try to add ملاحظات الطالب then click save it shows the other model that says saved successfully but it's under the ملاحظات الطالب model.. please fix that! and i think it should just add a loading indicator for the save button and when the save is successful it should just close the ملاحظات الطالب model then shows the saved successfully model.
+
+-------------------------
+
+now i can see the مهارة that i added to the student but i need to know that is it normal to show خطأ في تحميل المهارات after i click the ❌ لم تكتمل button in the الحالة column?
+
+-------------------------
+
+add the ability to edit the student information, also add the ability to edit the مهارة information.
+
+-------------------------
+
+alright! i want you now to do somthing! i want you to replace any alert or confirm with a custom modal that is more user friendly.
 
 also another thing is that make the app user friendly for mobile devices.
 
@@ -62,7 +86,64 @@ is there more features that you can add to the project to make it also more usef
 
 -------------------------
 
+the دخول المعلم button it should not shows for the student after they login with their student number, instead it should show the ← تسجيل خروج button and remove the exesting ← خروج button.
+
+the other thing is that for the student page now have 2 pages wich is not user-friendly for the students, so please make sure everything is in one page for the students and note that the students are not tech-savvy and they are young so make sure to make the student dashboard as simple and user-friendly as possible for them!
+
+-------------------------
+
 the main.js file is getting too big and it's hard to manage it! so please make sure to split the code in the main.js file into multiple files and organize them in a way that makes it easy to manage and understand! also make sure if there is any big file other than main.js that is big and hard to manage please split it into multiple files and organize them in a way that makes it easy to manage and understand!
+
+don't create any .md files to summarize the changes just do the changes.
+
+-------------------------
+
+insted of the لوحة تحكم name it should be the student name that logged in with his number, and also add a welcome message for the student, also for the لا توجد مهارات text in the students page it should be "لا توجد مهارات مضافة حتى الآن".
+
+also i noticed a problom that when i loged in as a student then refresh the page it logs me out and i have to login again! please make sure to fix this issue and make sure that the student stays logged in even after refreshing the page!
+
+-------------------------
+
+now when i try to press the ✏️ تعديل button for a student nothing happens! please make sure to fix this issue.
+i noticed this shows in the console:
+(index):1 Uncaught ReferenceError: showEditStudentModal is not defined
+    at HTMLButtonElement.onclick ((index):1:1)
+onclick	@	(index):1
+
+(index):1 Uncaught ReferenceError: showEditStudentModal is not defined
+    at HTMLButtonElement.onclick ((index):1:1)
+onclick	@	(index):1
+
+-------------------------
+
+in the admin page we have a section for 📝 آخر النشاطات but what is for exactly and when it shows something? can you make sure its working propitly!
+
+-------------------------
+
+there is an issue getting the 📝 آخر النشاطات not a real issue but when trying to get the 📝 آخر النشاطات data it fetch a req for each student one by one until it finish then it gives me the 📝 آخر النشاطات data and this not efficient at all because if there is 100 students it will make 100 requests to get the 📝 آخر النشاطات data, so please fix this issue and it should be one req to get the data!
+
+also this means fix this for all the other things in the app that have the same issue!
+
+don't create any .md files to summarize the changes just do the changes.
+
+-------------------------
+
+when i press ← رجوع it should refetch the data for the main page and show the updated data.
+
+-------------------------
+
+when i click عرض المهارات for a student it should shows loading indicator until the data is loaded.
+
+note: the loading indicator should be shown in the button itself and not in the whole page.
+
+-------------------------
+
+there is an issue in 📝 آخر النشاطات for example this:
+✅
+خالد عبدالرحمن الدوسري أكمل النحو العربي
+منذ 3 ساعة
+
+it says that منذ 3 ساعة but i did this activity just now! so please make sure to fix this issue and show the correct time for the activities in 📝 آخر النشاطات.
 
 -------------------------
 

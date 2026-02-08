@@ -35,6 +35,42 @@
         #customModal {
             backdrop-filter: blur(4px);
         }
+
+        /* Achievement Badge Animations */
+        @keyframes badgeUnlock {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2) rotate(180deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        .badge-unlock {
+            animation: badgeUnlock 0.6s ease-out;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            @page {
+                margin: 1cm;
+            }
+        }
     </style>
 </head>
 
@@ -48,12 +84,15 @@
     </div>
     <div id="app" class="max-w-4xl mx-auto" style="display: none;">
         <div class="flex justify-end mb-4 sm:mb-6 gap-2">
-            <button id="loginBtn" type="button" onclick="toggleAdminLoginModal()"
+            <button id="adminLoginBtn" type="button" onclick="toggleAdminLoginModal()"
                 class="text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
                 title="دخول المعلم">⚙️</button>
-            <button id="logoutBtn" type="button" onclick="logoutAdmin()"
+            <button id="adminLogoutBtn" type="button" onclick="logoutAdmin()"
                 class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
                 خروج المعلم</button>
+            <button id="studentLogoutBtn" type="button" onclick="logoutStudent()"
+                class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">←
+                تسجيل خروج</button>
         </div>
 
         <div id="studentLoginView"
@@ -65,6 +104,57 @@
                     class="w-full p-3 sm:p-4 text-center border-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-lg sm:text-xl font-bold tracking-widest mb-3 sm:mb-4">
                 <button onclick="accessWithCode()"
                     class="w-full bg-indigo-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:bg-indigo-700 transition text-base sm:text-lg">دخول</button>
+            </div>
+        </div>
+
+        <!-- Simple Student View (All in One Page) -->
+        <div id="studentView" class="hidden">
+            <!-- Student Header -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+                <h2 id="studentName" class="text-2xl sm:text-3xl font-bold text-indigo-700 text-center mb-4"></h2>
+
+                <!-- Progress Summary -->
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl p-4 sm:p-6 text-white">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-bold" id="studentTotalSkills">0</div>
+                            <div class="text-xs sm:text-sm opacity-90">المهارات</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-bold" id="studentCompletedSkills">0</div>
+                            <div class="text-xs sm:text-sm opacity-90">المكتملة</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-bold" id="studentCompletionRate">0%</div>
+                            <div class="text-xs sm:text-sm opacity-90">الإنجاز</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievement Badges -->
+                <div class="mt-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-3 text-center">🏆 إنجازاتك</h3>
+                    <div id="studentBadges" class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3"></div>
+                </div>
+            </div>
+
+            <!-- Skills List -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 text-center">📚 مهاراتي</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                <th class="p-3 sm:p-4 font-bold text-sm sm:text-base">المهارة</th>
+                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الملف</th>
+                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentSkillsTable"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -82,12 +172,25 @@
                         class="bg-green-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-green-700 transition text-sm sm:text-base whitespace-nowrap">توليد
                         رقم
                         الطالب</button>
+                    <button onclick="showBulkImportModal()"
+                        class="bg-purple-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-purple-700 transition text-sm sm:text-base whitespace-nowrap">📋
+                        إضافة متعددة</button>
                     <button onclick="importStudentsData()"
                         class="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base whitespace-nowrap">📤
                         استيراد
                         بيانات</button>
                 </div>
                 <input type="file" id="importFileInput" accept=".json" class="hidden">
+            </div>
+
+            <!-- Recent Activity Feed -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base sm:text-lg font-bold text-indigo-900">📝 آخر النشاطات</h3>
+                    <button onclick="loadRecentActivity()" class="text-xs text-indigo-600 hover:text-indigo-800">🔄
+                        تحديث</button>
+                </div>
+                <div id="recentActivityList" class="space-y-2 max-h-64 overflow-y-auto"></div>
             </div>
 
             <!-- Statistics Dashboard -->
@@ -140,8 +243,10 @@
                             </select>
                         </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-2 mt-3">
-                        <button onclick="exportStudentsData()"
+                    <div class="flex flex-col sm:flex-row gap-2 mt-3"> <button onclick="showBatchSkillModal()"
+                            class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-xs sm:text-sm">
+                            ✅ إضافة مهارة جماعية
+                        </button> <button onclick="exportStudentsData()"
                             class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-xs sm:text-sm">
                             📥 تصدير البيانات
                         </button>
@@ -168,13 +273,13 @@
                     <div id="studentProgressBar" class="mt-2"></div>
                 </div>
                 <div class="flex gap-2">
-                    <button id="studentReportBtn" onclick="exportStudentReport()"
-                        class="hidden text-xs sm:text-sm bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition"
-                        title="تصدير تقرير الطالب">
-                        📄 تقرير
+                    <button id="studentNotesBtn" onclick="showStudentNotesModal()"
+                        class="hidden text-xs sm:text-sm bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 transition"
+                        title="ملاحظات الطالب">
+                        💬 ملاحظات
                     </button>
-                    <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium">←
-                        خروج</button>
+                    <button onclick="backToHome()" class="text-indigo-600 hover:text-indigo-800 font-medium no-print">←
+                        رجوع</button>
                 </div>
             </div>
 
@@ -196,6 +301,7 @@
                             <th class="p-4 font-bold">المهارة</th>
                             <th class="p-4 font-bold">الملفات</th>
                             <th class="p-4 font-bold text-center">الحالة</th>
+                            <th id="adminHeaderEdit" class="p-4 font-bold text-center hidden">تعديل</th>
                             <th id="adminHeaderDelete" class="p-4 font-bold text-center hidden">حذف</th>
                         </tr>
                     </thead>
@@ -239,7 +345,7 @@
         </div>
     </div>
 
-    <footer class="text-center py-4 sm:py-6 text-slate-500 text-xs sm:text-sm">
+    <footer class="text-center py-4 sm:py-6 text-slate-500 text-xs sm:text-sm no-print">
         <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
     </footer>
 
@@ -254,8 +360,169 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
-    <script src="main.js"></script>
+    <!-- Bulk Import Modal -->
+    <div id="bulkImportModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">📋 إضافة طلاب متعددين</h3>
+            <p class="text-sm text-slate-600 mb-3">أدخل أسماء الطلاب، كل اسم في سطر منفصل:</p>
+            <textarea id="bulkStudentNames" rows="10"
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-4"
+                placeholder="محمد أحمد علي&#10;فاطمة حسن سالم&#10;عبدالله خالد محمد"></textarea>
+            <div class="flex gap-2">
+                <button onclick="processBulkImport()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">إضافة
+                    الكل</button>
+                <button onclick="closeBulkImportModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Skill Assignment Modal -->
+    <div id="batchSkillModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">✅ إضافة مهارة لعدة طلاب</h3>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2">اختر المهارة:</label>
+                <select id="batchSkillSelect"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="">-- اختر مهارة --</option>
+                    <option value="custom">✍️ مهارة أخرى...</option>
+                </select>
+                <input id="batchSkillCustom" type="text" placeholder="اكتب المهارة يدوياً"
+                    class="hidden w-full p-3 border rounded-lg mt-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2">رابط الملف:</label>
+                <input id="batchSkillLink" type="text" placeholder="رابط الملف"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-2">اختر الطلاب:</label>
+                <div class="mb-2">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="selectAllStudents" onchange="toggleSelectAllStudents()" class="mr-2">
+                        <span class="text-sm font-medium">تحديد الكل</span>
+                    </label>
+                </div>
+                <div id="studentCheckboxList" class="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-2"></div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="processBatchSkill()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">إضافة للطلاب
+                    المحددين</button>
+                <button onclick="closeBatchSkillModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Notes Modal -->
+    <div id="studentNotesModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">💬 ملاحظات الطالب</h3>
+            <p id="notesStudentName" class="text-sm text-slate-600 mb-3"></p>
+            <textarea id="studentNotesText" rows="8"
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-4"
+                placeholder="أضف ملاحظات خاصة عن الطالب..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="saveStudentNotes()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
+                    الملاحظات</button>
+                <button onclick="closeStudentNotesModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="editStudentModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">✏️ تعديل بيانات الطالب</h3>
+            <div class="space-y-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">اسم الطالب</label>
+                    <input id="editStudentName" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="أدخل اسم الطالب">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">رقم الطالب</label>
+                    <input id="editStudentCode" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="أدخل رقم الطالب">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveEditStudent()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
+                    التغييرات</button>
+                <button onclick="closeEditStudentModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Skill Modal -->
+    <div id="editSkillModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">✏️ تعديل بيانات المهارة</h3>
+            <div class="space-y-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">اسم المهارة</label>
+                    <input id="editSkillName" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="أدخل اسم المهارة">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">رابط الملف</label>
+                    <input id="editSkillUrl" type="url"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="أدخل رابط الملف">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveEditSkill()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
+                    التغييرات</button>
+                <button onclick="closeEditSkillModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Layer -->
+    <script src="js/api/security.js"></script>
+    <script src="js/api/backup.js"></script>
+    <script src="js/api/admin-api.js"></script>
+    <script src="js/api/student-api.js"></script>
+
+    <!-- Core Modules -->
+    <script src="js/modules/state.js"></script>
+    <script src="js/modules/modal.js"></script>
+    <script src="js/modules/ui-helpers.js"></script>
+
+    <!-- Feature Modules -->
+    <script src="js/modules/auth.js"></script>
+    <script src="js/modules/students.js"></script>
+    <script src="js/modules/skills.js"></script>
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/import-export.js"></script>
+    <script src="js/modules/filters.js"></script>
+    <script src="js/modules/bulk-operations.js"></script>
+    <script src="js/modules/notes-activity.js"></script>
+
+    <!-- Initialization -->
+    <script src="js/modules/init.js"></script>
 </body>
 
 </html>

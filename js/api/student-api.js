@@ -1,0 +1,145 @@
+// Student API
+class StudentAPI {
+    constructor() {
+        this.baseURL = "/api/student";
+        this.studentId = null;
+        this.studentCode = null;
+    }
+
+    async login(studentCode) {
+        try {
+            if (!studentCode || studentCode.length < 4) {
+                return {
+                    success: false,
+                    message: "رقم الطالب غير صحيح"
+                };
+            }
+
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studentCode })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.studentId = result.student.id;
+                this.studentCode = studentCode;
+                sessionStorage.setItem("student_id", result.student.id);
+                sessionStorage.setItem("student_code", studentCode);
+                sessionStorage.setItem("student_name", result.student.name);
+                sessionStorage.setItem("student_login_time", Date.now().toString());
+            }
+
+            return result;
+        } catch (error) {
+            console.error("خطأ في تسجيل الدخول:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async logout() {
+        try {
+            this.studentId = null;
+            this.studentCode = null;
+            sessionStorage.removeItem("student_id");
+            sessionStorage.removeItem("student_code");
+            sessionStorage.removeItem("student_name");
+            sessionStorage.removeItem("student_login_time");
+            return {
+                success: true,
+                message: "تم تسجيل الخروج بنجاح"
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: "خطأ في تسجيل الخروج"
+            };
+        }
+    }
+
+    async getSkills() {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/${this.studentId}/skills`, {
+                headers: { "Content-Type": "application/json" }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const skills = result.skills.map(skill => ({
+                    id: skill.id,
+                    name: skill.name,
+                    level: skill.level,
+                    status: skill.level === 3 ? "مكتمل" : "قيد التطوير",
+                    description: skill.description,
+                    category: skill.category,
+                    addedDate: skill.created_at,
+                    completedDate: skill.updated_at
+                }));
+
+                const completedSkills = skills.filter(skill => skill.status === "مكتمل").length;
+
+                return {
+                    success: true,
+                    data: {
+                        totalSkills: skills.length,
+                        completedSkills,
+                        pendingSkills: skills.length - completedSkills,
+                        skills,
+                        completionRate: skills.length > 0 
+                            ? ((completedSkills / skills.length) * 100).toFixed(2) 
+                            : 0
+                    }
+                };
+            }
+
+            return result;
+        } catch (error) {
+            console.error("خطأ في جلب المهارات:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    isAuthorized() {
+        const studentId = sessionStorage.getItem("student_id");
+        const loginTime = parseInt(sessionStorage.getItem("student_login_time") || "0");
+        const now = Date.now();
+
+        return !(!studentId || now - loginTime > 86400000);
+    }
+
+    async restoreSession() {
+        const studentId = sessionStorage.getItem("student_id");
+        const studentCode = sessionStorage.getItem("student_code");
+        const studentName = sessionStorage.getItem("student_name");
+        
+        if (this.isAuthorized() && studentId && studentCode && studentName) {
+            this.studentId = studentId;
+            this.studentCode = studentCode;
+            return {
+                success: true,
+                student: {
+                    id: studentId,
+                    code: studentCode,
+                    name: studentName
+                }
+            };
+        }
+        
+        return { success: false };
+    }
+}
+
+const studentAPI = new StudentAPI();
