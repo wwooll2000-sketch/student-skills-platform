@@ -15,11 +15,6 @@
       "destination": "/$1"
     }
   ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret",
-    "ADMIN_PASSWORD": "@admin_password"
-  },
   "headers": [
     {
       "source": "/(.*)",
