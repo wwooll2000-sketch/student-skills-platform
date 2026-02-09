@@ -150,3 +150,39 @@ it says that منذ 3 ساعة but i did this activity just now! so please make 
 update the readme.md file to reflect the changes, and make sure it's not complicated and it's easy to understand for even not technical users, don't include the instructions for running the project, make the readme.md file small and concise and to the point, and also mention "صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي" at the end.
 
 update the how-to.txt file to say for the user how to run the project locally with user friendly instructions. Note: also mention that how to create the .env file and where to get the database credentials from the neon postgres database in vercel + how to create the JWT_SECRET and where to put the secret inside the file.
+
+-------------------------
+
+there is an issue that for exmaple if i open the ✅ إضافة مهارة جماعية model then press the إضافة للطلاب المحددين button without selecting any student it shows another model says بيانات ناقصة but this model is behind the ✅ إضافة مهارة جماعية model and i can't see it or click on it! please make sure to fix this issue and make sure that all the models are shown in the front and can be clicked on and interacted with!
+
+-------------------------
+
+when i click the 📥 تصدير البيانات button while there is no studints it do تم تصدير البيانات بنجاح and this not should be done.. insted ot should show there is no data or student.. somthing like that.
+
+-------------------------
+
+there is an issue that i need to fix in the whole app.. when for example i have a student then i want to delete it for example it shows the model that says هل أنت متأكد من حذف هذا الطالب؟ but the issue is that i can see the list of students behind the model it shows loding indicator جاري جلب بيانات الطلاب then جاري تحميل البيانات it should not shows any of these things behind the model it should just show the model and but then when i click the نعم delete button it should show the loading indicator.. also find any other place in the app that has the same issue and fix it!
+
+-------------------------
+
+major thing:
+in the admin page i have this section إدارة المهارات المحفوظة but now it just shows the list of the مهارات .. insted i want to add now functionality and features to this section, you must read the app to understand how the مهارات are added to the students and then you can add features to this section to make it more useful for the admin, then reflect the changes to the other parts of the app.
+
+Note: you can add/edit anything you want including the database structure to make this section more useful and efficient.
+Note: also it should rename from إدارة المهارات المحفوظة to إدارة المهارات.
+
+-------------------------
+
+there is somthing that i wanna know if its an issue or not, in the admin page in 📊 إحصائيات عامة section the إجمالي المهارات for example now it have 3 but in the إدارة المهارات i have one مهاره or this إجمالي المهارات calcalate somthing else? can you check if it an issue or not?
+
+-------------------------
+
+issue-1: when i add a new مهارة to the إدارة المهارات section then i click for exmaple i click عرض المهارات for a student it.. it doesn't show the new مهارة that i added to the إدارة المهارات section..i have to refresh the page to see the new مهارة in the student's page.
+
+issue-2: in the students page there is a section called إضافة مهارة wich needs a refactor.. first of all it should show the list of المهارات that are in the إدارة المهارات section nicly and not in a dropdown list, and also i should not able to add a مهارة from this section, it should just show the list of المهارات and when i click on any مهارة it should add it to the student.
+
+issue-3: the المهارات section in the students page needs a refactor to reflect the major changes that we did in the إدارة المهارات section, also same with 📚 مهاراتي in the main studint page when after they added the student code.
+
+-------------------------
+
+in the admin studnets page there is ✏️ تعديل بيانات المهارة, i want you to remove this completely because we can edit the مهارة from the إدارة المهارات section.

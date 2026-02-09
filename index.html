@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام مهارات الطلاب</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <style>
@@ -260,8 +261,33 @@
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6 sm:mt-8">
-                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إدارة المهارات المحفوظة</h3>
-                <div id="savedSkillsList" class="space-y-2"></div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <h3 class="text-base sm:text-lg font-bold text-indigo-900">إدارة المهارات</h3>
+                    <button onclick="showAddSkillTemplateModal()"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                        ➕ إضافة مهارة جديدة
+                    </button>
+                </div>
+
+                <!-- Filters and Search -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <input id="skillTemplateSearch" type="text" placeholder="🔍 بحث عن مهارة..."
+                        onkeyup="searchSkillTemplates()"
+                        class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    <select id="skillCategoryFilter" onchange="filterSkillTemplates()"
+                        class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <option value="">جميع الفئات</option>
+                    </select>
+                    <div class="flex gap-2">
+                        <button onclick="loadSkillTemplates()"
+                            class="flex-1 bg-slate-100 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-200 transition text-sm">
+                            🔄 تحديث
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Skills Grid -->
+                <div id="skillTemplatesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
             </div>
         </div>
 
@@ -301,7 +327,6 @@
                             <th class="p-4 font-bold">المهارة</th>
                             <th class="p-4 font-bold">الملفات</th>
                             <th class="p-4 font-bold text-center">الحالة</th>
-                            <th id="adminHeaderEdit" class="p-4 font-bold text-center hidden">تعديل</th>
                             <th id="adminHeaderDelete" class="p-4 font-bold text-center hidden">حذف</th>
                         </tr>
                     </thead>
@@ -311,20 +336,17 @@
 
             <div id="adminControls"
                 class="hidden mt-6 sm:mt-8 p-4 sm:p-6 bg-indigo-50 rounded-xl border border-indigo-100">
-                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إضافة مهارة</h3>
-                <div class="grid grid-cols-1 gap-3 sm:gap-4">
-                    <select id="skillDropdown"
-                        class="p-3 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base">
-                        <option value="">-- اختر مهارة --</option>
-                        <option value="custom">✍️ مهارة أخرى...</option>
-                    </select>
-                    <input id="manualSkillInput" type="text" placeholder="اكتب المهارة يدوياً"
-                        class="hidden p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base">
-                    <input id="newFileLink" type="text" placeholder="رابط الملف"
-                        class="p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base sm:text-lg font-bold text-indigo-900">إضافة مهارة</h3>
+                    <input id="skillSearchInput" type="text" placeholder="🔍 بحث..." onkeyup="filterAvailableSkills()"
+                        class="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-48">
                 </div>
-                <button onclick="saveNewSkill()"
-                    class="mt-4 bg-indigo-600 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-indigo-700 transition text-sm sm:text-base w-full sm:w-auto">إضافة</button>
+
+                <!-- Skills Grid -->
+                <div id="availableSkillsGrid"
+                    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-96 overflow-y-auto p-2">
+                    <!-- Skills will be loaded here -->
+                </div>
             </div>
         </div>
     </div>
@@ -350,7 +372,8 @@
     </footer>
 
     <!-- Custom Modal -->
-    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div id="customModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-[9999]">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-95"
             id="modalContent">
             <div id="modalIcon" class="text-center mb-4 text-5xl"></div>
@@ -471,31 +494,157 @@
         </div>
     </div>
 
-    <!-- Edit Skill Modal -->
-    <div id="editSkillModal"
+    <!-- Add Skill Template Modal -->
+    <div id="addSkillTemplateModal"
         class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 class="text-xl font-bold mb-4">✏️ تعديل بيانات المهارة</h3>
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">➕ إضافة مهارة جديدة</h3>
             <div class="space-y-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">اسم المهارة</label>
-                    <input id="editSkillName" type="text"
+                    <label class="block text-sm font-medium text-slate-700 mb-1">اسم المهارة *</label>
+                    <input id="newTemplateName" type="text"
                         class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="أدخل اسم المهارة">
+                        placeholder="مثال: قراءة سورة الفاتحة">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">رابط الملف</label>
-                    <input id="editSkillUrl" type="url"
+                    <label class="block text-sm font-medium text-slate-700 mb-1">الوصف</label>
+                    <textarea id="newTemplateDescription" rows="2"
                         class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        placeholder="أدخل رابط الملف">
+                        placeholder="وصف قصير للمهارة..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">الرابط/الملف</label>
+                    <input id="newTemplateUrl" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="https://...">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">الفئة</label>
+                        <select id="newTemplateCategory"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="مهارات عامة">مهارات عامة</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">الأيقونة</label>
+                        <select id="newTemplateIcon"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="📚">📚 كتاب</option>
+                            <option value="📖">📖 قراءة</option>
+                            <option value="✍️">✍️ كتابة</option>
+                            <option value="🔢">🔢 رياضيات</option>
+                            <option value="🔬">🔬 علوم</option>
+                            <option value="💻">💻 برمجة</option>
+                            <option value="🎨">🎨 فن</option>
+                            <option value="🎵">🎵 موسيقى</option>
+                            <option value="⚽">⚽ رياضة</option>
+                            <option value="⭐">⭐ عامة</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button onclick="saveEditSkill()"
+                <button onclick="saveNewSkillTemplate()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
+                    المهارة</button>
+                <button onclick="closeAddSkillTemplateModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Skill Template Modal -->
+    <div id="editSkillTemplateModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">✏️ تعديل المهارة</h3>
+            <div class="space-y-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">اسم المهارة *</label>
+                    <input id="editTemplateName" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">الوصف</label>
+                    <textarea id="editTemplateDescription" rows="2"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">الرابط/الملف</label>
+                    <input id="editTemplateUrl" type="text"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">الفئة</label>
+                        <select id="editTemplateCategory"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">الأيقونة</label>
+                        <select id="editTemplateIcon"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="📚">📚 كتاب</option>
+                            <option value="📖">📖 قراءة</option>
+                            <option value="✍️">✍️ كتابة</option>
+                            <option value="🔢">🔢 رياضيات</option>
+                            <option value="🔬">🔬 علوم</option>
+                            <option value="💻">💻 برمجة</option>
+                            <option value="🎨">🎨 فن</option>
+                            <option value="🎵">🎵 موسيقى</option>
+                            <option value="⚽">⚽ رياضة</option>
+                            <option value="⭐">⭐ عامة</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveEditSkillTemplate()"
                     class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
                     التغييرات</button>
-                <button onclick="closeEditSkillModal()"
+                <button onclick="closeEditSkillTemplateModal()"
                     class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skill Template Details Modal -->
+    <div id="skillTemplateDetailsModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold mb-1" id="detailsTemplateName"></h3>
+                    <p class="text-sm text-slate-600" id="detailsTemplateDescription"></p>
+                </div>
+                <button onclick="closeSkillTemplateDetailsModal()"
+                    class="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-slate-50 p-3 rounded-lg">
+                    <div class="text-xs text-slate-600 mb-1">الفئة</div>
+                    <div class="font-medium" id="detailsTemplateCategory"></div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg">
+                    <div class="text-xs text-slate-600 mb-1">عدد الطلاب</div>
+                    <div class="font-medium" id="detailsTemplateUsage">0 طالب</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="font-bold mb-2">الطلاب الذين لديهم هذه المهارة:</h4>
+                <div id="detailsStudentsList" class="max-h-64 overflow-y-auto border rounded-lg p-3"></div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="showBulkAssignFromDetails()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">➕ إضافة
+                    لطلاب</button>
+                <button onclick="closeSkillTemplateDetailsModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إغلاق</button>
             </div>
         </div>
     </div>
@@ -515,6 +664,7 @@
     <script src="js/modules/auth.js"></script>
     <script src="js/modules/students.js"></script>
     <script src="js/modules/skills.js"></script>
+    <script src="js/modules/skill-templates.js"></script>
     <script src="js/modules/dashboard.js"></script>
     <script src="js/modules/import-export.js"></script>
     <script src="js/modules/filters.js"></script>

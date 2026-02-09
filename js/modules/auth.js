@@ -42,6 +42,11 @@ async function verifyAdminLogin() {
         document.getElementById('adminDashboardView').classList.remove('hidden');
 
         renderAdminStudents();
+        
+        // Initialize skill templates management
+        if (typeof initSkillTemplatesManagement === 'function') {
+            initSkillTemplatesManagement();
+        }
     } else {
         customAlert(result.message || "كلمة المرور غير صحيحة", { icon: '❌', title: 'خطأ في تسجيل الدخول' });
     }

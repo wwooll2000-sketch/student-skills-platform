@@ -8,6 +8,13 @@ async function exportStudentsData() {
     }
 
     const students = result.students;
+
+    // Check if there are any students to export
+    if (!students || students.length === 0) {
+        customAlert("لا يوجد طلاب لتصديرهم", { icon: '⚠️', title: 'لا توجد بيانات' });
+        return;
+    }
+
     const exportData = {
         exportDate: new Date().toISOString(),
         totalStudents: students.length,

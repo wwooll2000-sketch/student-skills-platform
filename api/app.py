@@ -1,9 +1,10 @@
 # Main Flask Application
-from flask import Flask
+from flask import Flask, send_from_directory, abort
 from flask_cors import CORS
 import os
 import sys
 import traceback
+import logging
 
 # Add current directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +56,65 @@ def create_app():
                 'message': f'Application initialization error: {str(e)}',
                 'traceback': traceback.format_exc()
             }, 500
+    
+    # Handle common static file requests
+    @app.route('/favicon.ico')
+    @app.route('/favicon.svg')
+    def favicon():
+        """Serve favicon or return 204 if not found"""
+        try:
+            # Try SVG first, then ICO
+            from flask import request
+            if request.path.endswith('.svg'):
+                return send_from_directory(
+                    os.path.join(app.root_path, '..'), 
+                    'favicon.svg', 
+                    mimetype='image/svg+xml'
+                )
+            else:
+                return send_from_directory(
+                    os.path.join(app.root_path, '..'), 
+                    'favicon.ico', 
+                    mimetype='image/vnd.microsoft.icon'
+                )
+        except:
+            # Return 204 No Content instead of 404
+            return '', 204
+    
+    @app.route('/robots.txt')
+    def robots():
+        """Serve robots.txt or return empty response"""
+        try:
+            return send_from_directory(
+                os.path.join(app.root_path, '..'), 
+                'robots.txt', 
+                mimetype='text/plain'
+            )
+        except:
+            # Return default robots.txt
+            return 'User-agent: *\nAllow: /', 200, {'Content-Type': 'text/plain'}
+    
+    # Custom 404 handler to suppress static file errors
+    @app.errorhandler(404)
+    def handle_404(error):
+        """Handle 404 errors gracefully without flooding logs"""
+        # Suppress logging for common missing files
+        from flask import request
+        path = request.path
+        common_missing = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png', 
+                         '/apple-touch-icon-precomposed.png', '/manifest.json']
+        
+        if any(path.endswith(missing) for missing in common_missing):
+            # Silent 204 for browser auto-requests
+            return '', 204
+        
+        # Log other 404s for debugging
+        app.logger.warning(f"404 Not Found: {path}")
+        return {
+            'success': False,
+            'message': 'Resource not found',
+            'path': path
+        }, 404
     
     # Add global error handler
     @app.errorhandler(Exception)

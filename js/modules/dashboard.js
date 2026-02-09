@@ -96,6 +96,21 @@ function renderBadges(earnedBadges) {
 
 // Simple Student View (Single Page)
 async function loadSimpleStudentView(studentId) {
+    // Load skill templates to get icons
+    let skillTemplatesMap = {};
+    try {
+        const templatesResponse = await fetch('/api/skill-templates?is_active=true');
+        if (templatesResponse.ok) {
+            const templatesData = await templatesResponse.json();
+            const templates = templatesData.templates || [];
+            templates.forEach(t => {
+                skillTemplatesMap[t.name] = t;
+            });
+        }
+    } catch (e) {
+        console.error('Error loading skill templates:', e);
+    }
+    
     const skillsResult = await studentAPI.getSkills();
     
     if (!skillsResult.success || !skillsResult.data) {
@@ -115,8 +130,8 @@ async function loadSimpleStudentView(studentId) {
     const earnedBadges = checkAndAwardBadges(totalSkills, completedSkills, skillsResult.data.skills);
     renderSimpleBadges(earnedBadges);
 
-    // Render skills table
-    renderSimpleSkillsTable(skillsResult.data.skills);
+    // Render skills table with templates
+    renderSimpleSkillsTable(skillsResult.data.skills, skillTemplatesMap);
 }
 
 function renderSimpleBadges(earnedBadges) {
@@ -142,7 +157,7 @@ function renderSimpleBadges(earnedBadges) {
     }
 }
 
-function renderSimpleSkillsTable(skills) {
+function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
     const tbody = document.getElementById('studentSkillsTable');
     if (!tbody) return;
 
@@ -160,12 +175,19 @@ function renderSimpleSkillsTable(skills) {
         const skillName = skill.name || 'مهارة بدون عنوان';
         const skillUrl = skill.description || '#';
         const isDone = skill.level === 3 || skill.level === 2;
+        
+        // Get icon from template if available
+        const template = skillTemplatesMap[skillName];
+        const skillIcon = template?.icon || '📚';
 
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
         row.innerHTML = `
-            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">${skillName}</td>
+            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
+                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
+                <span>${skillName}</span>
+            </td>
             <td class="p-2 sm:p-4 text-center">
                 <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
                     📂

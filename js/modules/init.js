@@ -8,6 +8,11 @@ window.addEventListener('load', async function () {
         isAdmin = true;
         updateAdminUI();
         
+        // Initialize skill templates management
+        if (typeof initSkillTemplatesManagement === 'function') {
+            initSkillTemplatesManagement();
+        }
+        
         // Check if we should restore the skills view
         const savedStudentId = sessionStorage.getItem('skillsView_studentId');
         const savedStudentData = sessionStorage.getItem('skillsView_studentData');
@@ -62,9 +67,6 @@ window.addEventListener('load', async function () {
             console.log('✅ تم استرجاع جلسة الطالب تلقائياً');
         }
     }
-
-    // Load custom skills once and populate dropdown
-    await loadAndPopulateCustomSkills();
 
     // Add Enter key listeners for better UX
     document.getElementById('studentCodeInput').addEventListener('keypress', function(e) {

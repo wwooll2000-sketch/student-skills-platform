@@ -4,6 +4,27 @@ async function renderStudentSkillsFromDB(studentId) {
     const tbody = document.getElementById('skillsTableBody');
     tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center"><div class="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري تحميل المهارات...</p></td></tr>';
 
+    // Load skill templates to get icons
+    let skillTemplatesMap = {};
+    if (isAdmin) {
+        try {
+            const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            });
+            if (templatesResponse.ok) {
+                const templatesData = await templatesResponse.json();
+                const templates = templatesData.templates || [];
+                templates.forEach(t => {
+                    skillTemplatesMap[t.name] = t;
+                });
+            }
+        } catch (e) {
+            console.error('Error loading skill templates:', e);
+        }
+    }
+
     // Use admin API to get skills for the selected student when admin is viewing
     const skillsResult = isAdmin ? await adminAPI.getStudentSkills(studentId) : await studentAPI.getSkills();
 
@@ -11,13 +32,16 @@ async function renderStudentSkillsFromDB(studentId) {
 
     if (isAdmin) {
         document.getElementById('adminHeaderDelete').classList.remove('hidden');
-        document.getElementById('adminHeaderEdit').classList.remove('hidden');
         // Show notes button for admin
         const notesBtn = document.getElementById('studentNotesBtn');
         if (notesBtn) notesBtn.classList.remove('hidden');
+        
+        // Load available skills for adding
+        if (typeof loadSkillsForStudent === 'function') {
+            await loadSkillsForStudent(studentId);
+        }
     } else {
         document.getElementById('adminHeaderDelete').classList.add('hidden');
-        document.getElementById('adminHeaderEdit').classList.add('hidden');
         // Hide notes button for students
         const notesBtn = document.getElementById('studentNotesBtn');
         if (notesBtn) notesBtn.classList.add('hidden');
@@ -45,16 +69,21 @@ async function renderStudentSkillsFromDB(studentId) {
         const skillName = skill.name || 'مهارة بدون عنوان';
         const skillUrl = skill.description || '#';
         const isDone = skill.level === 3 || skill.level === 2;
+        
+        // Get icon from template if available
+        const template = skillTemplatesMap[skillName];
+        const skillIcon = template?.icon || '📚';
 
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
-        let editBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="showEditSkillModal('${skill.id}')" class="text-blue-500 hover:text-blue-700 text-xl sm:text-2xl">✏️</button></td>` : '';
-
         row.innerHTML = `
-            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">${skillName}</td>
+            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
+                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
+                <span>${skillName}</span>
+            </td>
             <td class="p-2 sm:p-4 text-center">
                 <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
                     📂
@@ -65,7 +94,6 @@ async function renderStudentSkillsFromDB(studentId) {
                     ${statusText}
                 </button>
             </td>
-            ${editBtn}
             ${deleteBtn}
         `;
         tbody.appendChild(row);
@@ -144,7 +172,11 @@ async function deleteSkill(skillId) {
 }
 
 async function saveNewSkill() {
+    // This function is deprecated - kept for backward compatibility
+    // New system uses loadSkillsForStudent and addSkillToStudent
     const drop = document.getElementById('skillDropdown');
+    if (!drop) return; // New UI doesn't have dropdown
+    
     let skillName = drop.value === 'custom' ? document.getElementById('manualSkillInput').value.trim() : drop.value;
     const url = document.getElementById('newFileLink').value.trim();
 
@@ -193,8 +225,127 @@ async function saveNewSkill() {
     }
 }
 
+// New skill management functions
+let availableSkillsCache = [];
+let studentSkillsCache = [];
+
+async function loadSkillsForStudent(studentId) {
+    if (!studentId || !isAdmin) return;
+    
+    try {
+        // Load available skill templates
+        const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+        
+        if (templatesResponse.ok) {
+            const templatesData = await templatesResponse.json();
+            availableSkillsCache = templatesData.templates || [];
+        }
+        
+        // Load student's current skills
+        const skillsResult = await adminAPI.getStudentSkills(studentId);
+        if (skillsResult.success) {
+            studentSkillsCache = skillsResult.data.skills || [];
+        }
+        
+        // Render available skills grid
+        renderAvailableSkills();
+    } catch (error) {
+        console.error('Error loading skills for student:', error);
+    }
+}
+
+function renderAvailableSkills() {
+    const container = document.getElementById('availableSkillsGrid');
+    if (!container) return;
+    
+    const searchTerm = document.getElementById('skillSearchInput')?.value.toLowerCase() || '';
+    
+    // Filter out skills the student already has
+    const studentSkillNames = studentSkillsCache.map(s => s.name);
+    const availableSkills = availableSkillsCache.filter(template => 
+        !studentSkillNames.includes(template.name) &&
+        (searchTerm === '' || template.name.toLowerCase().includes(searchTerm))
+    );
+    
+    if (availableSkills.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-8 text-slate-400">
+                <p class="text-sm">${searchTerm ? 'لم يتم العثور على مهارات' : 'جميع المهارات مضافة للطالب'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = availableSkills.map(template => `
+        <button onclick="addSkillToStudent('${template.id}', '${template.name.replace(/'/g, "\\'")}', '${(template.url || '').replace(/'/g, "\\'")}')"
+            class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-lg p-3 text-center transition group cursor-pointer">
+            <div class="text-3xl mb-1">${template.icon || '📚'}</div>
+            <div class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 line-clamp-2">${template.name}</div>
+            ${template.category ? `<div class="text-xs text-slate-400 mt-1">${template.category}</div>` : ''}
+        </button>
+    `).join('');
+}
+
+function filterAvailableSkills() {
+    renderAvailableSkills();
+}
+
+async function addSkillToStudent(templateId, skillName, skillUrl) {
+    if (!selectedStudentId) return;
+    
+    const result = await adminAPI.addSkill(
+        selectedStudentId,
+        skillName,
+        1,
+        skillUrl,
+        null,
+        null
+    );
+    
+    if (result.success) {
+        // Update usage count
+        try {
+            await fetch(`/api/skill-templates/${templateId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                },
+                body: JSON.stringify({ 
+                    name: skillName,
+                    url: skillUrl,
+                    is_active: true
+                })
+            });
+        } catch (e) {
+            console.error('Error updating usage count:', e);
+        }
+        
+        // Reload both student skills and available skills
+        await Promise.all([
+            renderStudentSkillsFromDB(selectedStudentId),
+            loadSkillsForStudent(selectedStudentId)
+        ]);
+        
+        customAlert(`تمت إضافة: ${skillName}`, { 
+            icon: '✅', 
+            title: 'تمت الإضافة'
+        });
+    } else {
+        customAlert(result.message || "خطأ في إضافة المهارة", { 
+            icon: '❌', 
+            title: 'خطأ'
+        });
+    }
+}
+
 async function addSkillToDropdown(skillName, url) {
     const dropdown = document.getElementById('skillDropdown');
+    if (!dropdown) return; // New UI doesn't have dropdown
 
     let savedSkills = customSkillsCache || await fetchCustomSkills();
 
@@ -216,16 +367,16 @@ async function addSkillToDropdown(skillName, url) {
 
 async function deleteSkillFromList(skillName, skillUrl) {
     customConfirm(`هل تريد حذف المهارة: ${skillName} من القائمة؟`, async () => {
-        showLoading('savedSkillsList', 'جاري حذف المهارة...');
-
         await deleteCustomSkillFromDatabase(skillName);
 
         // Clear cache and reload
         customSkillsCache = null;
         await reloadSkillsDropdown();
         
-        const savedSkills = await fetchCustomSkills();
-        renderSavedSkillsList(savedSkills);
+        // Refresh skill templates list if available
+        if (typeof loadSkillTemplates === 'function') {
+            await loadSkillTemplates();
+        }
         
         customAlert("تم حذف المهارة من القائمة", { icon: '✅', title: 'تم الحذف' });
     }, {
@@ -279,7 +430,8 @@ async function loadAndPopulateCustomSkills() {
 // Database functions
 async function fetchCustomSkills() {
     try {
-        const response = await fetch('/api/custom-skills', {
+        // Use new skill templates API with legacy endpoint for backward compatibility
+        const response = await fetch('/api/skill-templates/custom-skills', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             }
@@ -296,20 +448,29 @@ async function fetchCustomSkills() {
 
 async function saveCustomSkillToDatabase(name, url) {
     try {
-        const response = await fetch('/api/custom-skills', {
+        const response = await fetch('/api/skill-templates', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             },
-            body: JSON.stringify({ name, url })
+            body: JSON.stringify({ 
+                name, 
+                url, 
+                description: '', 
+                category: 'أخرى', 
+                icon: '📚',
+                color: 'indigo'
+            })
         });
         if (response.ok) {
             customSkillsCache = null; // Clear cache
             await reloadSkillsDropdown();
             
-            const savedSkills = await fetchCustomSkills();
-            renderSavedSkillsList(savedSkills);
+            // Refresh skill templates list if available
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
         }
     } catch (error) {
         console.error('خطأ في حفظ المهارة:', error);
@@ -318,13 +479,28 @@ async function saveCustomSkillToDatabase(name, url) {
 
 async function deleteCustomSkillFromDatabase(name) {
     try {
-        const response = await fetch(`/api/custom-skills/${encodeURIComponent(name)}`, {
-            method: 'DELETE',
+        // Find the template by name first
+        const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             }
         });
-        return response.ok;
+        
+        if (templatesResponse.ok) {
+            const templatesData = await templatesResponse.json();
+            const template = templatesData.templates?.find(t => t.name === name);
+            
+            if (template) {
+                const response = await fetch(`/api/skill-templates/${template.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    }
+                });
+                return response.ok;
+            }
+        }
+        return false;
     } catch (error) {
         console.error('خطأ في حذف المهارة:', error);
         return false;
@@ -375,7 +551,6 @@ function applySkillFilter() {
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
-        let editBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="showEditSkillModal('${skill.id}')" class="text-blue-500 hover:text-blue-700 text-xl sm:text-2xl">✏️</button></td>` : '';
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
@@ -390,78 +565,8 @@ function applySkillFilter() {
                     ${statusText}
                 </button>
             </td>
-            ${editBtn}
             ${deleteBtn}
         `;
         tbody.appendChild(row);
     });
-}
-
-let currentEditingSkill = null;
-
-function showEditSkillModal(skillId) {
-    if (!isAdmin) return;
-
-    const skill = allSkillsCache.find(s => s.id === skillId);
-    if (!skill) {
-        customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
-        return;
-    }
-
-    currentEditingSkill = skill;
-    const modal = document.getElementById('editSkillModal');
-    document.getElementById('editSkillName').value = skill.name;
-    document.getElementById('editSkillUrl').value = skill.description || '';
-
-    modal.classList.remove('hidden');
-    document.getElementById('editSkillName').focus();
-
-    // Close on background click
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            closeEditSkillModal();
-        }
-    };
-}
-
-function closeEditSkillModal() {
-    document.getElementById('editSkillModal').classList.add('hidden');
-    currentEditingSkill = null;
-}
-
-async function saveEditSkill() {
-    if (!currentEditingSkill) return;
-
-    const name = document.getElementById('editSkillName').value.trim();
-    const url = document.getElementById('editSkillUrl').value.trim();
-
-    if (!name || !url) {
-        customAlert("يرجى إكمال جميع البيانات المطلوبة", { icon: '⚠️', title: 'بيانات ناقصة' });
-        return;
-    }
-
-    const button = event?.target || document.querySelector('button[onclick="saveEditSkill()"]');
-    if (button) setButtonLoading(button, true);
-
-    const result = await adminAPI.updateSkill(
-        currentEditingSkill.id,
-        name,
-        currentEditingSkill.level,
-        url,
-        currentEditingSkill.category || '',
-        currentEditingSkill.notes || ''
-    );
-
-    if (button) setButtonLoading(button, false);
-
-    if (result.success) {
-        closeEditSkillModal();
-        customAlert("تم تحديث بيانات المهارة بنجاح", { 
-            icon: '✅', 
-            title: 'نجحت العملية',
-            onClose: () => renderStudentSkillsFromDB(selectedStudentId)
-        });
-    } else {
-        customAlert("خطأ في تحديث المهارة: " + (result.message || ''), { icon: '❌', title: 'خطأ' });
-    }
 }

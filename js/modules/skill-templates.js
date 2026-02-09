@@ -1,0 +1,460 @@
+// Skill Templates Management Module
+
+let skillTemplatesCache = [];
+let skillCategoriesCache = [];
+let currentEditingTemplateId = null;
+let currentDetailsTemplateId = null;
+
+// Load skill templates
+async function loadSkillTemplates() {
+    try {
+        const search = document.getElementById('skillTemplateSearch')?.value || '';
+        const category = document.getElementById('skillCategoryFilter')?.value || '';
+        
+        let url = '/api/skill-templates?is_active=true';
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load skill templates');
+        
+        const data = await response.json();
+        if (data.success) {
+            skillTemplatesCache = data.templates || [];
+            renderSkillTemplates(skillTemplatesCache);
+        }
+    } catch (error) {
+        console.error('Error loading skill templates:', error);
+        customAlert("خطأ في تحميل المهارات", { icon: '❌', title: 'خطأ' });
+    }
+}
+
+// Load skill categories
+async function loadSkillCategories() {
+    try {
+        const response = await fetch('/api/skill-templates/categories', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load categories');
+        
+        const data = await response.json();
+        if (data.success) {
+            skillCategoriesCache = data.categories || [];
+            populateCategoryDropdowns();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Populate category dropdowns
+function populateCategoryDropdowns() {
+    const filterSelect = document.getElementById('skillCategoryFilter');
+    const newSelect = document.getElementById('newTemplateCategory');
+    const editSelect = document.getElementById('editTemplateCategory');
+    
+    const options = skillCategoriesCache.map(cat => 
+        `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`
+    ).join('');
+    
+    if (filterSelect) {
+        filterSelect.innerHTML = '<option value="">جميع الفئات</option>' + options;
+    }
+    
+    if (newSelect) {
+        newSelect.innerHTML = options;
+    }
+    
+    if (editSelect) {
+        editSelect.innerHTML = options;
+    }
+}
+
+// Render skill templates
+function renderSkillTemplates(templates) {
+    const container = document.getElementById('skillTemplatesList');
+    if (!container) return;
+    
+    if (!templates || templates.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-12 text-slate-400">
+                <div class="text-5xl mb-3">📚</div>
+                <p>لا توجد مهارات</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = templates.map(template => `
+        <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group">
+            <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center gap-2 flex-1">
+                    <span class="text-2xl">${template.icon || '📚'}</span>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold text-slate-800 truncate" title="${template.name}">${template.name}</h4>
+                        ${template.description ? `<p class="text-xs text-slate-500 line-clamp-1">${template.description}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 mb-3 text-xs text-slate-600">
+                <span class="bg-${template.color || 'indigo'}-100 text-${template.color || 'indigo'}-700 px-2 py-1 rounded">${template.category || 'عامة'}</span>
+                <span class="flex items-center gap-1">
+                    <span class="text-lg">👥</span>
+                    ${template.usage_count || 0} طالب
+                </span>
+            </div>
+            
+            <div class="flex gap-1">
+                <button onclick="viewSkillTemplateDetails('${template.id}')" 
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded text-xs font-medium transition">
+                    👁️ عرض
+                </button>
+                <button onclick="editSkillTemplate('${template.id}')" 
+                    class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded text-xs font-medium transition">
+                    ✏️ تعديل
+                </button>
+                <button onclick="deleteSkillTemplate('${template.id}')" 
+                    class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded text-xs font-medium transition">
+                    🗑️
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Search skill templates
+function searchSkillTemplates() {
+    loadSkillTemplates();
+}
+
+// Filter skill templates
+function filterSkillTemplates() {
+    loadSkillTemplates();
+}
+
+// Show add skill template modal
+function showAddSkillTemplateModal() {
+    const modal = document.getElementById('addSkillTemplateModal');
+    
+    // Clear form
+    document.getElementById('newTemplateName').value = '';
+    document.getElementById('newTemplateDescription').value = '';
+    document.getElementById('newTemplateUrl').value = '';
+    document.getElementById('newTemplateCategory').value = skillCategoriesCache[0]?.name || 'مهارات عامة';
+    document.getElementById('newTemplateIcon').value = '📚';
+    
+    modal.classList.remove('hidden');
+    document.getElementById('newTemplateName').focus();
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeAddSkillTemplateModal();
+        }
+    };
+}
+
+// Close add skill template modal
+function closeAddSkillTemplateModal() {
+    document.getElementById('addSkillTemplateModal').classList.add('hidden');
+}
+
+// Save new skill template
+async function saveNewSkillTemplate() {
+    const name = document.getElementById('newTemplateName').value.trim();
+    const description = document.getElementById('newTemplateDescription').value.trim();
+    const url = document.getElementById('newTemplateUrl').value.trim();
+    const category = document.getElementById('newTemplateCategory').value;
+    const icon = document.getElementById('newTemplateIcon').value;
+    
+    if (!name) {
+        customAlert("يرجى إدخال اسم المهارة", { icon: '⚠️', title: 'بيانات ناقصة' });
+        return;
+    }
+    
+    const button = event?.target;
+    if (button) setButtonLoading(button, true);
+    
+    try {
+        const response = await fetch('/api/skill-templates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify({ name, description, url, category, icon, color: 'indigo' })
+        });
+        
+        const data = await response.json();
+        
+        if (button) setButtonLoading(button, false);
+        
+        if (data.success) {
+            closeAddSkillTemplateModal();
+            
+            // Refresh all caches and lists
+            await loadSkillTemplates();
+            customSkillsCache = null;
+            if (typeof reloadSkillsDropdown === 'function') {
+                await reloadSkillsDropdown();
+            }
+            if (typeof loadSkillsForStudent === 'function') {
+                await loadSkillsForStudent(selectedStudentId);
+            }
+            
+            customAlert("تم إضافة المهارة بنجاح", { 
+                icon: '✅', 
+                title: 'نجحت العملية'
+            });
+        } else {
+            customAlert(data.message || "خطأ في إضافة المهارة", { icon: '❌', title: 'خطأ' });
+        }
+    } catch (error) {
+        if (button) setButtonLoading(button, false);
+        console.error('Error adding skill template:', error);
+        customAlert("خطأ في إضافة المهارة", { icon: '❌', title: 'خطأ' });
+    }
+}
+
+// Edit skill template
+function editSkillTemplate(templateId) {
+    const template = skillTemplatesCache.find(t => t.id === templateId);
+    if (!template) {
+        customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
+        return;
+    }
+    
+    currentEditingTemplateId = templateId;
+    const modal = document.getElementById('editSkillTemplateModal');
+    
+    document.getElementById('editTemplateName').value = template.name;
+    document.getElementById('editTemplateDescription').value = template.description || '';
+    document.getElementById('editTemplateUrl').value = template.url || '';
+    document.getElementById('editTemplateCategory').value = template.category || 'مهارات عامة';
+    document.getElementById('editTemplateIcon').value = template.icon || '📚';
+    
+    modal.classList.remove('hidden');
+    document.getElementById('editTemplateName').focus();
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeEditSkillTemplateModal();
+        }
+    };
+}
+
+// Close edit skill template modal
+function closeEditSkillTemplateModal() {
+    document.getElementById('editSkillTemplateModal').classList.add('hidden');
+    currentEditingTemplateId = null;
+}
+
+// Save edit skill template
+async function saveEditSkillTemplate() {
+    if (!currentEditingTemplateId) return;
+    
+    const name = document.getElementById('editTemplateName').value.trim();
+    const description = document.getElementById('editTemplateDescription').value.trim();
+    const url = document.getElementById('editTemplateUrl').value.trim();
+    const category = document.getElementById('editTemplateCategory').value;
+    const icon = document.getElementById('editTemplateIcon').value;
+    
+    if (!name) {
+        customAlert("يرجى إدخال اسم المهارة", { icon: '⚠️', title: 'بيانات ناقصة' });
+        return;
+    }
+    
+    const button = event?.target;
+    if (button) setButtonLoading(button, true);
+    
+    try {
+        const response = await fetch(`/api/skill-templates/${currentEditingTemplateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify({ name, description, url, category, icon, color: 'indigo', is_active: true })
+        });
+        
+        const data = await response.json();
+        
+        if (button) setButtonLoading(button, false);
+        
+        if (data.success) {
+            closeEditSkillTemplateModal();
+            
+            // Refresh all caches and lists
+            await loadSkillTemplates();
+            customSkillsCache = null;
+            if (typeof reloadSkillsDropdown === 'function') {
+                await reloadSkillsDropdown();
+            }
+            if (typeof loadSkillsForStudent === 'function') {
+                await loadSkillsForStudent(selectedStudentId);
+            }
+            
+            customAlert("تم تحديث المهارة بنجاح", { 
+                icon: '✅', 
+                title: 'نجحت العملية'
+            });
+        } else {
+            customAlert(data.message || "خطأ في تحديث المهارة", { icon: '❌', title: 'خطأ' });
+        }
+    } catch (error) {
+        if (button) setButtonLoading(button, false);
+        console.error('Error updating skill template:', error);
+        customAlert("خطأ في تحديث المهارة", { icon: '❌', title: 'خطأ' });
+    }
+}
+
+// Delete skill template
+function deleteSkillTemplate(templateId) {
+    const template = skillTemplatesCache.find(t => t.id === templateId);
+    if (!template) return;
+    
+    customConfirm(
+        `هل تريد حذف المهارة: ${template.name}؟\n\nملاحظة: سيتم حذف المهارة من القائمة ولن تظهر في الاختيارات الجديدة، ولكن ستبقى لدى الطلاب الذين لديهم هذه المهارة.`,
+        async () => {
+            try {
+                const response = await fetch(`/api/skill-templates/${templateId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    customAlert("تم حذف المهارة بنجاح", { 
+                        icon: '✅', 
+                        title: 'تم الحذف',
+                        onClose: () => loadSkillTemplates()
+                    });
+                } else {
+                    customAlert(data.message || "خطأ في حذف المهارة", { icon: '❌', title: 'خطأ' });
+                }
+            } catch (error) {
+                console.error('Error deleting skill template:', error);
+                customAlert("خطأ في حذف المهارة", { icon: '❌', title: 'خطأ' });
+            }
+        },
+        {
+            icon: '🗑️',
+            title: 'تأكيد الحذف',
+            confirmText: 'حذف',
+            cancelText: 'إلغاء'
+        }
+    );
+}
+
+// View skill template details
+async function viewSkillTemplateDetails(templateId) {
+    const template = skillTemplatesCache.find(t => t.id === templateId);
+    if (!template) return;
+    
+    currentDetailsTemplateId = templateId;
+    const modal = document.getElementById('skillTemplateDetailsModal');
+    
+    document.getElementById('detailsTemplateName').textContent = `${template.icon} ${template.name}`;
+    document.getElementById('detailsTemplateDescription').textContent = template.description || 'لا يوجد وصف';
+    document.getElementById('detailsTemplateCategory').textContent = template.category || 'عامة';
+    document.getElementById('detailsTemplateUsage').textContent = `${template.usage_count || 0} طالب`;
+    
+    const studentsList = document.getElementById('detailsStudentsList');
+    studentsList.innerHTML = '<div class="text-center text-slate-400 py-4">جاري التحميل...</div>';
+    
+    modal.classList.remove('hidden');
+    
+    // Load students who have this skill
+    try {
+        const response = await fetch(`/api/skill-templates/${templateId}/students`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.students && data.students.length > 0) {
+            studentsList.innerHTML = data.students.map(student => `
+                <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm">${student.name}</div>
+                        <div class="text-xs text-slate-500">رقم: ${student.code}</div>
+                    </div>
+                    <div class="text-xs ${student.completed ? 'text-green-600' : 'text-red-500'}">
+                        ${student.completed ? '✅ مكتملة' : '❌ غير مكتملة'}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            studentsList.innerHTML = '<div class="text-center text-slate-400 py-4">لم يتم تعيين هذه المهارة لأي طالب بعد</div>';
+        }
+    } catch (error) {
+        console.error('Error loading students:', error);
+        studentsList.innerHTML = '<div class="text-center text-red-400 py-4">خطأ في تحميل البيانات</div>';
+    }
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeSkillTemplateDetailsModal();
+        }
+    };
+}
+
+// Close skill template details modal
+function closeSkillTemplateDetailsModal() {
+    document.getElementById('skillTemplateDetailsModal').classList.add('hidden');
+    currentDetailsTemplateId = null;
+}
+
+// Show bulk assign from details
+function showBulkAssignFromDetails() {
+    if (!currentDetailsTemplateId) return;
+    
+    closeSkillTemplateDetailsModal();
+    
+    // Find the template
+    const template = skillTemplatesCache.find(t => t.id === currentDetailsTemplateId);
+    if (!template) return;
+    
+    // Open batch skill modal with this skill pre-selected
+    showBatchSkillModal();
+    
+    // Wait for modal to open and populate
+    setTimeout(() => {
+        const batchSelect = document.getElementById('batchSkillSelect');
+        const batchLink = document.getElementById('batchSkillLink');
+        
+        // Try to find matching option
+        const matchingOption = Array.from(batchSelect.options).find(opt => opt.value === template.name);
+        if (matchingOption) {
+            batchSelect.value = template.name;
+            batchLink.value = template.url || '';
+        } else {
+            // Use custom option
+            batchSelect.value = 'custom';
+            document.getElementById('batchSkillCustom').value = template.name;
+            document.getElementById('batchSkillCustom').classList.remove('hidden');
+            batchLink.value = template.url || '';
+        }
+    }, 100);
+}
+
+// Initialize skill templates management
+async function initSkillTemplatesManagement() {
+    if (!isAdmin) return;
+    
+    await loadSkillCategories();
+    await loadSkillTemplates();
+}

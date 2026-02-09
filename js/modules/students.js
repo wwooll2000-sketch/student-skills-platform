@@ -39,24 +39,12 @@ async function addNewStudent() {
 async function deleteStudent(id) {
     if (!isAdmin) return;
 
-    showLoading('adminStudentsList', 'جاري جلب بيانات الطالب...');
-
-    const result = await adminAPI.getAllStudents();
-    if (!result.success) {
-        customAlert("خطأ في جلب بيانات الطالب", { 
-            icon: '❌', 
-            title: 'خطأ',
-            onClose: () => renderAdminStudents()
-        });
-        return;
-    }
-
-    const student = result.students.find(s => s.id === id);
+    // Use cached data instead of fetching from API for instant modal display
+    const student = allStudentsCache.find(s => s.id === id);
     if (!student) {
         customAlert("الطالب غير موجود", { 
             icon: '❌', 
-            title: 'خطأ',
-            onClose: () => renderAdminStudents()
+            title: 'خطأ'
         });
         return;
     }
@@ -82,8 +70,7 @@ async function deleteStudent(id) {
         icon: '🗑️',
         title: 'تأكيد الحذف',
         confirmText: 'حذف',
-        cancelText: 'إلغاء',
-        onCancel: () => renderAdminStudents()
+        cancelText: 'إلغاء'
     });
 }
 
@@ -122,34 +109,9 @@ async function renderAdminStudents() {
 
     // Render students using the filter function
     applySortAndFilter();
-
-    renderSavedSkillsList(customSkillsCache);
     
     // Load recent activity feed
     loadRecentActivity();
-}
-
-function renderSavedSkillsList(savedSkills) {
-    const container = document.getElementById('savedSkillsList');
-    container.innerHTML = '';
-
-    if (!savedSkills || savedSkills.length === 0) {
-        container.innerHTML = '<div class="p-4 text-center text-slate-400">لا توجد مهارات محفوظة</div>';
-        return;
-    }
-
-    savedSkills.forEach(skill => {
-        const div = document.createElement('div');
-        div.className = "p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 rounded-lg hover:bg-slate-100 transition gap-2";
-        div.innerHTML = `
-            <div class="flex-1 w-full">
-                <span class="font-medium text-slate-800 text-sm sm:text-base">${skill.name}</span>
-                <a href="${skill.url}" target="_blank" class="block sm:inline mr-0 sm:mr-2 text-indigo-500 text-xs sm:text-sm hover:underline mt-1 sm:mt-0">🔗 الرابط</a>
-            </div>
-            <button onclick="deleteSkillFromList('${skill.name.replace(/'/g, "\\'")}','${skill.url.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xs sm:text-sm px-3 py-2 bg-white rounded-lg w-full sm:w-auto">🗑️ حذف</button>
-        `;
-        container.appendChild(div);
-    });
 }
 
 async function showStudentSkills(id) {
@@ -234,27 +196,23 @@ function renderFilteredStudents(students) {
 async function deleteAllStudents() {
     if (!isAdmin) return;
 
-    const result = await adminAPI.getAllStudents();
-    if (!result.success) {
-        customAlert("خطأ في جلب بيانات الطلاب", { icon: '❌', title: 'خطأ' });
-        return;
-    }
-
-    const students = result.students;
-    if (students.length === 0) {
+    // Use cached data instead of fetching from API for instant modal display
+    if (!allStudentsCache || allStudentsCache.length === 0) {
         customAlert("لا يوجد طلاب لحذفهم", { icon: '⚠️', title: 'تنبيه' });
         return;
     }
 
+    const studentCount = allStudentsCache.length;
+
     customConfirm(
-        `هل أنت متأكد من حذف جميع الطلاب (${students.length} طالب)؟\n\nتحذير: لا يمكن التراجع عن هذا الإجراء!`,
+        `هل أنت متأكد من حذف جميع الطلاب (${studentCount} طالب)؟\n\nتحذير: لا يمكن التراجع عن هذا الإجراء!`,
         async () => {
-            showLoading('adminStudentsList', `جاري حذف ${students.length} طالب...`);
+            showLoading('adminStudentsList', `جاري حذف ${studentCount} طالب...`);
 
             let successCount = 0;
             let failCount = 0;
 
-            for (const student of students) {
+            for (const student of allStudentsCache) {
                 const deleteResult = await adminAPI.deleteStudent(student.id);
                 if (deleteResult.success) {
                     successCount++;
