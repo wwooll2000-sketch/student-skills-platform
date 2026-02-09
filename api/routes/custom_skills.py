@@ -212,6 +212,14 @@ def update_skill_template(template_id):
         )
         
         updated_skills_count = cur.rowcount
+        
+        # Recalculate usage count based on actual student skills
+        cur.execute(
+            '''UPDATE skill_templates 
+               SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL)
+               WHERE id = %s''',
+            (name, template_id)
+        )
             
         conn.commit()
         cur.close()
@@ -272,6 +280,42 @@ def delete_skill_template(template_id):
         return jsonify({'success': True, 'message': message})
     except Exception as e:
         print(f"Error deleting skill template: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        return_db(conn)
+
+@custom_skills_bp.route('/<template_id>/decrement-usage', methods=['POST'])
+@verify_admin
+def decrement_template_usage(template_id):
+    """Decrement the usage count for a skill template (called when skill is deleted from a student)"""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        
+        # Get template name
+        cur.execute('SELECT name FROM skill_templates WHERE id = %s', (template_id,))
+        result = cur.fetchone()
+        if not result:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        
+        template_name = result[0]
+        
+        # Recalculate usage count based on actual student skills
+        cur.execute(
+            '''UPDATE skill_templates 
+               SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE id = %s''',
+            (template_name, template_id)
+        )
+        
+        conn.commit()
+        cur.close()
+        
+        return jsonify({'success': True, 'message': 'تم تحديث عدد الاستخدامات'})
+    except Exception as e:
+        print(f"Error decrementing usage count: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         return_db(conn)

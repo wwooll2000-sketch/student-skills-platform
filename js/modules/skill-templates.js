@@ -1,6 +1,6 @@
 // Skill Templates Management Module
 
-let skillTemplatesCache = [];
+let localSkillTemplatesCache = [];
 let skillCategoriesCache = [];
 let currentEditingTemplateId = null;
 let currentDetailsTemplateId = null;
@@ -25,8 +25,8 @@ async function loadSkillTemplates() {
         
         const data = await response.json();
         if (data.success) {
-            skillTemplatesCache = data.templates || [];
-            renderSkillTemplates(skillTemplatesCache);
+            localSkillTemplatesCache = data.templates || [];
+            renderSkillTemplates(localSkillTemplatesCache);
         }
     } catch (error) {
         console.error('Error loading skill templates:', error);
@@ -229,7 +229,7 @@ async function saveNewSkillTemplate() {
 
 // Edit skill template
 function editSkillTemplate(templateId) {
-    const template = skillTemplatesCache.find(t => t.id === templateId);
+    const template = localSkillTemplatesCache.find(t => t.id === templateId);
     if (!template) {
         customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
         return;
@@ -324,7 +324,7 @@ async function saveEditSkillTemplate() {
 
 // Delete skill template
 function deleteSkillTemplate(templateId) {
-    const template = skillTemplatesCache.find(t => t.id === templateId);
+    const template = localSkillTemplatesCache.find(t => t.id === templateId);
     if (!template) return;
     
     const messageDiv = document.createElement('div');
@@ -379,7 +379,7 @@ function deleteSkillTemplate(templateId) {
 
 // View skill template details
 async function viewSkillTemplateDetails(templateId) {
-    const template = skillTemplatesCache.find(t => t.id === templateId);
+    const template = localSkillTemplatesCache.find(t => t.id === templateId);
     if (!template) return;
     
     currentDetailsTemplateId = templateId;
@@ -449,7 +449,7 @@ async function showBulkAssignFromDetails() {
         }
         
         // Find the template
-        const template = skillTemplatesCache.find(t => t.id === currentDetailsTemplateId);
+        const template = localSkillTemplatesCache.find(t => t.id === currentDetailsTemplateId);
         if (!template) {
             console.error('Template not found:', currentDetailsTemplateId);
             return;

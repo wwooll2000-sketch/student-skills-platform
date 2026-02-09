@@ -125,9 +125,31 @@ async function deleteSkill(skillId) {
         const tbody = document.getElementById('skillsTableBody');
         tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري حذف المهارة...</p></td></tr>';
 
+        // Get skill info before deleting to update template usage count
+        const skill = allSkillsCache.find(s => s.id === skillId);
+        const skillName = skill?.name;
+
         const result = await adminAPI.deleteSkill(skillId);
 
         if (result.success) {
+            // Update skill template usage count if skill has a template
+            if (skillName) {
+                try {
+                    const templatesMap = await getSkillTemplatesMap();
+                    const template = Object.values(templatesMap).find(t => t.name === skillName);
+                    if (template) {
+                        await fetch(`/api/skill-templates/${template.id}/decrement-usage`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error updating skill template usage count:', e);
+                }
+            }
+            
             // Invalidate caches when data changes
             invalidateAllCaches();
             customAlert("تم حذف المهارة بنجاح", { 
@@ -192,6 +214,11 @@ async function saveNewSkill() {
 
         // Invalidate caches when data changes
         invalidateAllCaches();
+        
+        // Reload skill templates to update usage counts
+        if (typeof loadSkillTemplates === 'function') {
+            await loadSkillTemplates();
+        }
         
         customAlert("تم إضافة المهارة بنجاح", { 
             icon: '✅', 
@@ -349,6 +376,7 @@ async function addSelectedSkillsToStudent() {
     
     let successCount = 0;
     let failCount = 0;
+    let templatesNeedReload = false;
     
     for (const templateId of selectedSkillsToAdd) {
         const skillData = window.selectedSkillsData?.get(templateId);
@@ -365,6 +393,7 @@ async function addSelectedSkillsToStudent() {
         
         if (result.success) {
             successCount++;
+            templatesNeedReload = true;
             // Update usage count
             try {
                 await fetch(`/api/skill-templates/${templateId}`, {
@@ -397,6 +426,11 @@ async function addSelectedSkillsToStudent() {
     
     // Invalidate caches when data changes
     invalidateAllCaches();
+    
+    // Reload skill templates once if needed to update usage count display
+    if (templatesNeedReload && typeof loadSkillTemplates === 'function') {
+        await loadSkillTemplates();
+    }
     
     // Reload both student skills and available skills
     await Promise.all([
@@ -442,6 +476,11 @@ async function addSkillToStudent(templateId, skillName, skillUrl) {
                     is_active: true
                 })
             });
+            
+            // Reload skill templates to update usage count display
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
         } catch (e) {
             console.error('Error updating usage count:', e);
         }

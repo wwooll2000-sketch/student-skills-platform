@@ -222,3 +222,24 @@ in this app i notiecd alot of things takes time to load or process for exmaple w
 Note: you can refactor or change anything you want in the code to optimize it and make it faster and more efficient.
 
 don't create any .md files to summarize the changes just do the changes.
+
+--------------------------
+
+there is alot of issues need to be fixed!
+
+- in the إدارة المهارات in any مهارة there is a text that says how many students have this مهارة but when i remove a مهارة from a student it doesn't update the number of students that have this مهارة in the إدارة المهارات section.
+
+- in the قائمة الطلاب المضافين in ✅ إضافة مهارة لعدة طلاب there is a section called رابط الملف remove it completely + in the اختر المهارة section in the dropdown list there is an option called أخرى that when i select it appears an input field.. remove this completely and make sure to remove any code related to it. i just wanna able to select the مهارة that i added from the إدارة المهارات section here. also another issue in this model in the اختر الطلاب section there is a checkbox for each student but the problom is the student who have this مهارة already should be disabled and not able to select it because they already have this مهارة + add a check functinality in the code to make sure that the student who have this مهارة already can't be added again with the same مهارة.
+
+--------------
+
+its not fix complatly yet there is three area that i can add مهارة to a student and 2 of them not updating the number issue in the إدارة المهارات
+
+not worked:
+- in the ✅ إضافة مهارة لعدة طلاب model
+- in the إضافة مهارة from the student page
+
+works:
+- when i add a مهارة to a student from the إدارة المهارات ➕ إضافة لطلاب
+
+if you fix this issue please make sure to search for any other place in the app that has the same type of issue and fix it!

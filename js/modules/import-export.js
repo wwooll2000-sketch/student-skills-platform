@@ -147,6 +147,15 @@ async function processImport(studentsData) {
         }
     }
 
+    // Reload skill templates to update usage counts after import
+    if (typeof loadSkillTemplates === 'function') {
+        try {
+            await loadSkillTemplates();
+        } catch (e) {
+            console.error('Error refreshing skill templates:', e);
+        }
+    }
+
     const message = `تم الاستيراد بنجاح:\n` +
                     `✅ تمت الإضافة: ${successCount} طالب\n` +
                     (skipCount > 0 ? `⏭️ تم تخطي: ${skipCount} طالب (موجود مسبقاً)\n` : '') +

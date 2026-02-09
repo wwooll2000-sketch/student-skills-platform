@@ -79,15 +79,7 @@ async function showBatchSkillModal(preSelectedTemplate = null) {
                 <select id="batchSkillSelect"
                     class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                     <option value="">-- اختر مهارة --</option>
-                    <option value="custom">✍️ مهارة أخرى...</option>
                 </select>
-                <input id="batchSkillCustom" type="text" placeholder="اكتب المهارة يدوياً"
-                    class="hidden w-full p-3 border rounded-lg mt-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-sm font-bold mb-2">رابط الملف:</label>
-                <input id="batchSkillLink" type="text" placeholder="رابط الملف"
-                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
         `;
     }
@@ -101,14 +93,19 @@ async function showBatchSkillModal(preSelectedTemplate = null) {
         }
     };
 
+    // Get selected skill info for filtering students
+    let selectedSkillName = null;
+    if (preSelectedTemplate) {
+        selectedSkillName = preSelectedTemplate.name;
+    }
+
     // Only load skill templates if not pre-selected
     if (!preSelectedTemplate) {
         const skillSelect = document.getElementById('batchSkillSelect');
-        const customOption = skillSelect.querySelector('option[value="custom"]');
         
-        // Clear existing options except first and custom
+        // Clear existing options except first
         Array.from(skillSelect.options).forEach(option => {
-            if (option.value !== '' && option.value !== 'custom') {
+            if (option.value !== '') {
                 option.remove();
             }
         });
@@ -123,44 +120,58 @@ async function showBatchSkillModal(preSelectedTemplate = null) {
             newOption.textContent = `${template.icon || '📚'} ${template.name}`;
             newOption.setAttribute('data-url', template.url || '');
             newOption.setAttribute('data-id', template.id);
-            skillSelect.insertBefore(newOption, customOption);
+            skillSelect.appendChild(newOption);
         });
         
-        // Setup skill select change handler
-        skillSelect.onchange = function() {
-            const customInput = document.getElementById('batchSkillCustom');
-            const linkInput = document.getElementById('batchSkillLink');
-            
-            if (this.value === 'custom') {
-                customInput.classList.remove('hidden');
-                linkInput.value = '';
-            } else {
-                customInput.classList.add('hidden');
-                customInput.value = '';
-                const selectedOption = this.options[this.selectedIndex];
-                const url = selectedOption.getAttribute('data-url');
-                linkInput.value = url || '';
-            }
+        // Setup skill select change handler to update student list
+        skillSelect.onchange = async function() {
+            selectedSkillName = this.value;
+            await updateStudentCheckboxes(selectedSkillName);
         };
     }
 
-    // Use cached students instead of fetching from API
-    const studentList = document.getElementById('studentCheckboxList');
-    studentList.innerHTML = '';
+    // Load students and check which ones already have the skill
+    await updateStudentCheckboxes(selectedSkillName);
+}
 
-    if (allStudentsCache && allStudentsCache.length > 0) {
-        allStudentsCache.forEach(student => {
-            const label = document.createElement('label');
-            label.className = 'flex items-center cursor-pointer hover:bg-slate-50 p-2 rounded';
-            label.innerHTML = `
-                <input type="checkbox" class="student-checkbox mr-2" value="${student.id}" data-name="${student.name}">
-                <span>${student.name} - ${student.code}</span>
-            `;
-            studentList.appendChild(label);
-        });
-    } else {
+// Helper function to update student checkboxes based on selected skill
+async function updateStudentCheckboxes(selectedSkillName) {
+    const studentList = document.getElementById('studentCheckboxList');
+    studentList.innerHTML = '<div class="text-center text-slate-400 p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
+
+    if (!allStudentsCache || allStudentsCache.length === 0) {
         studentList.innerHTML = '<div class="text-center text-slate-400 p-4">لا يوجد طلاب</div>';
+        return;
     }
+
+    // Get all students with their skills to check who already has this skill
+    let studentsWithSkills = new Map();
+    
+    if (selectedSkillName) {
+        try {
+            const result = await adminAPI.getStudentsWithSkills();
+            if (result.success && result.students) {
+                result.students.forEach(student => {
+                    const skillNames = student.skills ? student.skills.map(s => s.name) : [];
+                    studentsWithSkills.set(student.id, skillNames);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching students with skills:', error);
+        }
+    }
+
+    studentList.innerHTML = '';
+    allStudentsCache.forEach(student => {
+        const hasSkill = selectedSkillName && studentsWithSkills.get(student.id)?.includes(selectedSkillName);
+        const label = document.createElement('label');
+        label.className = `flex items-center p-2 rounded ${hasSkill ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`;
+        label.innerHTML = `
+            <input type="checkbox" class="student-checkbox mr-2" value="${student.id}" data-name="${student.name}" ${hasSkill ? 'disabled' : ''}>
+            <span>${student.name} - ${student.code}${hasSkill ? ' ✅ (لديه المهارة)' : ''}</span>
+        `;
+        studentList.appendChild(label);
+    });
 }
 
 function closeBatchSkillModal() {
@@ -171,7 +182,7 @@ function closeBatchSkillModal() {
 
 function toggleSelectAllStudents() {
     const selectAll = document.getElementById('selectAllStudents');
-    const checkboxes = document.querySelectorAll('.student-checkbox');
+    const checkboxes = document.querySelectorAll('.student-checkbox:not([disabled])');
     checkboxes.forEach(cb => cb.checked = selectAll.checked);
 }
 
@@ -193,18 +204,16 @@ async function processBatchSkill() {
     } else {
         // Coming from manual selection
         const skillSelect = document.getElementById('batchSkillSelect');
-        const customInput = document.getElementById('batchSkillCustom');
-        const linkInput = document.getElementById('batchSkillLink');
         
-        skillName = skillSelect.value === 'custom' ? customInput.value.trim() : skillSelect.value;
-        skillUrl = linkInput.value.trim();
+        skillName = skillSelect.value;
         
         const selectedOption = skillSelect.options[skillSelect.selectedIndex];
+        skillUrl = selectedOption?.getAttribute('data-url') || '';
         templateId = selectedOption?.getAttribute('data-id');
     }
 
-    if (!skillName || !skillUrl) {
-        customAlert("يرجى إكمال بيانات المهارة", { icon: '⚠️', title: 'بيانات ناقصة' });
+    if (!skillName) {
+        customAlert("يرجى اختيار مهارة", { icon: '⚠️', title: 'بيانات ناقصة' });
         return;
     }
 
@@ -218,9 +227,31 @@ async function processBatchSkill() {
 
     let successCount = 0;
     let failCount = 0;
+    let skippedCount = 0;
+
+    // Get all students with skills to verify no duplicates
+    let studentsWithSkills = new Map();
+    try {
+        const result = await adminAPI.getStudentsWithSkills();
+        if (result.success && result.students) {
+            result.students.forEach(student => {
+                const skillNames = student.skills ? student.skills.map(s => s.name) : [];
+                studentsWithSkills.set(student.id, skillNames);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching students with skills:', error);
+    }
 
     for (const checkbox of selectedCheckboxes) {
         const studentId = checkbox.value;
+        
+        // Double-check if student already has this skill (server-side validation)
+        if (studentsWithSkills.get(studentId)?.includes(skillName)) {
+            skippedCount++;
+            continue;
+        }
+        
         const result = await adminAPI.addSkill(studentId, skillName, 1, skillUrl, null, null);
         
         if (result.success) {
@@ -245,6 +276,11 @@ async function processBatchSkill() {
                     is_active: true
                 })
             });
+            
+            // Reload skill templates to update usage count display
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
         } catch (e) {
             console.error('Error updating usage count:', e);
         }
