@@ -86,3 +86,54 @@ async function loadRecentActivity() {
         container.appendChild(div);
     });
 }
+
+// Optimized version with caching
+async function loadRecentActivityOptimized() {
+    const container = document.getElementById('recentActivityList');
+    if (!container) return null;
+
+    // Check if cache is valid
+    if (isCacheValid(activitiesCache)) {
+        renderActivities(container, activitiesCache.data);
+        return activitiesCache.data;
+    }
+
+    container.innerHTML = '<div class="text-center text-slate-400 p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
+
+    // Use request deduplication
+    const result = await deduplicatedFetch('activities', () => adminAPI.getRecentActivities());
+    
+    if (!result.success || !result.activities || result.activities.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 p-4">لا توجد نشاطات حديثة</div>';
+        return null;
+    }
+
+    // Update cache
+    activitiesCache.data = result.activities;
+    activitiesCache.timestamp = Date.now();
+    
+    renderActivities(container, result.activities);
+    return result.activities;
+}
+
+// Helper function to render activities
+function renderActivities(container, activities) {
+    const recentActivities = activities.slice(0, 10);
+    
+    container.innerHTML = '';
+    recentActivities.forEach(activity => {
+        const div = document.createElement('div');
+        div.className = 'flex items-start gap-2 p-2 hover:bg-slate-50 rounded text-sm';
+        const timeAgo = getTimeAgo(activity.date);
+        div.innerHTML = `
+            <span class="text-lg">✅</span>
+            <div class="flex-1">
+                <span class="font-medium">${activity.studentName}</span>
+                <span class="text-slate-600">أكمل</span>
+                <span class="font-medium text-indigo-600">${activity.skillName}</span>
+                <div class="text-xs text-slate-400">${timeAgo}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}

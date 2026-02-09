@@ -22,6 +22,10 @@ async function addNewStudent() {
 
     if (result.success) {
         document.getElementById('newStudentName').value = '';
+        
+        // Invalidate caches when data changes
+        invalidateAllCaches();
+        
         customAlert(`${result.message}\n\nالاسم: ${name}\nالرقم: ${code}`, { 
             icon: '✅', 
             title: 'تم إضافة الطالب',
@@ -54,6 +58,9 @@ async function deleteStudent(id) {
         const deleteResult = await adminAPI.deleteStudent(id);
 
         if (deleteResult.success) {
+            // Invalidate caches when data changes
+            invalidateAllCaches();
+            
             customAlert("تم حذف الطالب بنجاح", { 
                 icon: '✅', 
                 title: 'تم الحذف',
@@ -94,24 +101,24 @@ async function renderAdminStudents() {
     const container = document.getElementById('adminStudentsList');
     showLoading('adminStudentsList', 'جاري تحميل البيانات...');
 
-    const students = await loadStudentsFromDatabase();
+    // Batch all API calls together in parallel for faster loading
+    const [studentsResult, customSkills, statistics, activities] = await Promise.all([
+        loadStudentsFromDatabase(),
+        customSkillsCache ? Promise.resolve(customSkillsCache) : fetchCustomSkills(),
+        updateStatisticsOptimized(), // Use optimized version with caching
+        loadRecentActivityOptimized() // Use optimized version with caching
+    ]);
 
     // Cache students for search and filter
-    allStudentsCache = students;
+    allStudentsCache = studentsResult;
 
-    // Load saved skills in parallel with better caching
+    // Cache custom skills if not already cached
     if (!customSkillsCache) {
-        customSkillsCache = await fetchCustomSkills();
+        customSkillsCache = customSkills;
     }
-
-    // Update statistics
-    updateStatistics();
 
     // Render students using the filter function
     applySortAndFilter();
-    
-    // Load recent activity feed
-    loadRecentActivity();
 }
 
 async function showStudentSkills(id) {
@@ -121,8 +128,8 @@ async function showStudentSkills(id) {
     const button = event?.target;
     if (button) setButtonLoading(button, true);
 
-    const result = await adminAPI.getAllStudents();
-    const student = result.students.find(s => s.id === id);
+    // Use cached data instead of fetching ALL students
+    const student = allStudentsCache.find(s => s.id === id);
 
     if (!student) {
         if (button) setButtonLoading(button, false);
@@ -138,9 +145,6 @@ async function showStudentSkills(id) {
     document.getElementById('currentStudentTitle').innerText = student.name;
 
     await renderStudentSkillsFromDB(id);
-
-    // Clear the loading indicator before switching views
-    renderFilteredStudents(allStudentsCache);
 
     // Save state for page refresh persistence
     sessionStorage.setItem('skillsView_studentId', id);
@@ -298,6 +302,10 @@ async function saveEditStudent() {
 
     if (result.success) {
         closeEditStudentModal();
+        
+        // Invalidate caches when data changes
+        invalidateAllCaches();
+        
         customAlert("تم تحديث بيانات الطالب بنجاح", { 
             icon: '✅', 
             title: 'نجحت العملية',

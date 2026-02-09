@@ -4,26 +4,8 @@ async function renderStudentSkillsFromDB(studentId) {
     const tbody = document.getElementById('skillsTableBody');
     tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center"><div class="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري تحميل المهارات...</p></td></tr>';
 
-    // Load skill templates to get icons
-    let skillTemplatesMap = {};
-    if (isAdmin) {
-        try {
-            const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                }
-            });
-            if (templatesResponse.ok) {
-                const templatesData = await templatesResponse.json();
-                const templates = templatesData.templates || [];
-                templates.forEach(t => {
-                    skillTemplatesMap[t.name] = t;
-                });
-            }
-        } catch (e) {
-            console.error('Error loading skill templates:', e);
-        }
-    }
+    // Use cached skill templates instead of fetching every time
+    const skillTemplatesMap = isAdmin ? await getSkillTemplatesMap() : {};
 
     // Use admin API to get skills for the selected student when admin is viewing
     const skillsResult = isAdmin ? await adminAPI.getStudentSkills(studentId) : await studentAPI.getSkills();
@@ -103,24 +85,17 @@ async function renderStudentSkillsFromDB(studentId) {
 async function toggleSkill(skillId) {
     if (!isAdmin) return;
 
+    // Use cached skills instead of fetching from API
+    const skill = allSkillsCache.find(s => s.id === skillId);
+    
+    if (!skill) {
+        customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
+        return;
+    }
+
     const tbody = document.getElementById('skillsTableBody');
     const originalContent = tbody.innerHTML;
     tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto"></div></td></tr>';
-
-    // Use admin API to get skills for the selected student
-    const skillsResult = await adminAPI.getStudentSkills(selectedStudentId);
-    if (!skillsResult.success) {
-        customAlert("خطأ في تحميل المهارات", { icon: '❌', title: 'خطأ' });
-        tbody.innerHTML = originalContent;
-        return;
-    }
-
-    const skill = skillsResult.data.skills.find(s => s.id === skillId);
-    if (!skill) {
-        customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
-        tbody.innerHTML = originalContent;
-        return;
-    }
 
     const newLevel = skill.level === 3 ? 1 : 3;
 
@@ -134,6 +109,8 @@ async function toggleSkill(skillId) {
     );
 
     if (result.success) {
+        // Invalidate caches when data changes
+        invalidateAllCaches();
         await renderStudentSkillsFromDB(selectedStudentId);
     } else {
         customAlert("خطأ في تحديث المهارة: " + (result.message || ''), { icon: '❌', title: 'خطأ' });
@@ -151,6 +128,8 @@ async function deleteSkill(skillId) {
         const result = await adminAPI.deleteSkill(skillId);
 
         if (result.success) {
+            // Invalidate caches when data changes
+            invalidateAllCaches();
             customAlert("تم حذف المهارة بنجاح", { 
                 icon: '✅', 
                 title: 'تم الحذف',
@@ -211,6 +190,9 @@ async function saveNewSkill() {
         document.getElementById('manualSkillInput').classList.add('hidden');
         document.getElementById('newFileLink').value = '';
 
+        // Invalidate caches when data changes
+        invalidateAllCaches();
+        
         customAlert("تم إضافة المهارة بنجاح", { 
             icon: '✅', 
             title: 'نجحت العملية',
@@ -228,21 +210,37 @@ async function saveNewSkill() {
 // New skill management functions
 let availableSkillsCache = [];
 let studentSkillsCache = [];
+let selectedSkillsToAdd = new Set(); // Track selected skills for batch add
 
 async function loadSkillsForStudent(studentId) {
     if (!studentId || !isAdmin) return;
     
+    // Clear any previous selections
+    selectedSkillsToAdd.clear();
+    if (window.selectedSkillsData) {
+        window.selectedSkillsData.clear();
+    }
+    
     try {
-        // Load available skill templates
-        const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        // Use cached skill templates if available
+        if (isCacheValid(skillTemplatesCache) && skillTemplatesCache.data.length > 0) {
+            availableSkillsCache = skillTemplatesCache.data;
+        } else {
+            // Load fresh data if cache is invalid
+            const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            });
+            
+            if (templatesResponse.ok) {
+                const templatesData = await templatesResponse.json();
+                availableSkillsCache = templatesData.templates || [];
+                
+                // Update global cache
+                skillTemplatesCache.data = availableSkillsCache;
+                skillTemplatesCache.timestamp = Date.now();
             }
-        });
-        
-        if (templatesResponse.ok) {
-            const templatesData = await templatesResponse.json();
-            availableSkillsCache = templatesData.templates || [];
         }
         
         // Load student's current skills
@@ -280,18 +278,141 @@ function renderAvailableSkills() {
         return;
     }
     
-    container.innerHTML = availableSkills.map(template => `
-        <button onclick="addSkillToStudent('${template.id}', '${template.name.replace(/'/g, "\\'")}', '${(template.url || '').replace(/'/g, "\\'")}')"
-            class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-lg p-3 text-center transition group cursor-pointer">
-            <div class="text-3xl mb-1">${template.icon || '📚'}</div>
+    container.innerHTML = availableSkills.map(template => {
+        const isSelected = selectedSkillsToAdd.has(template.id);
+        return `
+        <label class="relative bg-white border-2 ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'} hover:border-indigo-400 rounded-lg p-3 text-center transition cursor-pointer group">
+            <input type="checkbox" 
+                class="absolute top-2 right-2 w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
+                ${isSelected ? 'checked' : ''}
+                onchange="toggleSkillSelection('${template.id}', '${template.name.replace(/'/g, "\\'")}', '${(template.url || '').replace(/'/g, "\\'")}')">
+            <div class="text-3xl mb-1 mt-4">${template.icon || '📚'}</div>
             <div class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 line-clamp-2">${template.name}</div>
             ${template.category ? `<div class="text-xs text-slate-400 mt-1">${template.category}</div>` : ''}
-        </button>
-    `).join('');
+        </label>
+    `;
+    }).join('');
+    
+    // Update button state
+    updateAddButtonState();
 }
 
 function filterAvailableSkills() {
     renderAvailableSkills();
+}
+
+function toggleSkillSelection(templateId, skillName, skillUrl) {
+    const skillData = { id: templateId, name: skillName, url: skillUrl };
+    
+    if (selectedSkillsToAdd.has(templateId)) {
+        selectedSkillsToAdd.delete(templateId);
+    } else {
+        selectedSkillsToAdd.add(templateId);
+    }
+    
+    // Store full skill data for later use
+    if (!window.selectedSkillsData) {
+        window.selectedSkillsData = new Map();
+    }
+    
+    if (selectedSkillsToAdd.has(templateId)) {
+        window.selectedSkillsData.set(templateId, skillData);
+    } else {
+        window.selectedSkillsData.delete(templateId);
+    }
+    
+    renderAvailableSkills();
+}
+
+function updateAddButtonState() {
+    const button = document.getElementById('addSelectedSkillsBtn');
+    if (!button) return;
+    
+    const count = selectedSkillsToAdd.size;
+    
+    if (count === 0) {
+        button.disabled = true;
+        button.className = 'w-full bg-slate-300 text-slate-500 py-3 rounded-lg font-medium cursor-not-allowed';
+        button.textContent = 'اختر مهارة أو أكثر';
+    } else {
+        button.disabled = false;
+        button.className = 'w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium transition';
+        button.textContent = `إضافة ${count} ${count === 1 ? 'مهارة' : 'مهارات'}`;
+    }
+}
+
+async function addSelectedSkillsToStudent() {
+    if (!selectedStudentId || selectedSkillsToAdd.size === 0) return;
+    
+    const button = document.getElementById('addSelectedSkillsBtn');
+    if (button) setButtonLoading(button, true);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const templateId of selectedSkillsToAdd) {
+        const skillData = window.selectedSkillsData?.get(templateId);
+        if (!skillData) continue;
+        
+        const result = await adminAPI.addSkill(
+            selectedStudentId,
+            skillData.name,
+            1,
+            skillData.url,
+            null,
+            null
+        );
+        
+        if (result.success) {
+            successCount++;
+            // Update usage count
+            try {
+                await fetch(`/api/skill-templates/${templateId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    },
+                    body: JSON.stringify({ 
+                        name: skillData.name,
+                        url: skillData.url,
+                        is_active: true
+                    })
+                });
+            } catch (e) {
+                console.error('Error updating usage count:', e);
+            }
+        } else {
+            failCount++;
+        }
+    }
+    
+    if (button) setButtonLoading(button, false);
+    
+    // Clear selection
+    selectedSkillsToAdd.clear();
+    if (window.selectedSkillsData) {
+        window.selectedSkillsData.clear();
+    }
+    
+    // Invalidate caches when data changes
+    invalidateAllCaches();
+    
+    // Reload both student skills and available skills
+    await Promise.all([
+        renderStudentSkillsFromDB(selectedStudentId),
+        loadSkillsForStudent(selectedStudentId)
+    ]);
+    
+    const message = successCount > 0 
+        ? `تمت إضافة ${successCount} ${successCount === 1 ? 'مهارة' : 'مهارات'} بنجاح` +
+          (failCount > 0 ? `\nفشل إضافة ${failCount}` : '')
+        : 'فشلت جميع المحاولات';
+    
+    customAlert(message, { 
+        icon: failCount > 0 ? '⚠️' : '✅', 
+        title: failCount === 0 ? 'تمت الإضافة' : 'إضافة جزئية'
+    });
 }
 
 async function addSkillToStudent(templateId, skillName, skillUrl) {
@@ -389,6 +510,7 @@ async function deleteSkillFromList(skillName, skillUrl) {
 
 async function reloadSkillsDropdown() {
     const dropdown = document.getElementById('skillDropdown');
+    if (!dropdown) return;
 
     const options = Array.from(dropdown.options);
     options.forEach(option => {
@@ -416,6 +538,7 @@ async function loadAndPopulateCustomSkills() {
     customSkillsCache = savedSkills;
     
     const dropdown = document.getElementById('skillDropdown');
+    if (!dropdown) return; // Dropdown doesn't exist in new UI
     const customOption = dropdown.querySelector('option[value="custom"]');
 
     savedSkills.forEach(skill => {
@@ -508,12 +631,23 @@ async function deleteCustomSkillFromDatabase(name) {
 }
 
 function backToHome() {
-    // Clear saved skills view state before reloading
+    // Clear saved skills view state
     sessionStorage.removeItem('skillsView_studentId');
     sessionStorage.removeItem('skillsView_studentData');
     
-    // Simply reload the page to refresh all data
-    window.location.reload();
+    document.getElementById('skillsDetailView').classList.add('hidden');
+    
+    if (isAdmin) {
+        document.getElementById('adminDashboardView').classList.remove('hidden');
+        // Refetch data when going back to ensure fresh data
+        renderAdminStudents();
+    } else {
+        document.getElementById('studentView').classList.remove('hidden');
+        // Refetch student data for updated info
+        if (selectedStudentId) {
+            loadSimpleStudentView(selectedStudentId);
+        }
+    }
 }
 
 function applySkillFilter() {

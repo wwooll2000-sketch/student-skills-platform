@@ -12,6 +12,37 @@ async function updateStatistics() {
     document.getElementById('completionRate').textContent = stats.completionRate + '%';
 }
 
+// Optimized version with caching
+async function updateStatisticsOptimized() {
+    // Check if cache is valid
+    if (isCacheValid(statisticsCache)) {
+        const stats = statisticsCache.data;
+        document.getElementById('totalStudentsCount').textContent = stats.totalStudents;
+        document.getElementById('totalSkillsCount').textContent = stats.totalSkills;
+        document.getElementById('completedSkillsCount').textContent = stats.completedSkills;
+        document.getElementById('completionRate').textContent = stats.completionRate + '%';
+        return statisticsCache.data;
+    }
+    
+    // Use request deduplication
+    const result = await deduplicatedFetch('statistics', () => adminAPI.getStatistics());
+    
+    if (!result.success || !result.statistics) return null;
+
+    const stats = result.statistics;
+    
+    // Update cache
+    statisticsCache.data = stats;
+    statisticsCache.timestamp = Date.now();
+
+    document.getElementById('totalStudentsCount').textContent = stats.totalStudents;
+    document.getElementById('totalSkillsCount').textContent = stats.totalSkills;
+    document.getElementById('completedSkillsCount').textContent = stats.completedSkills;
+    document.getElementById('completionRate').textContent = stats.completionRate + '%';
+    
+    return stats;
+}
+
 // Student Dashboard
 async function loadStudentDashboard(studentId) {
     const skillsResult = await studentAPI.getSkills();
@@ -96,20 +127,8 @@ function renderBadges(earnedBadges) {
 
 // Simple Student View (Single Page)
 async function loadSimpleStudentView(studentId) {
-    // Load skill templates to get icons
-    let skillTemplatesMap = {};
-    try {
-        const templatesResponse = await fetch('/api/skill-templates?is_active=true');
-        if (templatesResponse.ok) {
-            const templatesData = await templatesResponse.json();
-            const templates = templatesData.templates || [];
-            templates.forEach(t => {
-                skillTemplatesMap[t.name] = t;
-            });
-        }
-    } catch (e) {
-        console.error('Error loading skill templates:', e);
-    }
+    // Use cached skill templates
+    const skillTemplatesMap = await getSkillTemplatesMap();
     
     const skillsResult = await studentAPI.getSkills();
     
@@ -132,6 +151,44 @@ async function loadSimpleStudentView(studentId) {
 
     // Render skills table with templates
     renderSimpleSkillsTable(skillsResult.data.skills, skillTemplatesMap);
+}
+
+// Helper function to get skill templates map with caching
+async function getSkillTemplatesMap() {
+    if (isCacheValid(skillTemplatesCache) && skillTemplatesCache.data.length > 0) {
+        const map = {};
+        skillTemplatesCache.data.forEach(t => {
+            map[t.name] = t;
+        });
+        return map;
+    }
+    
+    try {
+        const templatesResponse = await fetch('/api/skill-templates?is_active=true', {
+            headers: isAdmin ? {
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            } : {}
+        });
+        
+        if (templatesResponse.ok) {
+            const templatesData = await templatesResponse.json();
+            const templates = templatesData.templates || [];
+            
+            // Update cache
+            skillTemplatesCache.data = templates;
+            skillTemplatesCache.timestamp = Date.now();
+            
+            const map = {};
+            templates.forEach(t => {
+                map[t.name] = t;
+            });
+            return map;
+        }
+    } catch (e) {
+        console.error('Error loading skill templates:', e);
+    }
+    
+    return {};
 }
 
 function renderSimpleBadges(earnedBadges) {

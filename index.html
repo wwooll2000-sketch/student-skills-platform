@@ -344,9 +344,15 @@
 
                 <!-- Skills Grid -->
                 <div id="availableSkillsGrid"
-                    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-96 overflow-y-auto p-2">
+                    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-96 overflow-y-auto p-2 mb-4">
                     <!-- Skills will be loaded here -->
                 </div>
+
+                <!-- Add Selected Skills Button -->
+                <button id="addSelectedSkillsBtn" onclick="addSelectedSkillsToStudent()" disabled
+                    class="w-full bg-slate-300 text-slate-500 py-3 rounded-lg font-medium cursor-not-allowed">
+                    اختر مهارة أو أكثر
+                </button>
             </div>
         </div>
     </div>
@@ -408,22 +414,13 @@
         <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-bold mb-4">✅ إضافة مهارة لعدة طلاب</h3>
 
-            <div class="mb-4">
-                <label class="block text-sm font-bold mb-2">اختر المهارة:</label>
-                <select id="batchSkillSelect"
-                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="">-- اختر مهارة --</option>
-                    <option value="custom">✍️ مهارة أخرى...</option>
-                </select>
-                <input id="batchSkillCustom" type="text" placeholder="اكتب المهارة يدوياً"
-                    class="hidden w-full p-3 border rounded-lg mt-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
+            <!-- Dynamic content area for skill selection or display -->
+            <div id="batchSkillContent" class="mb-4"></div>
 
-            <div class="mb-4">
-                <label class="block text-sm font-bold mb-2">رابط الملف:</label>
-                <input id="batchSkillLink" type="text" placeholder="رابط الملف"
-                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
+            <!-- Hidden fields for form data -->
+            <input type="hidden" id="batchSkillName">
+            <input type="hidden" id="batchSkillUrl">
+            <input type="hidden" id="batchSkillTemplateId">
 
             <div class="mb-4">
                 <label class="block text-sm font-bold mb-2">اختر الطلاب:</label>
@@ -640,7 +637,7 @@
             </div>
 
             <div class="flex gap-2">
-                <button onclick="showBulkAssignFromDetails()"
+                <button onclick="event.stopPropagation(); showBulkAssignFromDetails();"
                     class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">➕ إضافة
                     لطلاب</button>
                 <button onclick="closeSkillTemplateDetailsModal()"

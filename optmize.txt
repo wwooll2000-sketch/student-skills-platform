@@ -186,3 +186,39 @@ issue-3: the المهارات section in the students page needs a refactor to r
 -------------------------
 
 in the admin studnets page there is ✏️ تعديل بيانات المهارة, i want you to remove this completely because we can edit the مهارة from the إدارة المهارات section.
+
+--------------------------
+
+there is ana issue that when i for exmaple update a مهارة from the إدارة المهارات section it says خطأ في تحديث المهارة while the change is actually done! please make sure to fix this issue and search for any other place in the app that has the same issue and fix it!
+
+--------------------------
+
+in the admin page in students page there is a section wich is إضافة مهارة but i want more functionality in this section, for example right now when i click any مهارة it automatically adds to the student, but insted i want to select wich مهارة i want to add to the student then click a button or somthing like that to add the selected مهارة or مهارات to the student..
+
+also another major thing is that i want when i update a مهارة from the إدارة المهارات section it should automatically update the مهارة for all the students that have this مهارة without the need to remove the مهارة from the student and then add it again after updating it from the إدارة المهارات section.
+
+--------------------------
+
+when i remove a مهارة from the إدارة المهارات section it shows a model that says "هل تريد حذف المهارة: الهمزهd؟ ملاحظة: سيتم حذف المهارة من القائمة ولن تظهر في الاختيارات الجديدة، ولكن ستبقى لدى الطلاب الذين لديهم هذه المهارة." but i want to a checkbox in this model that says "حذف المهارة من جميع الطلاب الذين لديهم هذه المهارة" and if i check this checkbox then then i click حذف button it should delete the مهارة from all the students that have this مهارة and remove it from the إدارة المهارات section.
+
+-------------------------- not done yet
+
+in the إدارة المهارات when i add a new/edit مهارة in the الفئة section in the model i want the ability to add a custom فئة when i press أخرى it should show an input field to add the custom فئة and when i add the custom فئة.
+
+Note: you can do or change anything you want to make this feature inclouding the database structure if needed.
+
+--------------------------
+
+perfect! there is an issue that when i click عرض in the إدارة المهارات section for any مهارة it shows the model and everything is fine but when i click the ➕ إضافة لطلاب button it closes the model and nothing happens.. it doesn't add the مهارة to any student.
+
+--------------------------
+
+when i try to add new مهارة to the إدارة المهارات section with the same name of a مهارة that i removed from the إدارة المهارات section it shows a model that says "المهارة موجودة بالفعل".
+
+--------------------------
+
+in this app i notiecd alot of things takes time to load or process for exmaple when i press a button or saveing somthing or navigating etc.. then i noticed in the console that there is a lot of requests being made for just one action.. please make sure to optimize the code and reduce the number of requests being made for one action.
+
+Note: you can refactor or change anything you want in the code to optimize it and make it faster and more efficient.
+
+don't create any .md files to summarize the changes just do the changes.

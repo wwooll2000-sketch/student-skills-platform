@@ -117,12 +117,31 @@ def add_skill_template():
     try:
         cur = conn.cursor()
         
-        # Check if skill already exists
-        cur.execute('SELECT id FROM skill_templates WHERE name = %s', (name,))
+        # Check if an active skill already exists
+        cur.execute('SELECT id FROM skill_templates WHERE name = %s AND is_active = true', (name,))
         if cur.fetchone():
             cur.close()
             return jsonify({'success': False, 'message': 'المهارة موجودة بالفعل'}), 400
         
+        # Check if an inactive skill exists with this name - if so, reactivate it
+        cur.execute('SELECT id FROM skill_templates WHERE name = %s AND is_active = false', (name,))
+        inactive_skill = cur.fetchone()
+        
+        if inactive_skill:
+            # Reactivate the existing skill instead of creating a new one
+            template_id = inactive_skill[0]
+            cur.execute(
+                '''UPDATE skill_templates 
+                   SET description = %s, url = %s, category = %s, icon = %s, color = %s, 
+                       is_active = true, updated_at = CURRENT_TIMESTAMP
+                   WHERE id = %s''',
+                (description, url, category, icon, color, template_id)
+            )
+            conn.commit()
+            cur.close()
+            return jsonify({'success': True, 'message': 'تم إعادة تفعيل المهارة بنجاح', 'id': template_id})
+        
+        # Create new skill if none exists
         template_id = str(uuid.uuid4())
         cur.execute(
             '''INSERT INTO skill_templates 
@@ -142,7 +161,7 @@ def add_skill_template():
 @custom_skills_bp.route('/<template_id>', methods=['PUT'])
 @verify_admin
 def update_skill_template(template_id):
-    """Update a skill template"""
+    """Update a skill template and propagate changes to all student skills"""
     data = request.json
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
@@ -159,12 +178,23 @@ def update_skill_template(template_id):
     try:
         cur = conn.cursor()
         
+        # Get the old template data before update
+        cur.execute('SELECT name FROM skill_templates WHERE id = %s', (template_id,))
+        old_template = cur.fetchone()
+        
+        if not old_template:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        
+        old_name = old_template[0]
+        
         # Check if another skill has the same name
         cur.execute('SELECT id FROM skill_templates WHERE name = %s AND id != %s', (name, template_id))
         if cur.fetchone():
             cur.close()
             return jsonify({'success': False, 'message': 'اسم المهارة مستخدم بالفعل'}), 400
         
+        # Update the skill template
         cur.execute(
             '''UPDATE skill_templates 
                SET name = %s, description = %s, url = %s, category = %s, 
@@ -173,13 +203,24 @@ def update_skill_template(template_id):
             (name, description, url, category, icon, color, is_active, template_id)
         )
         
-        if cur.rowcount == 0:
-            cur.close()
-            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        # Auto-update all student skills that have the old name
+        cur.execute(
+            '''UPDATE skills 
+               SET name = %s, description = %s, category = %s, updated_at = CURRENT_TIMESTAMP
+               WHERE name = %s''',
+            (name, url, category, old_name)
+        )
+        
+        updated_skills_count = cur.rowcount
             
         conn.commit()
         cur.close()
-        return jsonify({'success': True, 'message': 'تم تحديث المهارة بنجاح'})
+        
+        message = 'تم تحديث المهارة بنجاح'
+        if updated_skills_count > 0:
+            message += f' وتم تحديث {updated_skills_count} مهارة للطلاب تلقائياً'
+        
+        return jsonify({'success': True, 'message': message})
     except Exception as e:
         print(f"Error updating skill template: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -189,22 +230,46 @@ def update_skill_template(template_id):
 @custom_skills_bp.route('/<template_id>', methods=['DELETE'])
 @verify_admin
 def delete_skill_template(template_id):
-    """Delete a skill template (soft delete by setting is_active = false)"""
+    """Delete a skill template (soft delete by setting is_active = false)
+    Optional: Also delete from all students if delete_from_students=true query param"""
+    
+    delete_from_students = request.args.get('delete_from_students', 'false').lower() == 'true'
+    
     conn = get_db()
     try:
         cur = conn.cursor()
+        
+        # Get the template name before deleting (needed for student skills deletion)
+        cur.execute('SELECT name FROM skill_templates WHERE id = %s', (template_id,))
+        template = cur.fetchone()
+        
+        if not template:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        
+        template_name = template[0]
+        
+        # Soft delete the template
         cur.execute(
             'UPDATE skill_templates SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
             (template_id,)
         )
         
-        if cur.rowcount == 0:
-            cur.close()
-            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        deleted_student_skills = 0
+        
+        # If requested, delete this skill from all students
+        if delete_from_students:
+            cur.execute('DELETE FROM skills WHERE name = %s', (template_name,))
+            deleted_student_skills = cur.rowcount
         
         conn.commit()
         cur.close()
-        return jsonify({'success': True, 'message': 'تم حذف المهارة بنجاح'})
+        
+        message = 'تم حذف المهارة بنجاح'
+        if deleted_student_skills > 0:
+            message += f' وتم حذفها من {deleted_student_skills} سجل للطلاب'
+        
+        return jsonify({'success': True, 'message': message})
     except Exception as e:
         print(f"Error deleting skill template: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

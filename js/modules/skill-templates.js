@@ -200,9 +200,12 @@ async function saveNewSkillTemplate() {
         if (data.success) {
             closeAddSkillTemplateModal();
             
+            // Invalidate all caches when data changes
+            invalidateAllCaches();
+            customSkillsCache = null;
+            
             // Refresh all caches and lists
             await loadSkillTemplates();
-            customSkillsCache = null;
             if (typeof reloadSkillsDropdown === 'function') {
                 await reloadSkillsDropdown();
             }
@@ -292,9 +295,12 @@ async function saveEditSkillTemplate() {
         if (data.success) {
             closeEditSkillTemplateModal();
             
+            // Invalidate all caches when data changes
+            invalidateAllCaches();
+            customSkillsCache = null;
+            
             // Refresh all caches and lists
             await loadSkillTemplates();
-            customSkillsCache = null;
             if (typeof reloadSkillsDropdown === 'function') {
                 await reloadSkillsDropdown();
             }
@@ -321,11 +327,18 @@ function deleteSkillTemplate(templateId) {
     const template = skillTemplatesCache.find(t => t.id === templateId);
     if (!template) return;
     
+    const messageDiv = document.createElement('div');
+    messageDiv.innerHTML = `
+        <p class="mb-2">هل تريد حذف المهارة: <strong>${template.name}</strong>؟</p>
+        <p class="text-sm text-slate-600">ملاحظة: سيتم حذف المهارة من القائمة ولن تظهر في الاختيارات الجديدة، ولكن ستبقى لدى الطلاب الذين لديهم هذه المهارة.</p>
+    `;
+    
     customConfirm(
-        `هل تريد حذف المهارة: ${template.name}؟\n\nملاحظة: سيتم حذف المهارة من القائمة ولن تظهر في الاختيارات الجديدة، ولكن ستبقى لدى الطلاب الذين لديهم هذه المهارة.`,
-        async () => {
+        messageDiv,
+        async (deleteFromStudents) => {
             try {
-                const response = await fetch(`/api/skill-templates/${templateId}`, {
+                const url = `/api/skill-templates/${templateId}${deleteFromStudents ? '?delete_from_students=true' : ''}`;
+                const response = await fetch(url, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -335,7 +348,11 @@ function deleteSkillTemplate(templateId) {
                 const data = await response.json();
                 
                 if (data.success) {
-                    customAlert("تم حذف المهارة بنجاح", { 
+                    // Invalidate all caches when data changes
+                    invalidateAllCaches();
+                    customSkillsCache = null;
+                    
+                    customAlert(data.message || "تم حذف المهارة بنجاح", { 
                         icon: '✅', 
                         title: 'تم الحذف',
                         onClose: () => loadSkillTemplates()
@@ -352,7 +369,10 @@ function deleteSkillTemplate(templateId) {
             icon: '🗑️',
             title: 'تأكيد الحذف',
             confirmText: 'حذف',
-            cancelText: 'إلغاء'
+            cancelText: 'إلغاء',
+            checkbox: {
+                label: 'حذف المهارة من جميع الطلاب الذين لديهم هذه المهارة'
+            }
         }
     );
 }
@@ -414,41 +434,39 @@ async function viewSkillTemplateDetails(templateId) {
 
 // Close skill template details modal
 function closeSkillTemplateDetailsModal() {
-    document.getElementById('skillTemplateDetailsModal').classList.add('hidden');
+    const modal = document.getElementById('skillTemplateDetailsModal');
+    modal.classList.add('hidden');
+    modal.onclick = null; // Remove click handler to prevent conflicts
     currentDetailsTemplateId = null;
 }
 
 // Show bulk assign from details
-function showBulkAssignFromDetails() {
-    if (!currentDetailsTemplateId) return;
-    
-    closeSkillTemplateDetailsModal();
-    
-    // Find the template
-    const template = skillTemplatesCache.find(t => t.id === currentDetailsTemplateId);
-    if (!template) return;
-    
-    // Open batch skill modal with this skill pre-selected
-    showBatchSkillModal();
-    
-    // Wait for modal to open and populate
-    setTimeout(() => {
-        const batchSelect = document.getElementById('batchSkillSelect');
-        const batchLink = document.getElementById('batchSkillLink');
-        
-        // Try to find matching option
-        const matchingOption = Array.from(batchSelect.options).find(opt => opt.value === template.name);
-        if (matchingOption) {
-            batchSelect.value = template.name;
-            batchLink.value = template.url || '';
-        } else {
-            // Use custom option
-            batchSelect.value = 'custom';
-            document.getElementById('batchSkillCustom').value = template.name;
-            document.getElementById('batchSkillCustom').classList.remove('hidden');
-            batchLink.value = template.url || '';
+async function showBulkAssignFromDetails() {
+    try {
+        if (!currentDetailsTemplateId) {
+            console.error('No template ID selected');
+            return;
         }
-    }, 100);
+        
+        // Find the template
+        const template = skillTemplatesCache.find(t => t.id === currentDetailsTemplateId);
+        if (!template) {
+            console.error('Template not found:', currentDetailsTemplateId);
+            return;
+        }
+        
+        // Close details modal first
+        closeSkillTemplateDetailsModal();
+        
+        // Wait a moment for the modal to close
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Open batch skill modal with pre-selected template
+        await showBatchSkillModal(template);
+    } catch (error) {
+        console.error('Error in showBulkAssignFromDetails:', error);
+        customAlert('حدث خطأ أثناء فتح نافذة الإضافة', { icon: '❌', title: 'خطأ' });
+    }
 }
 
 // Initialize skill templates management
