@@ -36,7 +36,7 @@ async function exportStudentsData() {
     link.click();
     URL.revokeObjectURL(url);
 
-    customAlert("تم تصدير البيانات بنجاح", { icon: '✅', title: 'نجحت العملية' });
+    showToast("تم تصدير البيانات بنجاح", { title: 'نجحت العملية', type: 'success' });
 }
 
 async function importStudentsData() {
@@ -155,17 +155,29 @@ async function processImport(studentsData) {
             console.error('Error refreshing skill templates:', e);
         }
     }
+    
+    // Invalidate all caches
+    invalidateAllCaches();
+    
+    // Update statistics and activities - WAIT for completion
+    if (typeof updateStatisticsOptimized === 'function') {
+        await updateStatisticsOptimized();
+    }
+    if (typeof loadRecentActivityOptimized === 'function') {
+        await loadRecentActivityOptimized();
+    }
 
     const message = `تم الاستيراد بنجاح:\n` +
                     `✅ تمت الإضافة: ${successCount} طالب\n` +
                     (skipCount > 0 ? `⏭️ تم تخطي: ${skipCount} طالب (موجود مسبقاً)\n` : '') +
                     (errorCount > 0 ? `❌ فشل: ${errorCount} طالب` : '');
 
-    customAlert(message, {
-        icon: errorCount > 0 ? '⚠️' : '✅',
+    showToast(message, {
         title: 'نتيجة الاستيراد',
-        onClose: () => renderAdminStudents()
+        type: errorCount > 0 ? 'warning' : 'success'
     });
+    
+    await renderAdminStudents();
 }
 
 

@@ -45,12 +45,21 @@ async function processBulkImport() {
 
     // InvalidateAllCaches when data changes
     invalidateAllCaches();
+    
+    // Update statistics and activities - WAIT for completion
+    if (typeof updateStatisticsOptimized === 'function') {
+        await updateStatisticsOptimized();
+    }
+    if (typeof loadRecentActivityOptimized === 'function') {
+        await loadRecentActivityOptimized();
+    }
 
-    customAlert(message, {
-        icon: failCount > 0 ? '⚠️' : '✅',
+    showToast(message, {
         title: 'نتيجة الإضافة',
-        onClose: () => renderAdminStudents()
+        type: failCount > 0 ? 'warning' : 'success'
     });
+    
+    await renderAdminStudents();
 }
 
 async function showBatchSkillModal(preSelectedTemplate = null) {
@@ -291,10 +300,19 @@ async function processBatchSkill() {
 
     // Invalidate all caches when data changes
     invalidateAllCaches();
+    
+    // Update statistics and activities - WAIT for completion
+    if (typeof updateStatisticsOptimized === 'function') {
+        await updateStatisticsOptimized();
+    }
+    if (typeof loadRecentActivityOptimized === 'function') {
+        await loadRecentActivityOptimized();
+    }
 
-    customAlert(message, {
-        icon: failCount > 0 ? '⚠️' : '✅',
+    showToast(message, {
         title: 'نتيجة العملية',
-        onClose: () => renderAdminStudents()
+        type: failCount > 0 ? 'warning' : 'success'
     });
+    
+    await renderAdminStudents();
 }

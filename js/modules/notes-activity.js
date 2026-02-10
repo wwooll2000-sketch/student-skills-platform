@@ -48,9 +48,9 @@ async function saveStudentNotes() {
     closeStudentNotesModal();
 
     // Then show success message
-    customAlert("تم حفظ الملاحظات بنجاح", { 
-        icon: '✅', 
-        title: 'تم الحفظ'
+    showToast("تم حفظ الملاحظات بنجاح", { 
+        title: 'تم الحفظ',
+        type: 'success'
     });
 }
 

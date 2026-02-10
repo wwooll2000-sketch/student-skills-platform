@@ -26,11 +26,20 @@ async function addNewStudent() {
         // Invalidate caches when data changes
         invalidateAllCaches();
         
-        customAlert(`${result.message}\n\nالاسم: ${name}\nالرقم: ${code}`, { 
-            icon: '✅', 
-            title: 'تم إضافة الطالب',
-            onClose: () => renderAdminStudents()
+        // Update statistics and activities - WAIT for completion
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        if (typeof loadRecentActivityOptimized === 'function') {
+            await loadRecentActivityOptimized();
+        }
+        
+        showToast(`الاسم: ${name}\nالرقم: ${code}`, { 
+            title: 'تم إضافة الطالب بنجاح',
+            type: 'success'
         });
+        
+        await renderAdminStudents();
     } else {
         customAlert(result.message || "خطأ في إضافة الطالب", { 
             icon: '❌', 
@@ -61,11 +70,25 @@ async function deleteStudent(id) {
             // Invalidate caches when data changes
             invalidateAllCaches();
             
-            customAlert("تم حذف الطالب بنجاح", { 
-                icon: '✅', 
+            // Reload skill templates to update usage counts
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
+            
+            // Update statistics and activities - WAIT for completion
+            if (typeof updateStatisticsOptimized === 'function') {
+                await updateStatisticsOptimized();
+            }
+            if (typeof loadRecentActivityOptimized === 'function') {
+                await loadRecentActivityOptimized();
+            }
+            
+            showToast("تم حذف الطالب بنجاح", { 
                 title: 'تم الحذف',
-                onClose: () => renderAdminStudents()
+                type: 'success'
             });
+            
+            await renderAdminStudents();
         } else {
             customAlert(deleteResult.message || "خطأ في حذف الطالب", { 
                 icon: '❌', 
@@ -229,11 +252,29 @@ async function deleteAllStudents() {
                 ? `تم حذف ${successCount} طالب بنجاح\nفشل حذف ${failCount} طالب`
                 : `تم حذف جميع الطلاب (${successCount}) بنجاح`;
 
-            customAlert(message, {
-                icon: failCount > 0 ? '⚠️' : '✅',
+            // Invalidate all caches FIRST
+            invalidateAllCaches();
+            
+            // Reload skill templates to update usage counts
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
+            
+            // Update statistics and activities - WAIT for them to complete
+            if (typeof updateStatisticsOptimized === 'function') {
+                await updateStatisticsOptimized();
+            }
+            if (typeof loadRecentActivityOptimized === 'function') {
+                await loadRecentActivityOptimized();
+            }
+
+            showToast(message, {
                 title: 'نتيجة الحذف',
-                onClose: () => renderAdminStudents()
+                type: failCount > 0 ? 'warning' : 'success'
             });
+            
+            // Render AFTER all updates complete
+            await renderAdminStudents();
         },
         {
             icon: '⚠️',
@@ -306,11 +347,17 @@ async function saveEditStudent() {
         // Invalidate caches when data changes
         invalidateAllCaches();
         
-        customAlert("تم تحديث بيانات الطالب بنجاح", { 
-            icon: '✅', 
+        // Update statistics - WAIT for completion
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        
+        showToast("تم تحديث بيانات الطالب بنجاح", { 
             title: 'نجحت العملية',
-            onClose: () => renderAdminStudents()
+            type: 'success'
         });
+        
+        await renderAdminStudents();
 
         // Update the selected student if we're viewing their skills
         if (selectedStudent && selectedStudent.id === currentEditingStudent.id) {

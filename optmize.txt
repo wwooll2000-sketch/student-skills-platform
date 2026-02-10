@@ -243,3 +243,14 @@ works:
 - when i add a مهارة to a student from the إدارة المهارات ➕ إضافة لطلاب
 
 if you fix this issue please make sure to search for any other place in the app that has the same type of issue and fix it!
+
+--------------
+
+it's not fixed yet.. when 🗑️ حذف جميع الطلاب that they have a مهارة it shows 👥
+2 طالب in the إدارة المهارات section for this مهارة but when i click on the عرض button for this مهارة it shows that there is no students have this مهارة! please make sure to fix this issue and fix all the places in the app that have the same issue!
+
+also please update the 📊 إحصائيات عامة for any changes happen, also if you find any same as this please fix it also to update currently.
+
+--------------
+
+alright.. i want major change now! i want for these success models that pops up when an action is successful for example when i add a new student it shows a model that says title: تم إضافة الطالب and description: تم إضافة الطالب بنجاح الاسم: إضافة طالب جديد الرقم: 7627 but insted of showing this model i want to show a toast notification at the bottom right corner that disappears after 3 seconds and also add a small sound when the toast notification appears to notify the user that the action is successful.

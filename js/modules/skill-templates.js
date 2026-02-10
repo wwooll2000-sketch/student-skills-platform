@@ -213,9 +213,9 @@ async function saveNewSkillTemplate() {
                 await loadSkillsForStudent(selectedStudentId);
             }
             
-            customAlert("تم إضافة المهارة بنجاح", { 
-                icon: '✅', 
-                title: 'نجحت العملية'
+            showToast("تم إضافة المهارة بنجاح", { 
+                title: 'نجحت العملية',
+                type: 'success'
             });
         } else {
             customAlert(data.message || "خطأ في إضافة المهارة", { icon: '❌', title: 'خطأ' });
@@ -308,9 +308,9 @@ async function saveEditSkillTemplate() {
                 await loadSkillsForStudent(selectedStudentId);
             }
             
-            customAlert("تم تحديث المهارة بنجاح", { 
-                icon: '✅', 
-                title: 'نجحت العملية'
+            showToast("تم تحديث المهارة بنجاح", { 
+                title: 'نجحت العملية',
+                type: 'success'
             });
         } else {
             customAlert(data.message || "خطأ في تحديث المهارة", { icon: '❌', title: 'خطأ' });
@@ -352,11 +352,21 @@ function deleteSkillTemplate(templateId) {
                     invalidateAllCaches();
                     customSkillsCache = null;
                     
-                    customAlert(data.message || "تم حذف المهارة بنجاح", { 
-                        icon: '✅', 
+                    // Update statistics and activities if skills were deleted from students - WAIT for completion
+                    if (deleteFromStudents) {
+                        if (typeof updateStatisticsOptimized === 'function') {
+                            await updateStatisticsOptimized();
+                        }
+                        if (typeof loadRecentActivityOptimized === 'function') {
+                            await loadRecentActivityOptimized();
+                        }
+                    }
+                    
+                    showToast(data.message || "تم حذف المهارة بنجاح", { 
                         title: 'تم الحذف',
-                        onClose: () => loadSkillTemplates()
+                        type: 'success'
                     });
+                    await loadSkillTemplates();
                 } else {
                     customAlert(data.message || "خطأ في حذف المهارة", { icon: '❌', title: 'خطأ' });
                 }

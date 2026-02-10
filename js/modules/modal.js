@@ -123,3 +123,116 @@ function customConfirm(message, onConfirm, options = {}) {
         onCancel: options.onCancel
     });
 }
+// Toast Notification System
+let toastQueue = [];
+let audioContext = null;
+
+// Initialize Web Audio API (lazy load)
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Play success sound
+function playSuccessSound() {
+    try {
+        const ctx = initAudio();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        // Success sound: C major chord arpeggio (C-E-G)
+        oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+        
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        console.log('Audio not supported:', e);
+    }
+}
+
+// Show toast notification
+function showToast(message, options = {}) {
+    const container = document.getElementById('toastContainer');
+    if (!container) {
+        console.error('Toast container not found');
+        return;
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'pointer-events-auto bg-white rounded-lg shadow-lg border-r-4 p-4 min-w-[320px] max-w-md toast-enter';
+    
+    // Set border color based on type
+    const type = options.type || 'success';
+    const colors = {
+        success: 'border-green-500 bg-green-50',
+        error: 'border-red-500 bg-red-50',
+        warning: 'border-yellow-500 bg-yellow-50',
+        info: 'border-blue-500 bg-blue-50'
+    };
+    toast.className += ` ${colors[type] || colors.success}`;
+    
+    // Set icon based on type
+    const icons = {
+        success: options.icon || '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    const icon = icons[type] || icons.success;
+    
+    // Build toast content
+    toast.innerHTML = `
+        <div class="flex items-start gap-3">
+            <span class="text-2xl flex-shrink-0">${icon}</span>
+            <div class="flex-1 min-w-0">
+                ${options.title ? `<div class="font-bold text-sm text-slate-800 mb-1">${options.title}</div>` : ''}
+                <div class="text-sm text-slate-700 break-words">${message}</div>
+            </div>
+        </div>
+    `;
+    
+    // Add to container
+    container.appendChild(toast);
+    toastQueue.push(toast);
+    
+    // Play sound for success toasts
+    if (type === 'success') {
+        playSuccessSound();
+    }
+    
+    // Auto-dismiss after duration (default 3 seconds)
+    const duration = options.duration || 3000;
+    setTimeout(() => {
+        removeToast(toast);
+    }, duration);
+}
+
+// Remove toast with animation
+function removeToast(toast) {
+    if (!toast || !toast.parentElement) return;
+    
+    toast.classList.remove('toast-enter');
+    toast.classList.add('toast-exit');
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+        const index = toastQueue.indexOf(toast);
+        if (index > -1) {
+            toastQueue.splice(index, 1);
+        }
+    }, 300);
+}

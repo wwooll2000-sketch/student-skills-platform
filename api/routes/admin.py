@@ -127,13 +127,31 @@ def delete_student(student_id):
     conn = get_db()
     try:
         cur = conn.cursor()
+        
+        # Get all skill names for this student BEFORE deleting
+        cur.execute('SELECT DISTINCT name FROM skills WHERE student_id = %s', (student_id,))
+        skill_names = [row[0] for row in cur.fetchall()]
+        
+        # Delete student's skills
         cur.execute('DELETE FROM skills WHERE student_id = %s', (student_id,))
+        
+        # Delete the student
         cur.execute('DELETE FROM students WHERE id = %s RETURNING *', (student_id,))
         student = cur.fetchone()
         
         if not student:
             cur.close()
             return jsonify({'success': False, 'message': 'الطالب غير موجود'}), 404
+        
+        # Update usage counts for all affected skill templates
+        for skill_name in skill_names:
+            cur.execute(
+                '''UPDATE skill_templates 
+                   SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                       updated_at = CURRENT_TIMESTAMP
+                   WHERE name = %s''',
+                (skill_name, skill_name)
+            )
         
         conn.commit()
         cur.close()
@@ -288,12 +306,29 @@ def delete_skill(skill_id):
     conn = get_db()
     try:
         cur = conn.cursor()
+        
+        # Get the skill name BEFORE deleting
+        cur.execute('SELECT name FROM skills WHERE id = %s', (skill_id,))
+        skill_data = cur.fetchone()
+        
+        if not skill_data:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        
+        skill_name = skill_data[0]
+        
+        # Delete the skill
         cur.execute('DELETE FROM skills WHERE id = %s RETURNING *', (skill_id,))
         skill = cur.fetchone()
         
-        if not skill:
-            cur.close()
-            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        # Update usage count for the skill template
+        cur.execute(
+            '''UPDATE skill_templates 
+               SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE name = %s''',
+            (skill_name, skill_name)
+        )
         
         conn.commit()
         cur.close()

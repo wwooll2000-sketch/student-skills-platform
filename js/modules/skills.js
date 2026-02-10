@@ -111,6 +111,15 @@ async function toggleSkill(skillId) {
     if (result.success) {
         // Invalidate caches when data changes
         invalidateAllCaches();
+        
+        // Update statistics and activities (skill completion changed) - WAIT for completion
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        if (typeof loadRecentActivityOptimized === 'function') {
+            await loadRecentActivityOptimized();
+        }
+        
         await renderStudentSkillsFromDB(selectedStudentId);
     } else {
         customAlert("خطأ في تحديث المهارة: " + (result.message || ''), { icon: '❌', title: 'خطأ' });
@@ -152,11 +161,26 @@ async function deleteSkill(skillId) {
             
             // Invalidate caches when data changes
             invalidateAllCaches();
-            customAlert("تم حذف المهارة بنجاح", { 
-                icon: '✅', 
+            
+            // Reload skill templates to update usage counts in UI
+            if (typeof loadSkillTemplates === 'function') {
+                await loadSkillTemplates();
+            }
+            
+            // Update statistics and activities - WAIT for completion
+            if (typeof updateStatisticsOptimized === 'function') {
+                await updateStatisticsOptimized();
+            }
+            if (typeof loadRecentActivityOptimized === 'function') {
+                await loadRecentActivityOptimized();
+            }
+            
+            showToast("تم حذف المهارة بنجاح", { 
                 title: 'تم الحذف',
-                onClose: () => renderStudentSkillsFromDB(selectedStudentId)
+                type: 'success'
             });
+            
+            await renderStudentSkillsFromDB(selectedStudentId);
         } else {
             customAlert("خطأ في حذف المهارة: " + (result.message || ''), { 
                 icon: '❌', 
@@ -220,11 +244,20 @@ async function saveNewSkill() {
             await loadSkillTemplates();
         }
         
-        customAlert("تم إضافة المهارة بنجاح", { 
-            icon: '✅', 
+        // Update statistics and activities - WAIT for completion
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        if (typeof loadRecentActivityOptimized === 'function') {
+            await loadRecentActivityOptimized();
+        }
+        
+        showToast("تم إضافة المهارة بنجاح", { 
             title: 'نجحت العملية',
-            onClose: () => renderStudentSkillsFromDB(selectedStudentId)
+            type: 'success'
         });
+        
+        await renderStudentSkillsFromDB(selectedStudentId);
     } else {
         customAlert("خطأ في إضافة المهارة: " + (result.message || ''), { 
             icon: '❌', 
@@ -432,6 +465,16 @@ async function addSelectedSkillsToStudent() {
         await loadSkillTemplates();
     }
     
+    // Update statistics and activities - WAIT for completion
+    if (successCount > 0) {
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        if (typeof loadRecentActivityOptimized === 'function') {
+            await loadRecentActivityOptimized();
+        }
+    }
+    
     // Reload both student skills and available skills
     await Promise.all([
         renderStudentSkillsFromDB(selectedStudentId),
@@ -443,9 +486,9 @@ async function addSelectedSkillsToStudent() {
           (failCount > 0 ? `\nفشل إضافة ${failCount}` : '')
         : 'فشلت جميع المحاولات';
     
-    customAlert(message, { 
-        icon: failCount > 0 ? '⚠️' : '✅', 
-        title: failCount === 0 ? 'تمت الإضافة' : 'إضافة جزئية'
+    showToast(message, { 
+        title: failCount === 0 ? 'تمت الإضافة' : 'إضافة جزئية',
+        type: failCount > 0 ? 'warning' : 'success'
     });
 }
 
@@ -485,15 +528,23 @@ async function addSkillToStudent(templateId, skillName, skillUrl) {
             console.error('Error updating usage count:', e);
         }
         
+        // Update statistics and activities - WAIT for completion
+        if (typeof updateStatisticsOptimized === 'function') {
+            await updateStatisticsOptimized();
+        }
+        if (typeof loadRecentActivityOptimized === 'function') {
+            await loadRecentActivityOptimized();
+        }
+        
         // Reload both student skills and available skills
         await Promise.all([
             renderStudentSkillsFromDB(selectedStudentId),
             loadSkillsForStudent(selectedStudentId)
         ]);
         
-        customAlert(`تمت إضافة: ${skillName}`, { 
-            icon: '✅', 
-            title: 'تمت الإضافة'
+        showToast(`تمت إضافة: ${skillName}`, { 
+            title: 'تمت الإضافة',
+            type: 'success'
         });
     } else {
         customAlert(result.message || "خطأ في إضافة المهارة", { 
@@ -538,7 +589,7 @@ async function deleteSkillFromList(skillName, skillUrl) {
             await loadSkillTemplates();
         }
         
-        customAlert("تم حذف المهارة من القائمة", { icon: '✅', title: 'تم الحذف' });
+        showToast("تم حذف المهارة من القائمة", { title: 'تم الحذف', type: 'success' });
     }, {
         icon: '🗑️',
         title: 'تأكيد الحذف',

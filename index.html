@@ -58,6 +58,39 @@
             animation: badgeUnlock 0.6s ease-out;
         }
 
+        /* Toast Notifications */
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        .toast-enter {
+            animation: slideInDown 0.3s ease-out forwards;
+        }
+
+        .toast-exit {
+            animation: slideOutUp 0.3s ease-in forwards;
+        }
+
         /* Print Styles */
         @media print {
             body {
@@ -376,6 +409,10 @@
     <footer class="text-center py-4 sm:py-6 text-slate-500 text-xs sm:text-sm no-print">
         <p>صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي</p>
     </footer>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[10000] flex flex-col gap-2 pointer-events-none">
+    </div>
 
     <!-- Custom Modal -->
     <div id="customModal"

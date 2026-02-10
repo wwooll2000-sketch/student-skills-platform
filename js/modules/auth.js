@@ -36,7 +36,7 @@ async function verifyAdminLogin() {
         isAdmin = true;
         updateAdminUI();
         toggleAdminLoginModal();
-        customAlert("مرحباً بك في لوحة التحكم!", { icon: '🎉', title: 'نجح تسجيل الدخول' });
+        showToast("مرحباً بك في لوحة التحكم!", { icon: '🎉', title: 'نجح تسجيل الدخول', type: 'success' });
 
         document.getElementById('studentLoginView').classList.add('hidden');
         document.getElementById('adminDashboardView').classList.remove('hidden');
