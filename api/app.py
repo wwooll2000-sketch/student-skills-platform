@@ -44,9 +44,6 @@ def create_app():
         app.register_blueprint(custom_skills_bp)
         app.register_blueprint(health_bp)
     except Exception as e:
-        print(f"❌ Error importing/registering blueprints: {e}")
-        traceback.print_exc()
-        
         # Register a fallback error route
         @app.route('/')
         @app.route('/<path:path>')
@@ -105,11 +102,8 @@ def create_app():
                          '/apple-touch-icon-precomposed.png', '/manifest.json']
         
         if any(path.endswith(missing) for missing in common_missing):
-            # Silent 204 for browser auto-requests
             return '', 204
         
-        # Log other 404s for debugging
-        app.logger.warning(f"404 Not Found: {path}")
         return {
             'success': False,
             'message': 'Resource not found',
@@ -120,30 +114,31 @@ def create_app():
     @app.errorhandler(Exception)
     def handle_error(error):
         """Global error handler"""
-        error_trace = traceback.format_exc()
-        print(f"Unhandled error: {error_trace}")
         return {
             'success': False,
-            'message': str(error),
-            'error': error_trace
+            'message': str(error)
         }, 500
     
     return app
 
 # Create app instance for Vercel/WSGI servers
 app = create_app()
-print("✅ Flask app instance created")
 
 if __name__ == '__main__':
-    # Run development server
-    print("🚀 Starting development server...")
+    import os
+    # Only print startup messages in reloaded process to avoid duplicates
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("✅ Flask app created")
+    
     try:
         from database import init_db_pool, init_database
         init_db_pool()
         init_database()
-        print("✅ Database initialized")
+        if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+            print("✅ Database initialized")
+            print("🚀 Server running on http://0.0.0.0:5000")
     except Exception as e:
-        print(f"⚠️  Database initialization skipped: {e}")
+        if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+            print(f"⚠️  Database error: {e}")
     
-    print("🎉 Application ready!")
     app.run(host='0.0.0.0', port=5000, debug=True)

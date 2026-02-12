@@ -59,4 +59,8 @@ function invalidateAllCaches() {
     statisticsCache.timestamp = null;
     activitiesCache.timestamp = null;
     skillTemplatesCache.timestamp = null;
+    // Clear student skills cache if it exists
+    if (typeof window.studentSkillsCache !== 'undefined') {
+        window.studentSkillsCache = [];
+    }
 }

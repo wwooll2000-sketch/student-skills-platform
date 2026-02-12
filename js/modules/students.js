@@ -26,25 +26,23 @@ async function addNewStudent() {
         // Invalidate caches when data changes
         invalidateAllCaches();
         
-        // Update statistics and activities - WAIT for completion
+        // Update statistics - WAIT for completion
         if (typeof updateStatisticsOptimized === 'function') {
             await updateStatisticsOptimized();
         }
-        if (typeof loadRecentActivityOptimized === 'function') {
-            await loadRecentActivityOptimized();
-        }
+        // Note: No need to reload activities - adding a student doesn't create activities
         
         showToast(`الاسم: ${name}\nالرقم: ${code}`, { 
             title: 'تم إضافة الطالب بنجاح',
             type: 'success'
         });
         
-        await renderAdminStudents();
+        await renderAdminStudents({ refreshActivities: false });
     } else {
         customAlert(result.message || "خطأ في إضافة الطالب", { 
             icon: '❌', 
             title: 'خطأ',
-            onClose: () => renderAdminStudents()
+            onClose: () => renderAdminStudents({ refreshActivities: false })
         });
     }
 }
@@ -88,7 +86,8 @@ async function deleteStudent(id) {
                 type: 'success'
             });
             
-            await renderAdminStudents();
+            // Activities and statistics already updated above, skip redundant reload
+            await renderAdminStudents({ refreshActivities: false, refreshStatistics: false });
         } else {
             customAlert(deleteResult.message || "خطأ في حذف الطالب", { 
                 icon: '❌', 
@@ -120,17 +119,30 @@ async function loadStudentsFromDatabase() {
     }
 }
 
-async function renderAdminStudents() {
+async function renderAdminStudents(options = {}) {
+    const { 
+        refreshActivities = true,  // Only refresh activities when needed
+        refreshStatistics = true   // Only refresh statistics when needed
+    } = options;
+    
     const container = document.getElementById('adminStudentsList');
     showLoading('adminStudentsList', 'جاري تحميل البيانات...');
 
-    // Batch all API calls together in parallel for faster loading
-    const [studentsResult, customSkills, statistics, activities] = await Promise.all([
+    // Build dynamic list of API calls to make in parallel
+    const calls = [
         loadStudentsFromDatabase(),
-        customSkillsCache ? Promise.resolve(customSkillsCache) : fetchCustomSkills(),
-        updateStatisticsOptimized(), // Use optimized version with caching
-        loadRecentActivityOptimized() // Use optimized version with caching
-    ]);
+        customSkillsCache ? Promise.resolve(customSkillsCache) : fetchCustomSkills()
+    ];
+    
+    if (refreshStatistics) {
+        calls.push(updateStatisticsOptimized());
+    }
+    
+    if (refreshActivities) {
+        calls.push(loadRecentActivityOptimized());
+    }
+
+    const [studentsResult, customSkills] = await Promise.all(calls);
 
     // Cache students for search and filter
     allStudentsCache = studentsResult;
@@ -273,8 +285,8 @@ async function deleteAllStudents() {
                 type: failCount > 0 ? 'warning' : 'success'
             });
             
-            // Render AFTER all updates complete
-            await renderAdminStudents();
+            // Activities and statistics already updated above, skip redundant reload
+            await renderAdminStudents({ refreshActivities: false, refreshStatistics: false });
         },
         {
             icon: '⚠️',
@@ -347,17 +359,14 @@ async function saveEditStudent() {
         // Invalidate caches when data changes
         invalidateAllCaches();
         
-        // Update statistics - WAIT for completion
-        if (typeof updateStatisticsOptimized === 'function') {
-            await updateStatisticsOptimized();
-        }
+        // Note: No need to update statistics or activities - only name/code changed
         
         showToast("تم تحديث بيانات الطالب بنجاح", { 
             title: 'نجحت العملية',
             type: 'success'
         });
         
-        await renderAdminStudents();
+        await renderAdminStudents({ refreshActivities: false, refreshStatistics: false });
 
         // Update the selected student if we're viewing their skills
         if (selectedStudent && selectedStudent.id === currentEditingStudent.id) {

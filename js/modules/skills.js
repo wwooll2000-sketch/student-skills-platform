@@ -8,7 +8,8 @@ async function renderStudentSkillsFromDB(studentId) {
     const skillTemplatesMap = isAdmin ? await getSkillTemplatesMap() : {};
 
     // Use admin API to get skills for the selected student when admin is viewing
-    const skillsResult = isAdmin ? await adminAPI.getStudentSkills(studentId) : await studentAPI.getSkills();
+    // Always bypass cache to get fresh data
+    const skillsResult = isAdmin ? await adminAPI.getStudentSkills(studentId, true) : await studentAPI.getSkills();
 
     tbody.innerHTML = '';
 
@@ -61,8 +62,12 @@ async function renderStudentSkillsFromDB(studentId) {
         const statusButtonClass = isAdmin ? 'cursor-pointer hover:opacity-70' : 'cursor-default';
 
         // Evidence display
-        const evidenceHtml = skill.evidence_url ? 
-            `<button onclick="viewEvidence('${skill.evidence_url}')" class="text-2xl hover:scale-110 transition-transform" title="عرض الشاهد">📸</button>` : 
+        const evidenceCount = skill.evidence_count || 0;
+        const evidenceHtml = evidenceCount > 0 ? 
+            `<button onclick="viewSkillEvidence('${skill.id}')" class="text-2xl hover:scale-110 transition-transform relative" title="عرض الشواهد">
+                📸
+                ${evidenceCount > 1 ? `<span class="absolute -top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
+            </button>` : 
             `<span class="text-slate-300 text-xl">—</span>`;
 
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
@@ -101,12 +106,68 @@ async function toggleSkill(skillId, currentLevel) {
     const isDone = currentLevel === 3 || currentLevel === 2;
 
     if (isDone) {
-        // If already complete, mark as incomplete (no evidence needed)
-        await updateSkillStatus(skillId, 1, null);
+        // If already complete, show confirmation modal with option to delete evidence
+        showMarkIncompleteModal(skillId);
     } else {
         // If incomplete, show evidence upload modal
         currentTogglingSkillId = skillId;
         showEvidenceUploadModal();
+    }
+}
+
+function showMarkIncompleteModal(skillId) {
+    const modalHtml = `
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4 text-center">⚠️ تغيير حالة المهارة</h3>
+            <p class="text-center text-slate-700 mb-6">هل تريد تغيير حالة المهارة إلى: <span class="font-bold text-red-600">لم تكتمل</span>؟</p>
+            
+            <div class="mb-6 bg-slate-50 p-4 rounded-lg">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="deleteEvidenceCheckbox" class="w-5 h-5 text-red-600 rounded focus:ring-2 focus:ring-red-500">
+                    <span class="mr-3 text-sm text-slate-700">حذف الشواهد المرتبطة بهذه المهارة</span>
+                </label>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="confirmMarkIncomplete('${skillId}')" class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-medium">نعم</button>
+                <button onclick="closeCustomModal()" class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    `;
+    
+    showCustomModal(modalHtml);
+}
+
+async function confirmMarkIncomplete(skillId) {
+    const deleteEvidence = document.getElementById('deleteEvidenceCheckbox')?.checked || false;
+    
+    closeCustomModal();
+    
+    // Show loading
+    const tbody = document.getElementById('skillsTableBody');
+    const originalContent = tbody.innerHTML;
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري التحديث...</p></td></tr>';
+    
+    try {
+        // If checkbox is checked, delete all evidence first
+        if (deleteEvidence) {
+            const evidenceResult = await adminAPI.getSkillEvidence(skillId);
+            if (evidenceResult.success && evidenceResult.evidence) {
+                for (const evidence of evidenceResult.evidence) {
+                    await adminAPI.deleteEvidence(evidence.id);
+                }
+            }
+        }
+        
+        // Then update skill status to incomplete
+        await updateSkillStatus(skillId, 1, null);
+        
+        const message = deleteEvidence ? 'تم تغيير الحالة وحذف الشواهد' : 'تم تغيير الحالة بنجاح';
+        showToast(message, { type: 'success', title: 'نجحت العملية' });
+    } catch (error) {
+        console.error('Error marking incomplete:', error);
+        tbody.innerHTML = originalContent;
+        customAlert('خطأ في تحديث الحالة', { icon: '❌', title: 'خطأ' });
     }
 }
 
@@ -129,15 +190,17 @@ async function updateSkillStatus(skillId, newLevel, evidenceData) {
         // Invalidate caches when data changes
         invalidateAllCaches();
         
-        // Update statistics and activities (skill completion changed) - WAIT for completion
+        // Force refresh by re-rendering immediately
+        await renderStudentSkillsFromDB(selectedStudentId);
+        
+        // Update statistics and activities (skill completion changed) - Run in background
         if (typeof updateStatisticsOptimized === 'function') {
-            await updateStatisticsOptimized();
+            updateStatisticsOptimized();
         }
         if (typeof loadRecentActivityOptimized === 'function') {
-            await loadRecentActivityOptimized();
+            loadRecentActivityOptimized();
         }
         
-        await renderStudentSkillsFromDB(selectedStudentId);
         return true;
     } else {
         customAlert("خطأ في تحديث المهارة: " + (result.message || ''), { icon: '❌', title: 'خطأ' });
@@ -147,32 +210,37 @@ async function updateSkillStatus(skillId, newLevel, evidenceData) {
 }
 
 // Evidence Upload Modal Functions
+let selectedEvidenceFiles = [];
+
 function showEvidenceUploadModal() {
     const modal = document.getElementById('evidenceUploadModal');
     const fileInput = document.getElementById('evidenceFileInput');
-    const preview = document.getElementById('evidencePreview');
+    const previewGrid = document.getElementById('evidencePreviewGrid');
     
     // Reset form
     fileInput.value = '';
-    preview.classList.add('hidden');
+    selectedEvidenceFiles = [];
+    previewGrid.innerHTML = '';
+    previewGrid.classList.add('hidden');
     
-    // Setup file input preview
+    // Setup file input preview for multiple files
     fileInput.onchange = function(e) {
-        const file = e.target.files[0];
-        if (file) {
+        const files = Array.from(e.target.files);
+        
+        // Validate each file
+        for (const file of files) {
             if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                customAlert("حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت", { icon: '⚠️', title: 'خطأ' });
-                fileInput.value = '';
-                return;
+                customAlert(`حجم الملف ${file.name} كبير جداً. الحد الأقصى 5 ميجابايت`, { icon: '⚠️', title: 'خطأ' });
+                continue;
             }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('evidencePreviewImage').src = e.target.result;
-                preview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
+            selectedEvidenceFiles.push(file);
         }
+        
+        // Clear file input to allow re-selection
+        fileInput.value = '';
+        
+        // Update preview
+        updateEvidencePreview();
     };
     
     modal.classList.remove('hidden');
@@ -184,11 +252,131 @@ function showEvidenceUploadModal() {
     };
 }
 
+function updateEvidencePreview() {
+    const previewGrid = document.getElementById('evidencePreviewGrid');
+    previewGrid.innerHTML = '';
+    
+    if (selectedEvidenceFiles.length === 0) {
+        previewGrid.classList.add('hidden');
+        return;
+    }
+    
+    previewGrid.classList.remove('hidden');
+    
+    selectedEvidenceFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const div = document.createElement('div');
+            div.className = 'relative group';
+            div.innerHTML = `
+                <img src="${e.target.result}" alt="صورة ${index + 1}" class="w-full h-32 object-cover rounded-lg border-2 border-slate-200">
+                <button onclick="removeEvidenceFile(${index})" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm shadow-lg">
+                    ×
+                </button>
+            `;
+            previewGrid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function removeEvidenceFile(index) {
+    selectedEvidenceFiles.splice(index, 1);
+    updateEvidencePreview();
+}
+
 function closeEvidenceUploadModal() {
     const modal = document.getElementById('evidenceUploadModal');
     modal.classList.add('hidden');
     modal.onclick = null;
     currentTogglingSkillId = null;
+    selectedEvidenceFiles = [];
+}
+
+async function uploadMultipleEvidence() {
+    if (!currentTogglingSkillId) {
+        customAlert("خطأ: لم يتم تحديد المهارة", { icon: '❌', title: 'خطأ' });
+        closeEvidenceUploadModal();
+        return;
+    }
+    
+    // Capture the skill ID and files BEFORE closing modal (which clears the array)
+    const skillId = currentTogglingSkillId;
+    const filesToUpload = [...selectedEvidenceFiles]; // Create a copy of the array
+    
+    const button = document.getElementById('uploadEvidenceBtn');
+    setButtonLoading(button, true);
+    
+    try {
+        // If no files selected, just mark skill as complete without evidence
+        if (filesToUpload.length === 0) {
+            closeEvidenceUploadModal();
+            const success = await updateSkillStatus(skillId, 3, null);
+            setButtonLoading(button, false);
+            if (success) {
+                showToast("تم إكمال المهارة بنجاح", { type: 'success', title: 'نجحت العملية' });
+            }
+            return;
+        }
+        
+        closeEvidenceUploadModal();
+        
+        // Upload all selected files
+        let successCount = 0;
+        let failedCount = 0;
+        for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            
+            try {
+                // Convert to base64
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                
+                // Add evidence to skill_evidence table
+                const evidenceResult = await adminAPI.addSkillEvidence(skillId, base64Data);
+                
+                if (evidenceResult.success) {
+                    successCount++;
+                } else {
+                    failedCount++;
+                    
+                    // Show specific error if it's about missing table
+                    if (evidenceResult.error === 'skill_evidence table does not exist') {
+                        customAlert(
+                            'جدول الشواهد غير موجود في قاعدة البيانات.\n\nيرجى تشغيل الأمر التالي في الطرفية:\n\npython run_migration.py',
+                            { icon: '⚠️', title: 'خطأ في قاعدة البيانات' }
+                        );
+                        setButtonLoading(button, false);
+                        return;
+                    }
+                }
+            } catch (err) {
+                failedCount++;
+            }
+        }
+        
+        // Update skill status to completed
+        const success = await updateSkillStatus(skillId, 3, null);
+        
+        setButtonLoading(button, false);
+        
+        if (success && successCount > 0) {
+            const message = successCount === 1 ? 'تم حفظ الشاهد بنجاح' : `تم حفظ ${successCount} شواهد بنجاح`;
+            showToast(message, { type: 'success', title: 'نجحت العملية' });
+        } else if (success) {
+            showToast("تم إكمال المهارة بنجاح", { type: 'success', title: 'نجحت العملية' });
+        } else if (failedCount > 0) {
+            customAlert(`فشل في رفع ${failedCount} من ${filesToUpload.length} صورة`, { icon: '❌', title: 'خطأ' });
+        }
+    } catch (error) {
+        console.error('[Evidence Upload] General error:', error);
+        setButtonLoading(button, false);
+        customAlert("خطأ في رفع الشواهد", { icon: '❌', title: 'خطأ' });
+    }
 }
 
 async function uploadEvidence() {
@@ -208,7 +396,7 @@ async function uploadEvidence() {
     setButtonLoading(button, true);
     
     try {
-        // If no file selected, update skill without evidence
+        // If no file selected, just mark skill as complete without evidence
         if (!file) {
             closeEvidenceUploadModal();
             const success = await updateSkillStatus(skillId, 3, null);
@@ -224,13 +412,22 @@ async function uploadEvidence() {
         reader.onload = async function(e) {
             const base64Data = e.target.result;
             
-            // Update skill with evidence
             closeEvidenceUploadModal();
-            const success = await updateSkillStatus(skillId, 3, base64Data);
             
-            setButtonLoading(button, false);
-            if (success) {
-                showToast("تم حفظ الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+            // Add evidence to skill_evidence table
+            const evidenceResult = await adminAPI.addSkillEvidence(skillId, base64Data);
+            
+            if (evidenceResult.success) {
+                // Also update skill status to completed
+                const success = await updateSkillStatus(skillId, 3, null);
+                
+                setButtonLoading(button, false);
+                if (success) {
+                    showToast("تم حفظ الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+                }
+            } else {
+                setButtonLoading(button, false);
+                customAlert(evidenceResult.message || "خطأ في حفظ الشاهد", { icon: '❌', title: 'خطأ' });
             }
         };
         reader.onerror = function() {
@@ -246,17 +443,240 @@ async function uploadEvidence() {
 }
 
 // Evidence viewer
-function viewEvidence(evidenceUrl) {
+let currentViewingSkillId = null;
+
+async function viewSkillEvidence(skillId) {
+    currentViewingSkillId = skillId;
     const modal = document.getElementById('evidenceViewerModal');
-    const img = document.getElementById('evidenceViewerImage');
+    const grid = document.getElementById('evidenceGrid');
+    const loading = document.getElementById('evidenceLoading');
+    const empty = document.getElementById('evidenceEmpty');
+    const addSection = document.getElementById('addEvidenceSection');
     
-    img.src = evidenceUrl;
+    // Show modal and loading
     modal.classList.remove('hidden');
+    grid.classList.add('hidden');
+    empty.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    // Show add button only for admin
+    if (isAdmin) {
+        addSection.classList.remove('hidden');
+    } else {
+        addSection.classList.add('hidden');
+    }
+    
+    // Fetch evidence from API
+    const result = await adminAPI.getSkillEvidence(skillId);
+    
+    loading.classList.add('hidden');
+    
+    if (result.success && result.evidence && result.evidence.length > 0) {
+        grid.classList.remove('hidden');
+        renderEvidenceGrid(result.evidence);
+    } else {
+        empty.classList.remove('hidden');
+    }
+}
+
+function renderEvidenceGrid(evidenceList) {
+    const grid = document.getElementById('evidenceGrid');
+    grid.innerHTML = '';
+    
+    evidenceList.forEach((evidence, index) => {
+        const div = document.createElement('div');
+        div.className = "bg-slate-700 rounded-lg overflow-hidden";
+        
+        const deleteBtn = isAdmin ? 
+            `<button onclick="deleteEvidenceItem('${evidence.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded transition flex-1">
+                🗑️ حذف
+            </button>` : '';
+        
+        const changeBtn = isAdmin ? 
+            `<button onclick="changeEvidenceItem('${evidence.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded transition flex-1">
+                🔄 تغيير
+            </button>` : '';
+        
+        div.innerHTML = `
+            <img src="${evidence.evidence_url}" alt="شاهد ${index + 1}" class="w-full h-64 object-cover cursor-pointer" onclick="openImageInFullScreen('${evidence.evidence_url}')">
+            ${isAdmin ? `
+            <div class="p-3 flex gap-2">
+                ${changeBtn}
+                ${deleteBtn}
+            </div>
+            ` : ''}
+        `;
+        
+        grid.appendChild(div);
+    });
+}
+
+function openImageInFullScreen(imageUrl) {
+    const modal = document.getElementById('fullScreenImageModal');
+    const img = document.getElementById('fullScreenImage');
+    img.src = imageUrl;
+    modal.classList.remove('hidden');
+}
+
+function closeFullScreenImage() {
+    const modal = document.getElementById('fullScreenImageModal');
+    modal.classList.add('hidden');
+}
+
+async function deleteEvidenceItem(evidenceId) {
+    if (!isAdmin) return;
+    
+    customConfirm("هل أنت متأكد من حذف هذا الشاهد؟", async () => {
+        const result = await adminAPI.deleteEvidence(evidenceId);
+        
+        if (result.success) {
+            showToast("تم حذف الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+            
+            // Refresh evidence viewer
+            await viewSkillEvidence(currentViewingSkillId);
+            
+            // Reload skills table to update count
+            if (selectedStudentId) {
+                await renderStudentSkillsFromDB(selectedStudentId);
+            }
+        } else {
+            customAlert(result.message || "خطأ في حذف الشاهد", { icon: '❌', title: 'خطأ' });
+        }
+    }, {
+        icon: '🗑️',
+        title: 'تأكيد الحذف',
+        confirmText: 'حذف',
+        cancelText: 'إلغاء'
+    });
+}
+
+async function changeEvidenceItem(evidenceId) {
+    if (!isAdmin) return;
+    
+    // Create a file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    
+    fileInput.onchange = async function(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            customAlert("حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت", { icon: '⚠️', title: 'خطأ' });
+            return;
+        }
+        
+        // Show loading
+        const loading = document.getElementById('evidenceLoading');
+        const grid = document.getElementById('evidenceGrid');
+        grid.classList.add('hidden');
+        loading.classList.remove('hidden');
+        
+        // Convert to base64
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result;
+            
+            const result = await adminAPI.updateEvidence(evidenceId, base64Data);
+            
+            loading.classList.add('hidden');
+            
+            if (result.success) {
+                showToast("تم تحديث الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+                
+                // Refresh evidence viewer
+                await viewSkillEvidence(currentViewingSkillId);
+                
+                // Reload skills table
+                if (selectedStudentId) {
+                    await renderStudentSkillsFromDB(selectedStudentId);
+                }
+            } else {
+                grid.classList.remove('hidden');
+                customAlert(result.message || "خطأ في تحديث الشاهد", { icon: '❌', title: 'خطأ' });
+            }
+        };
+        reader.onerror = function() {
+            loading.classList.add('hidden');
+            grid.classList.remove('hidden');
+            customAlert("خطأ في قراءة الملف", { icon: '❌', title: 'خطأ' });
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    fileInput.click();
+}
+
+async function showAddEvidenceForm() {
+    if (!isAdmin) return;
+    
+    // Create a file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    
+    fileInput.onchange = async function(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            customAlert("حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت", { icon: '⚠️', title: 'خطأ' });
+            return;
+        }
+        
+        // Show loading
+        const loading = document.getElementById('evidenceLoading');
+        const grid = document.getElementById('evidenceGrid');
+        const empty = document.getElementById('evidenceEmpty');
+        grid.classList.add('hidden');
+        empty.classList.add('hidden');
+        loading.classList.remove('hidden');
+        
+        // Convert to base64
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result;
+            
+            const result = await adminAPI.addSkillEvidence(currentViewingSkillId, base64Data);
+            
+            loading.classList.add('hidden');
+            
+            if (result.success) {
+                showToast("تم إضافة الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+                
+                // Refresh evidence viewer
+                await viewSkillEvidence(currentViewingSkillId);
+                
+                // Reload skills table to update count
+                if (selectedStudentId) {
+                    await renderStudentSkillsFromDB(selectedStudentId);
+                }
+            } else {
+                grid.classList.remove('hidden');
+                customAlert(result.message || "خطأ في إضافة الشاهد", { icon: '❌', title: 'خطأ' });
+            }
+        };
+        reader.onerror = function() {
+            loading.classList.add('hidden');
+            grid.classList.remove('hidden');
+            customAlert("خطأ في قراءة الملف", { icon: '❌', title: 'خطأ' });
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    fileInput.click();
+}
+
+function viewEvidence(evidenceUrl) {
+    // Deprecated: Keep for backward compatibility with old data
+    openImageInFullScreen(evidenceUrl);
 }
 
 function closeEvidenceViewer() {
     const modal = document.getElementById('evidenceViewerModal');
     modal.classList.add('hidden');
+    currentViewingSkillId = null;
 }
 
 async function deleteSkill(skillId, skillName) {
@@ -290,25 +710,27 @@ async function deleteSkill(skillId, skillName) {
             // Invalidate caches when data changes
             invalidateAllCaches();
             
-            // Reload skill templates to update usage counts in UI
-            if (typeof loadSkillTemplates === 'function') {
-                await loadSkillTemplates();
-            }
+            // Force refresh by re-rendering immediately
+            await renderStudentSkillsFromDB(selectedStudentId);
             
-            // Update statistics and activities - WAIT for completion
+            // Reload available skills for this student
+            await loadSkillsForStudent(selectedStudentId);
+            
+            // Update other UI elements in background
+            if (typeof loadSkillTemplates === 'function') {
+                loadSkillTemplates();
+            }
             if (typeof updateStatisticsOptimized === 'function') {
-                await updateStatisticsOptimized();
+                updateStatisticsOptimized();
             }
             if (typeof loadRecentActivityOptimized === 'function') {
-                await loadRecentActivityOptimized();
+                loadRecentActivityOptimized();
             }
             
             showToast("تم حذف المهارة بنجاح", { 
                 title: 'تم الحذف',
                 type: 'success'
             });
-            
-            await renderStudentSkillsFromDB(selectedStudentId);
         } else {
             customAlert("خطأ في حذف المهارة: " + (result.message || ''), { 
                 icon: '❌', 
@@ -372,13 +794,11 @@ async function saveNewSkill() {
             await loadSkillTemplates();
         }
         
-        // Update statistics and activities - WAIT for completion
+        // Update statistics - WAIT for completion
         if (typeof updateStatisticsOptimized === 'function') {
             await updateStatisticsOptimized();
         }
-        if (typeof loadRecentActivityOptimized === 'function') {
-            await loadRecentActivityOptimized();
-        }
+        // Note: No need to reload activities - new skills start incomplete (level 1)
         
         showToast("تم إضافة المهارة بنجاح", { 
             title: 'نجحت العملية',
@@ -397,7 +817,8 @@ async function saveNewSkill() {
 
 // New skill management functions
 let availableSkillsCache = [];
-let studentSkillsCache = [];
+// Make studentSkillsCache global so it can be invalidated
+window.studentSkillsCache = window.studentSkillsCache || [];
 let selectedSkillsToAdd = new Set(); // Track selected skills for batch add
 
 async function loadSkillsForStudent(studentId) {
@@ -431,10 +852,10 @@ async function loadSkillsForStudent(studentId) {
             }
         }
         
-        // Load student's current skills
-        const skillsResult = await adminAPI.getStudentSkills(studentId);
+        // Load student's current skills (bypass cache to get fresh data)
+        const skillsResult = await adminAPI.getStudentSkills(studentId, true);
         if (skillsResult.success) {
-            studentSkillsCache = skillsResult.data.skills || [];
+            window.studentSkillsCache = skillsResult.data.skills || [];
         }
         
         // Render available skills grid
@@ -451,7 +872,7 @@ function renderAvailableSkills() {
     const searchTerm = document.getElementById('skillSearchInput')?.value.toLowerCase() || '';
     
     // Filter out skills the student already has
-    const studentSkillNames = studentSkillsCache.map(s => s.name);
+    const studentSkillNames = (window.studentSkillsCache || []).map(s => s.name);
     const availableSkills = availableSkillsCache.filter(template => 
         !studentSkillNames.includes(template.name) &&
         (searchTerm === '' || template.name.toLowerCase().includes(searchTerm))
@@ -588,26 +1009,20 @@ async function addSelectedSkillsToStudent() {
     // Invalidate caches when data changes
     invalidateAllCaches();
     
-    // Reload skill templates once if needed to update usage count display
-    if (templatesNeedReload && typeof loadSkillTemplates === 'function') {
-        await loadSkillTemplates();
-    }
+    // Force refresh by reloading data immediately
+    await renderStudentSkillsFromDB(selectedStudentId);
+    await loadSkillsForStudent(selectedStudentId);
     
-    // Update statistics and activities - WAIT for completion
+    // Update other UI elements in background
+    if (templatesNeedReload && typeof loadSkillTemplates === 'function') {
+        loadSkillTemplates();
+    }
     if (successCount > 0) {
         if (typeof updateStatisticsOptimized === 'function') {
-            await updateStatisticsOptimized();
+            updateStatisticsOptimized();
         }
-        if (typeof loadRecentActivityOptimized === 'function') {
-            await loadRecentActivityOptimized();
-        }
+        // Note: No need to reload activities - new skills start incomplete (level 1)
     }
-    
-    // Reload both student skills and available skills
-    await Promise.all([
-        renderStudentSkillsFromDB(selectedStudentId),
-        loadSkillsForStudent(selectedStudentId)
-    ]);
     
     const message = successCount > 0 
         ? `تمت إضافة ${successCount} ${successCount === 1 ? 'مهارة' : 'مهارات'} بنجاح` +
@@ -656,13 +1071,11 @@ async function addSkillToStudent(templateId, skillName, skillUrl) {
             console.error('Error updating usage count:', e);
         }
         
-        // Update statistics and activities - WAIT for completion
+        // Update statistics - WAIT for completion
         if (typeof updateStatisticsOptimized === 'function') {
             await updateStatisticsOptimized();
         }
-        if (typeof loadRecentActivityOptimized === 'function') {
-            await loadRecentActivityOptimized();
-        }
+        // Note: No need to reload activities - new skills start incomplete (level 1)
         
         // Reload both student skills and available skills
         await Promise.all([

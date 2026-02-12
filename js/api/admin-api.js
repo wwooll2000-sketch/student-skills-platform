@@ -215,14 +215,22 @@ class AdminAPI {
         }
     }
 
-    async getStudentSkills(studentId) {
+    async getStudentSkills(studentId, bypassCache = false) {
         if (!this.isAuthorized()) {
             return { success: false, message: "غير مصرح" };
         }
 
         try {
-            const response = await fetch(`/api/student/${studentId}/skills`, {
-                headers: { "Content-Type": "application/json" }
+            // Add cache-busting parameter if bypassCache is true
+            const url = bypassCache 
+                ? `/api/student/${studentId}/skills?_t=${Date.now()}`
+                : `/api/student/${studentId}/skills`;
+            
+            const response = await fetch(url, {
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${this.authToken}`
+                }
             });
 
             const result = await response.json();
@@ -325,6 +333,179 @@ class AdminAPI {
         this.authToken = token;
         return true;
     }
+
+    // Optimized batch operations for faster bulk inserts
+    async batchAddStudents(students) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/students/batch`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ students })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في الإضافة الجماعية:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async batchAddSkills(skills) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/batch`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ skills })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في الإضافة الجماعية:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async clearCache() {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/cache/clear`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في مسح الذاكرة:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    // Evidence Management Methods
+    async getSkillEvidence(skillId) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/${skillId}/evidence`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${this.authToken}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في جلب الشواهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async addSkillEvidence(skillId, evidenceUrl) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/${skillId}/evidence`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ evidence_url: evidenceUrl })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في إضافة الشاهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async deleteEvidence(evidenceId) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/evidence/${evidenceId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${this.authToken}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في حذف الشاهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async updateEvidence(evidenceId, newEvidenceUrl) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/evidence/${evidenceId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ evidence_url: newEvidenceUrl })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في تحديث الشاهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
 }
 
 const adminAPI = new AdminAPI();

@@ -571,15 +571,14 @@
                     </select>
                 </div>
             </div>
+            <div class="flex gap-2">
+                <button onclick="saveNewSkillTemplate()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
+                    المهارة</button>
+                <button onclick="closeAddSkillTemplateModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="saveNewSkillTemplate()"
-                class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
-                المهارة</button>
-            <button onclick="closeAddSkillTemplateModal()"
-                class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
-        </div>
-    </div>
     </div>
 
     <!-- Edit Skill Template Modal -->
@@ -620,7 +619,8 @@
                     </select>
                 </div>
             </div>
-            <div class="flex gap-2">\n <button onclick="saveEditSkillTemplate()"
+            <div class="flex gap-2">
+                <button onclick="saveEditSkillTemplate()"
                     class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium">حفظ
                     التغييرات</button>
                 <button onclick="closeEditSkillTemplateModal()"
@@ -738,23 +738,23 @@
     <!-- Evidence Upload Modal -->
     <div id="evidenceUploadModal"
         class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-bold mb-4">📸 إضافة شاهد للمهارة</h3>
-            <p class="text-sm text-slate-600 mb-4">قم برفع صورة كشاهد على إتمام الطالب للمهارة</p>
+            <p class="text-sm text-slate-600 mb-4">قم برفع صورة أو عدة صور كشاهد على إتمام الطالب للمهارة</p>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-slate-700 mb-2">اختر صورة (اختياري)</label>
-                <input type="file" id="evidenceFileInput" accept="image/*"
+                <label class="block text-sm font-medium text-slate-700 mb-2">اختر صور (اختياري)</label>
+                <input type="file" id="evidenceFileInput" accept="image/*" multiple
                     class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                <p class="text-xs text-slate-500 mt-1">الحد الأقصى: 5 ميجابايت</p>
+                <p class="text-xs text-slate-500 mt-1">يمكنك اختيار عدة صور - الحد الأقصى لكل صورة: 5 ميجابايت</p>
             </div>
 
-            <div id="evidencePreview" class="hidden mb-4">
-                <img id="evidencePreviewImage" src="" alt="معاينة" class="w-full h-48 object-cover rounded-lg border">
+            <div id="evidencePreviewGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 hidden">
+                <!-- Preview images will be inserted here -->
             </div>
 
             <div class="flex gap-2">
-                <button onclick="uploadEvidence()" id="uploadEvidenceBtn"
+                <button onclick="uploadMultipleEvidence()" id="uploadEvidenceBtn"
                     class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium">
                     ✅ حفظ وإكمال المهارة
                 </button>
@@ -768,12 +768,42 @@
     <div id="evidenceViewerModal"
         class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center p-4 z-50"
         onclick="closeEvidenceViewer()">
-        <div class="max-w-4xl w-full" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-white font-bold text-lg">📸 الشاهد</h3>
+        <div class="max-w-5xl w-full max-h-[90vh] overflow-y-auto bg-slate-800 rounded-lg p-6" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-white font-bold text-xl">📸 الشواهد</h3>
                 <button onclick="closeEvidenceViewer()" class="text-white hover:text-slate-300 text-3xl">×</button>
             </div>
-            <img id="evidenceViewerImage" src="" alt="الشاهد" class="w-full rounded-lg shadow-2xl">
+            
+            <!-- Add New Evidence Button (admin only) -->
+            <div id="addEvidenceSection" class="hidden mb-4">
+                <button onclick="showAddEvidenceForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition">
+                    ➕ إضافة شاهد جديد
+                </button>
+            </div>
+
+            <!-- Evidence Grid -->
+            <div id="evidenceGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Evidence items will be injected here -->
+            </div>
+
+            <!-- Loading State -->
+            <div id="evidenceLoading" class="text-center py-8 hidden">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-500 mx-auto mb-3"></div>
+                <p class="text-white">جاري التحميل...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="evidenceEmpty" class="text-center py-8 hidden">
+                <p class="text-slate-400 text-lg">لا توجد شواهد</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Image Viewer Modal -->
+    <div id="fullScreenImageModal" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center z-[60]" onclick="closeFullScreenImage()">
+        <div class="relative max-w-7xl max-h-[95vh] w-full h-full flex items-center justify-center p-4" onclick="event.stopPropagation()">
+            <button onclick="closeFullScreenImage()" class="absolute top-4 right-4 text-white hover:text-slate-300 text-4xl z-10 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center">×</button>
+            <img id="fullScreenImage" src="" alt="عرض كامل" class="max-w-full max-h-full object-contain rounded-lg">
         </div>
     </div>
 

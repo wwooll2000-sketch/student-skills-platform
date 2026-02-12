@@ -46,20 +46,18 @@ async function processBulkImport() {
     // InvalidateAllCaches when data changes
     invalidateAllCaches();
     
-    // Update statistics and activities - WAIT for completion
+    // Update statistics - WAIT for completion
     if (typeof updateStatisticsOptimized === 'function') {
         await updateStatisticsOptimized();
     }
-    if (typeof loadRecentActivityOptimized === 'function') {
-        await loadRecentActivityOptimized();
-    }
+    // Note: No need to reload activities - adding students doesn't create activities
 
     showToast(message, {
         title: 'نتيجة الإضافة',
         type: failCount > 0 ? 'warning' : 'success'
     });
     
-    await renderAdminStudents();
+    await renderAdminStudents({ refreshActivities: false });
 }
 
 async function showBatchSkillModal(preSelectedTemplate = null) {
@@ -301,18 +299,16 @@ async function processBatchSkill() {
     // Invalidate all caches when data changes
     invalidateAllCaches();
     
-    // Update statistics and activities - WAIT for completion
+    // Update statistics - WAIT for completion
     if (typeof updateStatisticsOptimized === 'function') {
         await updateStatisticsOptimized();
     }
-    if (typeof loadRecentActivityOptimized === 'function') {
-        await loadRecentActivityOptimized();
-    }
+    // Note: No need to reload activities - new skills start incomplete (level 1)
 
     showToast(message, {
         title: 'نتيجة العملية',
         type: failCount > 0 ? 'warning' : 'success'
     });
     
-    await renderAdminStudents();
+    await renderAdminStudents({ refreshActivities: false });
 }

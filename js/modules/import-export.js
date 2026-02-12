@@ -162,12 +162,9 @@ async function processImport(studentsData) {
     // Invalidate all caches
     invalidateAllCaches();
     
-    // Update statistics and activities - WAIT for completion
+    // Update statistics - WAIT for completion
     if (typeof updateStatisticsOptimized === 'function') {
         await updateStatisticsOptimized();
-    }
-    if (typeof loadRecentActivityOptimized === 'function') {
-        await loadRecentActivityOptimized();
     }
 
     const message = `تم الاستيراد بنجاح:\n` +
@@ -180,7 +177,8 @@ async function processImport(studentsData) {
         type: errorCount > 0 ? 'warning' : 'success'
     });
     
-    await renderAdminStudents();
+    // Note: Import may include completed skills, so refresh activities
+    await renderAdminStudents({ refreshActivities: true });
 }
 
 

@@ -29,7 +29,6 @@ def get_teacher_from_db():
             }
         return None
     except Exception as e:
-        print(f"Error getting teacher from database: {e}")
         return None
     finally:
         return_db(conn)

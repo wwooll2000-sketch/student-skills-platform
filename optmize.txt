@@ -261,16 +261,18 @@ in the إدارة المهارات section for the المهارات for the titl
 
 when i 📥 تصدير البيانات the name of the files is not the right date! students_data_2026-02-11.json while we are in 2026-02-12.. please fix this.
 
---------------
+-------------- not done (it's complcated)
 
 major change:
 i noticed that in this app we use APIs for everything even for things that we can do with the database directly without the need for APIs, we can use prisma to handle all the database operations directly without the need for APIs, so please make sure to remove any API implementation+files that we have in this project and use prisma to handle all the database operations directly without the need for APIs, also make sure to remove any code related to APIs and also make sure to optmize the prisma schema and queries indexes to make it more efficient and faster.
 
 Notes:
-- Make sure to read the prisma documentation and understand how to use it to handle the database operations for our based on the current database structure.
+- Make sure to read and use the prisma 7 documentation and understand how to use it to handle the database operations for our based on the current database structure. "https://www.prisma.io/blog/announcing-prisma-orm-7-0-0"
 - Right now we have data on the database so make sure to handle the migration and the changes in the database structure in a way that doesn't cause any data loss.
 - You can refactor or change anything you want in the code to optimize it and make it faster and more efficient.
 - Don't create any .md files to summarize the changes just do the changes.
+
+Over all, the app should not have any API implementation.
 
 --------------
 
@@ -293,3 +295,43 @@ add scroll smooth behavior to the app.
 add a custom 404 (NOT FOUND) page for the app and make sure to show it when the user tries to access a page that doesn't exist in the app.
 
 also add a custom 500 (INTERNAL SERVER ERROR) page for the app and make sure to show it when there is an error in the server.
+
+--------------
+
+in this app i noticed we have alot of API requests.. can you refactor the code to remove all the APIs and just use a good fast package to handle the database operations directly without the need for APIs, this will make the app faster and more efficient! and for the package please use a lightweight package that is efficient and fast like "psycopg3" package to handle the database operations directly without the need for APIs.
+
+Note1: you can delete all the API files/folders and also make sure to remove any code related to APIs and edit the code to use the new package that you will use to handle the database operations directly without the need for APIs.
+
+Note2: don't create any .md files to summarize the changes just do the changes.
+
+--------------
+
+there is alot of issues in the المهارات in the admin stdents page for exmaple where a مهارة is ✅ تم then when i click it again nothing happens, also when i add a new مهارة to the student it shows a toast notification with success but i don't see the new مهارة in the المهارات list of the student even if i refresh the page, also when i try to remove a مهارة from the student it shows a toast notification with success but i still see the مهارة in the المهارات list also when i click delete again it shows a model that says this مهارة is not exist but the مهارة is still there in the list.. so alot of issues like this please fix all the issues.
+
+--------------
+
+in the admin page in the students page for the الشواهد i want the ability to add more than one photo for the same مهارة. Also when i click on the photo in the الشواهد column it should show the one or more photos for this مهارة in also for each photo it should have 2 buttons one for delete the photo and one for change the photo.
+
+don't create any .md files to summarize the changes just do the changes.
+
+--------------
+
+perfect! it's almost done but there things needs to be changed:
+
+- when i open the الشواهد model after clicking on the photo icon it shows the photos but when i click on a photo it open a new tab but i want it to open a larger view for the photo in the same page without opening a new tab.
+
+when i press ✅ تم to mark a مهارة to ❌ لم تكتمل it should open a model that says "هل تريد تغيير حالة المهارة إلى: لم تكتمل؟" and it should have a checkbox in this model that says "حذف الشواهد المرتبطة بهذه المهارة" and if i check this checkbox then when i click on the نعم button it should change the status of the مهارة to ❌ لم تكتمل and also delete all the شواهد/photos that are related to this مهارة for this student.
+
+- in the إضافة شاهد للمهارة model for the اختر صورة section please also add to add multiple photos same as the الشواهد model but a custom design fits for the model and for each photo add an X button to clear the photo.
+
+--------------
+
+in this app there are requests that do not need to activate when some actions made for example when i add a new student the قائمة الطلاب المضافين triggers a request but the issue also the 📝 آخر النشاطات triggers a request wich is not neded in this senario.. also please find all the issue in the app like this and fix them!
+
+Note: make sure to not break any functionality while fixing this issue.
+
+--------------
+
+perfect! there is small tweak that i want to do:
+
+when i open the ➕ إضافة مهارة جديدة the buttons are not in the right pleace. also when i open the ✏️ تعديل المهارة next to the buttons i see this "\n"

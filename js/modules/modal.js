@@ -123,6 +123,42 @@ function customConfirm(message, onConfirm, options = {}) {
         onCancel: options.onCancel
     });
 }
+
+// Custom HTML Modal (for complex content)
+function showCustomModal(htmlContent) {
+    const modal = document.getElementById('customModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    // Clear and set custom content
+    modalContent.innerHTML = htmlContent;
+    
+    // Show modal with animation
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+    
+    // Close on background click
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeCustomModal();
+        }
+    };
+}
+
+function closeCustomModal() {
+    const modal = document.getElementById('customModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
 // Toast Notification System
 let toastQueue = [];
 let audioContext = null;

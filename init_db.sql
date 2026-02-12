@@ -57,11 +57,20 @@ CREATE TABLE IF NOT EXISTS teacher (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table for storing multiple evidence/photos per skill
+CREATE TABLE IF NOT EXISTS skill_evidence (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    skill_id UUID REFERENCES skills(id) ON DELETE CASCADE,
+    evidence_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_students_code ON students(code);
 CREATE INDEX IF NOT EXISTS idx_skills_student_id ON skills(student_id);
 CREATE INDEX IF NOT EXISTS idx_skills_category ON skills(category);
 CREATE INDEX IF NOT EXISTS idx_skill_templates_category ON skill_templates(category);
 CREATE INDEX IF NOT EXISTS idx_skill_templates_active ON skill_templates(is_active);
+CREATE INDEX IF NOT EXISTS idx_skill_evidence_skill_id ON skill_evidence(skill_id);
 
 -- Insert default categories
 INSERT INTO skill_categories (id, name, icon, color, display_order) VALUES
@@ -103,3 +112,10 @@ SET usage_count = (
     FROM skills s
     WHERE s.name = st.name AND s.student_id IS NOT NULL
 );
+
+-- Migrate existing evidence_url data to skill_evidence table
+INSERT INTO skill_evidence (skill_id, evidence_url, created_at)
+SELECT id, evidence_url, created_at
+FROM skills
+WHERE evidence_url IS NOT NULL AND evidence_url != ''
+ON CONFLICT DO NOTHING;

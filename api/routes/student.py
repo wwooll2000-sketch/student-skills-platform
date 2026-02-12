@@ -9,78 +9,70 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 try:
-    from database import get_db, return_db
+    from database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached
 except ImportError:
-    from api.database import get_db, return_db
+    from api.database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached
 
 student_bp = Blueprint('student', __name__, url_prefix='/api/student')
 
 @student_bp.route('/login', methods=['POST'])
 def student_login():
-    """Student login endpoint"""
+    """Student login endpoint with caching"""
     data = request.json
     student_code = data.get('studentCode')
     
     if not student_code or len(student_code) < 4:
         return jsonify({'success': False, 'message': 'رقم الطالب غير صحيح'}), 400
     
-    conn = get_db()
     try:
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM students WHERE code = %s', (student_code,))
-        student = cur.fetchone()
+        # Use cached query for faster login
+        student = get_student_by_code_cached(student_code)
         
         if not student:
-            cur.close()
             return jsonify({'success': False, 'message': 'رقم الطالب غير موجود'}), 404
         
-        cur.close()
         return jsonify({
             'success': True, 
             'message': 'تم الدخول بنجاح', 
             'student': {
-                'id': student[0], 
-                'name': student[1], 
-                'code': student[2], 
-                'class': student[4], 
-                'email': student[3]
+                'id': str(student['id']), 
+                'name': student['name'], 
+                'code': student['code'], 
+                'class': student['class'], 
+                'email': student['email']
             }
         })
-    finally:
-        return_db(conn)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'خطأ في تسجيل الدخول: {str(e)}'}), 500
 
 @student_bp.route('/<student_id>/skills', methods=['GET'])
 def get_student_skills(student_id):
-    """Get all skills for a student"""
-    conn = get_db()
+    """Get all skills for a student with caching"""
     try:
-        cur = conn.cursor()
-        cur.execute(
-            'SELECT id, student_id, name, level, description, category, notes, evidence_url, '
-            'created_at AT TIME ZONE \'UTC\' as created_at, '
-            'updated_at AT TIME ZONE \'UTC\' as updated_at '
-            'FROM skills WHERE student_id = %s ORDER BY level DESC, created_at DESC',
-            (student_id,)
-        )
+        # Use cached query for much faster response
+        skills_data = get_student_skills_cached(student_id)
+        
         skills = []
-        for row in cur.fetchall():
+        for row in skills_data:
             # Convert timestamps to proper UTC format with Z suffix
-            created_at = row[8].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[8] else None
-            updated_at = row[9].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[9] else None
+            created_at = row['created_at'].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row['created_at'] else None
+            updated_at = row['updated_at'].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row['updated_at'] else None
             
             skills.append({
-                'id': row[0], 
-                'student_id': row[1], 
-                'name': row[2], 
-                'level': row[3], 
-                'description': row[4], 
-                'category': row[5], 
-                'notes': row[6],
-                'evidence_url': row[7], 
+                'id': str(row['id']), 
+                'student_id': str(row['student_id']), 
+                'name': row['name'], 
+                'level': row['level'], 
+                'description': row['description'], 
+                'category': row['category'], 
+                'notes': row['notes'],
+                'evidence_url': row['evidence_url'],
+                'evidence_count': row['evidence_count'],
                 'created_at': created_at, 
                 'updated_at': updated_at
             })
-        cur.close()
+        
         return jsonify({'success': True, 'skills': skills})
-    finally:
-        return_db(conn)
+    except Exception as e:
+        print(f"[ERROR] get_student_skills: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ في جلب المهارات: {str(e)}'}), 500
