@@ -124,7 +124,7 @@ class AdminAPI {
         }
     }
 
-    async addSkill(studentId, name, level, description, category, notes) {
+    async addSkill(studentId, name, level, description, notes, evidence) {
         if (!this.isAuthorized()) {
             return { success: false, message: "غير مصرح" };
         }
@@ -136,7 +136,7 @@ class AdminAPI {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${this.authToken}`
                 },
-                body: JSON.stringify({ name, level, description, category, notes })
+                body: JSON.stringify({ name, level, description, notes, evidence })
             });
 
             return await response.json();
@@ -149,7 +149,7 @@ class AdminAPI {
         }
     }
 
-    async updateSkill(skillId, name, level, description, category, notes) {
+    async updateSkill(skillId, name, level, description, notes, evidence) {
         if (!this.isAuthorized()) {
             return { success: false, message: "غير مصرح" };
         }
@@ -161,7 +161,7 @@ class AdminAPI {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${this.authToken}`
                 },
-                body: JSON.stringify({ name, level, description, category, notes })
+                body: JSON.stringify({ name, level, description, notes, evidence })
             });
 
             return await response.json();

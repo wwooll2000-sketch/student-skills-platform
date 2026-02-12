@@ -34,6 +34,12 @@ async function verifyAdminLogin() {
 
     if (result.success) {
         isAdmin = true;
+        
+        // Store teacher name if available
+        if (result.user && result.user.name) {
+            currentTeacherName = result.user.name;
+        }
+        
         updateAdminUI();
         toggleAdminLoginModal();
         showToast("مرحباً بك في لوحة التحكم!", { icon: '🎉', title: 'نجح تسجيل الدخول', type: 'success' });
@@ -47,6 +53,11 @@ async function verifyAdminLogin() {
         if (typeof initSkillTemplatesManagement === 'function') {
             initSkillTemplatesManagement();
         }
+        
+        // Update welcome message
+        if (typeof updateWelcomeMessage === 'function') {
+            updateWelcomeMessage();
+        }
     } else {
         customAlert(result.message || "كلمة المرور غير صحيحة", { icon: '❌', title: 'خطأ في تسجيل الدخول' });
     }
@@ -54,6 +65,7 @@ async function verifyAdminLogin() {
 
 function updateAdminUI() {
     document.getElementById('adminLoginBtn').classList.add('hidden');
+    document.getElementById('adminSettingsBtn').classList.remove('hidden');
     document.getElementById('adminLogoutBtn').classList.remove('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');
     const adminControls = document.getElementById('adminControls');
@@ -68,6 +80,7 @@ function updateStudentUI() {
 
 function resetToLoginUI() {
     document.getElementById('adminLoginBtn').classList.remove('hidden');
+    document.getElementById('adminSettingsBtn').classList.add('hidden');
     document.getElementById('adminLogoutBtn').classList.add('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');
 }

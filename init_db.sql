@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS skills (
     description TEXT,
     category VARCHAR(100),
     notes TEXT,
+    evidence_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -47,6 +48,15 @@ CREATE TABLE IF NOT EXISTS skill_categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Teacher credentials table
+CREATE TABLE IF NOT EXISTS teacher (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL DEFAULT 'المعلم',
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_students_code ON students(code);
 CREATE INDEX IF NOT EXISTS idx_skills_student_id ON skills(student_id);
 CREATE INDEX IF NOT EXISTS idx_skills_category ON skills(category);
@@ -62,6 +72,11 @@ INSERT INTO skill_categories (id, name, icon, color, display_order) VALUES
     (gen_random_uuid(), 'مهارات عامة', '⭐', 'yellow', 5),
     (gen_random_uuid(), 'أخرى', '📁', 'slate', 99)
 ON CONFLICT (name) DO NOTHING;
+
+-- Insert default teacher (password: admin123)
+INSERT INTO teacher (name, password)
+SELECT 'المعلم', 'admin123'
+WHERE NOT EXISTS (SELECT 1 FROM teacher);
 
 -- Migrate existing custom skills to skill_templates
 INSERT INTO skill_templates (id, name, description, url, category, icon, is_active, created_at)

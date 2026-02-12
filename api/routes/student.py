@@ -56,7 +56,7 @@ def get_student_skills(student_id):
     try:
         cur = conn.cursor()
         cur.execute(
-            'SELECT id, student_id, name, level, description, category, notes, '
+            'SELECT id, student_id, name, level, description, category, notes, evidence_url, '
             'created_at AT TIME ZONE \'UTC\' as created_at, '
             'updated_at AT TIME ZONE \'UTC\' as updated_at '
             'FROM skills WHERE student_id = %s ORDER BY level DESC, created_at DESC',
@@ -65,8 +65,8 @@ def get_student_skills(student_id):
         skills = []
         for row in cur.fetchall():
             # Convert timestamps to proper UTC format with Z suffix
-            created_at = row[7].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[7] else None
-            updated_at = row[8].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[8] else None
+            created_at = row[8].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[8] else None
+            updated_at = row[9].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if row[9] else None
             
             skills.append({
                 'id': row[0], 
@@ -75,7 +75,8 @@ def get_student_skills(student_id):
                 'level': row[3], 
                 'description': row[4], 
                 'category': row[5], 
-                'notes': row[6], 
+                'notes': row[6],
+                'evidence_url': row[7], 
                 'created_at': created_at, 
                 'updated_at': updated_at
             })

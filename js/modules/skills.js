@@ -2,7 +2,7 @@
 
 async function renderStudentSkillsFromDB(studentId) {
     const tbody = document.getElementById('skillsTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center"><div class="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري تحميل المهارات...</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center"><div class="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري تحميل المهارات...</p></td></tr>';
 
     // Use cached skill templates instead of fetching every time
     const skillTemplatesMap = isAdmin ? await getSkillTemplatesMap() : {};
@@ -30,7 +30,7 @@ async function renderStudentSkillsFromDB(studentId) {
     }
 
     if (!skillsResult.success || !skillsResult.data || skillsResult.data.skills.length === 0) {
-        const colspan = isAdmin ? '5' : '3';
+        const colspan = isAdmin ? '6' : '4';
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
         updateStudentProgressBar(0, 0);
         return;
@@ -57,9 +57,15 @@ async function renderStudentSkillsFromDB(studentId) {
         const skillIcon = template?.icon || '📚';
 
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
-        const statusColor = isDone ? 'text-green-600' : 'text-red-400';
+        const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
+        const statusButtonClass = isAdmin ? 'cursor-pointer hover:opacity-70' : 'cursor-default';
 
-        let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
+        // Evidence display
+        const evidenceHtml = skill.evidence_url ? 
+            `<button onclick="viewEvidence('${skill.evidence_url}')" class="text-2xl hover:scale-110 transition-transform" title="عرض الشاهد">📸</button>` : 
+            `<span class="text-slate-300 text-xl">—</span>`;
+
+        let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
@@ -72,7 +78,11 @@ async function renderStudentSkillsFromDB(studentId) {
                 </a>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <button onclick="toggleSkill('${skill.id}')" class="${statusColor} font-bold px-2 sm:px-3 py-1 hover:opacity-80 text-xs sm:text-sm">
+                ${evidenceHtml}
+            </td>
+            <td class="p-2 sm:p-4 text-center">
+                <button onclick="toggleSkill('${skill.id}', ${skill.level})" 
+                    class="${statusColor} ${statusButtonClass} font-semibold px-3 sm:px-4 py-2 rounded-lg border-2 text-xs sm:text-sm transition-all">
                     ${statusText}
                 </button>
             </td>
@@ -82,30 +92,37 @@ async function renderStudentSkillsFromDB(studentId) {
     });
 }
 
-async function toggleSkill(skillId) {
+// Global variable to store current skill being toggled
+let currentTogglingSkillId = null;
+
+async function toggleSkill(skillId, currentLevel) {
     if (!isAdmin) return;
 
-    // Use cached skills instead of fetching from API
-    const skill = allSkillsCache.find(s => s.id === skillId);
-    
-    if (!skill) {
-        customAlert("المهارة غير موجودة", { icon: '❌', title: 'خطأ' });
-        return;
-    }
+    const isDone = currentLevel === 3 || currentLevel === 2;
 
+    if (isDone) {
+        // If already complete, mark as incomplete (no evidence needed)
+        await updateSkillStatus(skillId, 1, null);
+    } else {
+        // If incomplete, show evidence upload modal
+        currentTogglingSkillId = skillId;
+        showEvidenceUploadModal();
+    }
+}
+
+async function updateSkillStatus(skillId, newLevel, evidenceData) {
     const tbody = document.getElementById('skillsTableBody');
     const originalContent = tbody.innerHTML;
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto"></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto"></div></td></tr>';
 
-    const newLevel = skill.level === 3 ? 1 : 3;
-
+    // Update skill with only level and evidence - backend will preserve other fields
     const result = await adminAPI.updateSkill(
         skillId,
-        skill.name,
+        null,  // name - keep existing
         newLevel,
-        skill.description || '',
-        skill.category || '',
-        skill.notes || ''
+        null,  // description - keep existing
+        null,  // notes - keep existing
+        evidenceData
     );
 
     if (result.success) {
@@ -121,22 +138,133 @@ async function toggleSkill(skillId) {
         }
         
         await renderStudentSkillsFromDB(selectedStudentId);
+        return true;
     } else {
         customAlert("خطأ في تحديث المهارة: " + (result.message || ''), { icon: '❌', title: 'خطأ' });
         tbody.innerHTML = originalContent;
+        return false;
     }
 }
 
-async function deleteSkill(skillId) {
+// Evidence Upload Modal Functions
+function showEvidenceUploadModal() {
+    const modal = document.getElementById('evidenceUploadModal');
+    const fileInput = document.getElementById('evidenceFileInput');
+    const preview = document.getElementById('evidencePreview');
+    
+    // Reset form
+    fileInput.value = '';
+    preview.classList.add('hidden');
+    
+    // Setup file input preview
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                customAlert("حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت", { icon: '⚠️', title: 'خطأ' });
+                fileInput.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('evidencePreviewImage').src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    modal.classList.remove('hidden');
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeEvidenceUploadModal();
+        }
+    };
+}
+
+function closeEvidenceUploadModal() {
+    const modal = document.getElementById('evidenceUploadModal');
+    modal.classList.add('hidden');
+    modal.onclick = null;
+    currentTogglingSkillId = null;
+}
+
+async function uploadEvidence() {
+    const fileInput = document.getElementById('evidenceFileInput');
+    const file = fileInput.files[0];
+    
+    if (!currentTogglingSkillId) {
+        customAlert("خطأ: لم يتم تحديد المهارة", { icon: '❌', title: 'خطأ' });
+        closeEvidenceUploadModal();
+        return;
+    }
+    
+    // Capture the skill ID before async operations (prevents it from being reset to null)
+    const skillId = currentTogglingSkillId;
+    
+    const button = document.getElementById('uploadEvidenceBtn');
+    setButtonLoading(button, true);
+    
+    try {
+        // If no file selected, update skill without evidence
+        if (!file) {
+            closeEvidenceUploadModal();
+            const success = await updateSkillStatus(skillId, 3, null);
+            setButtonLoading(button, false);
+            if (success) {
+                showToast("تم إكمال المهارة بنجاح", { type: 'success', title: 'نجحت العملية' });
+            }
+            return;
+        }
+        
+        // Convert image to base64
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result;
+            
+            // Update skill with evidence
+            closeEvidenceUploadModal();
+            const success = await updateSkillStatus(skillId, 3, base64Data);
+            
+            setButtonLoading(button, false);
+            if (success) {
+                showToast("تم حفظ الشاهد بنجاح", { type: 'success', title: 'نجحت العملية' });
+            }
+        };
+        reader.onerror = function() {
+            setButtonLoading(button, false);
+            customAlert("خطأ في قراءة الملف", { icon: '❌', title: 'خطأ' });
+        };
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error uploading evidence:', error);
+        setButtonLoading(button, false);
+        customAlert("خطأ في رفع الشاهد", { icon: '❌', title: 'خطأ' });
+    }
+}
+
+// Evidence viewer
+function viewEvidence(evidenceUrl) {
+    const modal = document.getElementById('evidenceViewerModal');
+    const img = document.getElementById('evidenceViewerImage');
+    
+    img.src = evidenceUrl;
+    modal.classList.remove('hidden');
+}
+
+function closeEvidenceViewer() {
+    const modal = document.getElementById('evidenceViewerModal');
+    modal.classList.add('hidden');
+}
+
+async function deleteSkill(skillId, skillName) {
     if (!isAdmin) return;
 
     customConfirm("هل أنت متأكد من حذف المهارة؟", async () => {
         const tbody = document.getElementById('skillsTableBody');
-        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري حذف المهارة...</p></td></tr>';
-
-        // Get skill info before deleting to update template usage count
-        const skill = allSkillsCache.find(s => s.id === skillId);
-        const skillName = skill?.name;
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري حذف المهارة...</p></td></tr>';
 
         const result = await adminAPI.deleteSkill(skillId);
 
@@ -213,7 +341,7 @@ async function saveNewSkill() {
     const button = event?.target || document.querySelector('button[onclick="saveNewSkill()"]');
     if (button) setButtonLoading(button, true);
     const tbody = document.getElementById('skillsTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري إضافة المهارة...</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري إضافة المهارة...</p></td></tr>';
 
     const result = await adminAPI.addSkill(
         selectedStudentId,
@@ -348,7 +476,7 @@ function renderAvailableSkills() {
                 onchange="toggleSkillSelection('${template.id}', '${template.name.replace(/'/g, "\\'")}', '${(template.url || '').replace(/'/g, "\\'")}')">
             <div class="text-3xl mb-1 mt-4">${template.icon || '📚'}</div>
             <div class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 line-clamp-2">${template.name}</div>
-            ${template.category ? `<div class="text-xs text-slate-400 mt-1">${template.category}</div>` : ''}
+            ${template.category ? `` : ''}
         </label>
     `;
     }).join('');
@@ -671,7 +799,7 @@ async function saveCustomSkillToDatabase(name, url) {
                 name, 
                 url, 
                 description: '', 
-                category: 'أخرى', 
+                category: '', 
                 icon: '📚',
                 color: 'indigo'
             })
@@ -775,7 +903,7 @@ function applySkillFilter() {
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
-        let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
+        let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">${skillName}</td>
@@ -785,7 +913,7 @@ function applySkillFilter() {
                 </a>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <button onclick="toggleSkill('${skill.id}')" class="${statusColor} font-bold px-2 sm:px-3 py-1 hover:opacity-80 text-xs sm:text-sm">
+                <button onclick="toggleSkill('${skill.id}', ${skill.level})" class="${statusColor} font-bold px-2 sm:px-3 py-1 hover:opacity-80 text-xs sm:text-sm">
                     ${statusText}
                 </button>
             </td>

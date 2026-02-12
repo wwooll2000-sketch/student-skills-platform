@@ -254,3 +254,42 @@ also please update the 📊 إحصائيات عامة for any changes happen, al
 --------------
 
 alright.. i want major change now! i want for these success models that pops up when an action is successful for example when i add a new student it shows a model that says title: تم إضافة الطالب and description: تم إضافة الطالب بنجاح الاسم: إضافة طالب جديد الرقم: 7627 but insted of showing this model i want to show a toast notification at the bottom right corner that disappears after 3 seconds and also add a small sound when the toast notification appears to notify the user that the action is successful.
+
+--------------
+
+in the إدارة المهارات section for the المهارات for the title of the المهارة they are only one line and when i type a long name for the مهارة it shows out of the card and it looks bad, so please make sure maybe make it can take multiple lines or something like that.
+
+when i 📥 تصدير البيانات the name of the files is not the right date! students_data_2026-02-11.json while we are in 2026-02-12.. please fix this.
+
+--------------
+
+major change:
+i noticed that in this app we use APIs for everything even for things that we can do with the database directly without the need for APIs, we can use prisma to handle all the database operations directly without the need for APIs, so please make sure to remove any API implementation+files that we have in this project and use prisma to handle all the database operations directly without the need for APIs, also make sure to remove any code related to APIs and also make sure to optmize the prisma schema and queries indexes to make it more efficient and faster.
+
+Notes:
+- Make sure to read the prisma documentation and understand how to use it to handle the database operations for our based on the current database structure.
+- Right now we have data on the database so make sure to handle the migration and the changes in the database structure in a way that doesn't cause any data loss.
+- You can refactor or change anything you want in the code to optimize it and make it faster and more efficient.
+- Don't create any .md files to summarize the changes just do the changes.
+
+--------------
+
+this project is i working on for my firnd and he is a teacher and he is using this project to manage his students and their skills.. for now i show him the project and he is happy with it but he want some edits:
+
+- remove all the الفئات completely from the app because this app specifically from اللغه العربيه and there is no need for الفئات in this app, so please remove all the الفئات from the app and also make sure to remove any code related to الفئات.
+
+- also he want a new feature which is to add smothing called "الشواهد" which is like for exmaple in the class when a student finish a paper task of the الهاره then the teacher can take a photo for the student paper and then upload it to the "الشواهد" and wich will be placed for now in the admin students page in the المهارات section between the الملفات and الحالة columns, or better way is to make it when i press the ❌ لم تكتمل button to make it ✅ تم but it should now open a model that has the option to upload a photo for the student paper as a proof that the student finished the task and then this photo will be shown in a new column in the المهارات section called الشواهد and when i click on the photo it should open a larger view for the photo in the same page without a new tab. and also make the ❌ لم تكتمل or ✅ تم button to be shown as a clickable button because right now it's shows like a text.
+
+--------------
+
+next to تسجيل خروج المعلم button i want to add a setting icon button and when i click on it it should open a model that has a functionality to change the teacher password and to change the teacher name.
+
+Note: this means we have to save the teacher name+password in the database insted of relying on environment variables, also since we added the teacher name add somewhere in the app to show the teacher name for example in the admin page say "مرحبا بك يا أستاذ [teacher name]" or something like that somehere.
+
+--------------
+
+add scroll smooth behavior to the app.
+
+add a custom 404 (NOT FOUND) page for the app and make sure to show it when the user tries to access a page that doesn't exist in the app.
+
+also add a custom 500 (INTERNAL SERVER ERROR) page for the app and make sure to show it when there is an error in the server.

@@ -9,10 +9,8 @@ let currentDetailsTemplateId = null;
 async function loadSkillTemplates() {
     try {
         const search = document.getElementById('skillTemplateSearch')?.value || '';
-        const category = document.getElementById('skillCategoryFilter')?.value || '';
         
         let url = '/api/skill-templates?is_active=true';
-        if (category) url += `&category=${encodeURIComponent(category)}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         
         const response = await fetch(url, {
@@ -34,48 +32,14 @@ async function loadSkillTemplates() {
     }
 }
 
-// Load skill categories
+// Load skill categories - deprecated, kept for compatibility
 async function loadSkillCategories() {
-    try {
-        const response = await fetch('/api/skill-templates/categories', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-            }
-        });
-        
-        if (!response.ok) throw new Error('Failed to load categories');
-        
-        const data = await response.json();
-        if (data.success) {
-            skillCategoriesCache = data.categories || [];
-            populateCategoryDropdowns();
-        }
-    } catch (error) {
-        console.error('Error loading categories:', error);
-    }
+    // Categories removed from the app
 }
 
-// Populate category dropdowns
+// Populate category dropdowns - deprecated, kept for compatibility
 function populateCategoryDropdowns() {
-    const filterSelect = document.getElementById('skillCategoryFilter');
-    const newSelect = document.getElementById('newTemplateCategory');
-    const editSelect = document.getElementById('editTemplateCategory');
-    
-    const options = skillCategoriesCache.map(cat => 
-        `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`
-    ).join('');
-    
-    if (filterSelect) {
-        filterSelect.innerHTML = '<option value="">جميع الفئات</option>' + options;
-    }
-    
-    if (newSelect) {
-        newSelect.innerHTML = options;
-    }
-    
-    if (editSelect) {
-        editSelect.innerHTML = options;
-    }
+    // Categories removed from the app
 }
 
 // Render skill templates
@@ -97,16 +61,15 @@ function renderSkillTemplates(templates) {
         <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group">
             <div class="flex items-start justify-between mb-2">
                 <div class="flex items-center gap-2 flex-1">
-                    <span class="text-2xl">${template.icon || '📚'}</span>
+                    <span class="text-2xl flex-shrink-0">${template.icon || '📚'}</span>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-slate-800 truncate" title="${template.name}">${template.name}</h4>
+                        <h4 class="font-semibold text-slate-800 break-words line-clamp-2" title="${template.name}">${template.name}</h4>
                         ${template.description ? `<p class="text-xs text-slate-500 line-clamp-1">${template.description}</p>` : ''}
                     </div>
                 </div>
             </div>
             
             <div class="flex items-center gap-2 mb-3 text-xs text-slate-600">
-                <span class="bg-${template.color || 'indigo'}-100 text-${template.color || 'indigo'}-700 px-2 py-1 rounded">${template.category || 'عامة'}</span>
                 <span class="flex items-center gap-1">
                     <span class="text-lg">👥</span>
                     ${template.usage_count || 0} طالب
@@ -149,7 +112,6 @@ function showAddSkillTemplateModal() {
     document.getElementById('newTemplateName').value = '';
     document.getElementById('newTemplateDescription').value = '';
     document.getElementById('newTemplateUrl').value = '';
-    document.getElementById('newTemplateCategory').value = skillCategoriesCache[0]?.name || 'مهارات عامة';
     document.getElementById('newTemplateIcon').value = '📚';
     
     modal.classList.remove('hidden');
@@ -172,7 +134,6 @@ async function saveNewSkillTemplate() {
     const name = document.getElementById('newTemplateName').value.trim();
     const description = document.getElementById('newTemplateDescription').value.trim();
     const url = document.getElementById('newTemplateUrl').value.trim();
-    const category = document.getElementById('newTemplateCategory').value;
     const icon = document.getElementById('newTemplateIcon').value;
     
     if (!name) {
@@ -190,7 +151,7 @@ async function saveNewSkillTemplate() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             },
-            body: JSON.stringify({ name, description, url, category, icon, color: 'indigo' })
+            body: JSON.stringify({ name, description, url, icon, color: 'indigo' })
         });
         
         const data = await response.json();
@@ -241,7 +202,6 @@ function editSkillTemplate(templateId) {
     document.getElementById('editTemplateName').value = template.name;
     document.getElementById('editTemplateDescription').value = template.description || '';
     document.getElementById('editTemplateUrl').value = template.url || '';
-    document.getElementById('editTemplateCategory').value = template.category || 'مهارات عامة';
     document.getElementById('editTemplateIcon').value = template.icon || '📚';
     
     modal.classList.remove('hidden');
@@ -267,7 +227,6 @@ async function saveEditSkillTemplate() {
     const name = document.getElementById('editTemplateName').value.trim();
     const description = document.getElementById('editTemplateDescription').value.trim();
     const url = document.getElementById('editTemplateUrl').value.trim();
-    const category = document.getElementById('editTemplateCategory').value;
     const icon = document.getElementById('editTemplateIcon').value;
     
     if (!name) {
@@ -285,7 +244,7 @@ async function saveEditSkillTemplate() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             },
-            body: JSON.stringify({ name, description, url, category, icon, color: 'indigo', is_active: true })
+            body: JSON.stringify({ name, description, url, icon, color: 'indigo', is_active: true })
         });
         
         const data = await response.json();
@@ -397,7 +356,6 @@ async function viewSkillTemplateDetails(templateId) {
     
     document.getElementById('detailsTemplateName').textContent = `${template.icon} ${template.name}`;
     document.getElementById('detailsTemplateDescription').textContent = template.description || 'لا يوجد وصف';
-    document.getElementById('detailsTemplateCategory').textContent = template.category || 'عامة';
     document.getElementById('detailsTemplateUsage').textContent = `${template.usage_count || 0} طالب`;
     
     const studentsList = document.getElementById('detailsStudentsList');

@@ -12,11 +12,11 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 try:
-    from auth import verify_admin, get_jwt_secret, get_admin_password
+    from auth import verify_admin, get_jwt_secret, get_admin_password, get_teacher_name, get_teacher_id
     from database import get_db, return_db
 except ImportError:
     # Fallback for different import contexts
-    from api.auth import verify_admin, get_jwt_secret, get_admin_password
+    from api.auth import verify_admin, get_jwt_secret, get_admin_password, get_teacher_name, get_teacher_id
     from api.database import get_db, return_db
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -30,10 +30,13 @@ def admin_login():
     if password != get_admin_password():
         return jsonify({'success': False, 'message':' كلمة المرور غير صحيحة'}), 401
     
+    teacher_name = get_teacher_name()
+    teacher_id = get_teacher_id()
+    
     token = jwt.encode(
         {
             'role': 'admin',
-            'adminId': 'admin-console',
+            'adminId': teacher_id,
             'loginTime': datetime.now().isoformat()
         },
         get_jwt_secret(),
@@ -48,7 +51,7 @@ def admin_login():
         'success': True,
         'message': 'تم تسجيل الدخول بنجاح',
         'token': token,
-        'user': {'role': 'admin', 'name': 'المعلم'}
+        'user': {'role': 'admin', 'name': teacher_name}
     })
 
 @admin_bp.route('/students', methods=['GET'])
@@ -221,8 +224,8 @@ def add_skill(student_id):
     name = data.get('name')
     level = data.get('level', 1)
     description = data.get('description')
-    category = data.get('category')
     notes = data.get('notes')
+    evidence = data.get('evidence')
     
     if not name:
         return jsonify({'success': False, 'message': 'البيانات غير صحيحة'}), 400
@@ -232,9 +235,9 @@ def add_skill(student_id):
         cur = conn.cursor()
         skill_id = str(uuid.uuid4())
         cur.execute(
-            'INSERT INTO skills (id, student_id, name, level, description, category, notes, created_at, updated_at) '
+            'INSERT INTO skills (id, student_id, name, level, description, notes, evidence_url, created_at, updated_at) '
             'VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-            (skill_id, student_id, name, level, description, category, notes)
+            (skill_id, student_id, name, level, description, notes, evidence)
         )
         skill = cur.fetchone()
         conn.commit()
@@ -261,8 +264,8 @@ def update_skill(skill_id):
     name = data.get('name')
     level = data.get('level')
     description = data.get('description')
-    category = data.get('category')
     notes = data.get('notes')
+    evidence = data.get('evidence')
     
     conn = get_db()
     try:
@@ -272,11 +275,11 @@ def update_skill(skill_id):
             'name = COALESCE(%s, name), '
             'level = COALESCE(%s, level), '
             'description = COALESCE(%s, description), '
-            'category = COALESCE(%s, category), '
             'notes = COALESCE(%s, notes), '
+            'evidence_url = COALESCE(%s, evidence_url), '
             'updated_at = CURRENT_TIMESTAMP '
             'WHERE id = %s RETURNING *',
-            (name, level, description, category, notes, skill_id)
+            (name, level, description, notes, evidence, skill_id)
         )
         skill = cur.fetchone()
         
@@ -428,7 +431,7 @@ def get_students_with_skills():
         cur.execute('''
             SELECT 
                 sk.id, sk.student_id, sk.name, sk.level, 
-                sk.description, sk.category, sk.notes, 
+                sk.description, sk.category, sk.notes, sk.evidence_url,
                 sk.created_at AT TIME ZONE 'UTC' as created_at, 
                 sk.updated_at AT TIME ZONE 'UTC' as updated_at
             FROM skills sk
@@ -444,8 +447,8 @@ def get_students_with_skills():
                 skills_by_student[student_id] = []
             
             # Convert timestamps to proper UTC format with Z suffix
-            created_at = skill_row[7].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if skill_row[7] else None
-            updated_at = skill_row[8].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if skill_row[8] else None
+            created_at = skill_row[8].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if skill_row[8] else None
+            updated_at = skill_row[9].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if skill_row[9] else None
             
             skills_by_student[student_id].append({
                 'id': skill_row[0],
@@ -454,6 +457,7 @@ def get_students_with_skills():
                 'description': skill_row[4],
                 'category': skill_row[5],
                 'notes': skill_row[6],
+                'evidence_url': skill_row[7],
                 'created_at': created_at,
                 'updated_at': updated_at
             })
@@ -473,5 +477,108 @@ def get_students_with_skills():
         
         cur.close()
         return jsonify({'success': True, 'students': students})
+    finally:
+        return_db(conn)
+
+@admin_bp.route('/teacher/profile', methods=['GET'])
+@verify_admin
+def get_teacher_profile():
+    """Get teacher profile"""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT id, name, created_at FROM teacher LIMIT 1')
+        teacher = cur.fetchone()
+        cur.close()
+        
+        if not teacher:
+            return jsonify({'success': False, 'message': 'المعلم غير موجود'}), 404
+        
+        return jsonify({
+            'success': True,
+            'teacher': {
+                'id': teacher[0],
+                'name': teacher[1],
+                'created_at': teacher[2].isoformat() if teacher[2] else None
+            }
+        })
+    finally:
+        return_db(conn)
+
+@admin_bp.route('/teacher/update-name', methods=['PUT'])
+@verify_admin
+def update_teacher_name():
+    """Update teacher name"""
+    data = request.json
+    new_name = data.get('name', '').strip()
+    
+    if not new_name:
+        return jsonify({'success': False, 'message': 'يرجى إدخال الاسم'}), 400
+    
+    if len(new_name) < 2:
+        return jsonify({'success': False, 'message': 'الاسم قصير جداً'}), 400
+    
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE teacher SET name = %s, updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM teacher LIMIT 1) RETURNING *',
+            (new_name,)
+        )
+        teacher = cur.fetchone()
+        
+        if not teacher:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المعلم غير موجود'}), 404
+        
+        conn.commit()
+        cur.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث الاسم بنجاح',
+            'teacher': {'id': teacher[0], 'name': teacher[1]}
+        })
+    finally:
+        return_db(conn)
+
+@admin_bp.route('/teacher/update-password', methods=['PUT'])
+@verify_admin
+def update_teacher_password():
+    """Update teacher password"""
+    data = request.json
+    current_password = data.get('currentPassword', '')
+    new_password = data.get('newPassword', '')
+    
+    if not current_password or not new_password:
+        return jsonify({'success': False, 'message': 'يرجى إدخال كلمة المرور الحالية والجديدة'}), 400
+    
+    if len(new_password) < 4:
+        return jsonify({'success': False, 'message': 'كلمة المرور الجديدة قصيرة جداً (4 أحرف على الأقل)'}), 400
+    
+    # Verify current password
+    if current_password != get_admin_password():
+        return jsonify({'success': False, 'message': 'كلمة المرور الحالية غير صحيحة'}), 401
+    
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE teacher SET password = %s, updated_at = CURRENT_TIMESTAMP WHERE id = (SELECT id FROM teacher LIMIT 1) RETURNING *',
+            (new_password,)
+        )
+        teacher = cur.fetchone()
+        
+        if not teacher:
+            cur.close()
+            return jsonify({'success': False, 'message': 'المعلم غير موجود'}), 404
+        
+        conn.commit()
+        cur.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث كلمة المرور بنجاح'
+        })
     finally:
         return_db(conn)

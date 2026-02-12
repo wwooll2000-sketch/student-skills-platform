@@ -1,0 +1,22 @@
+Unhandled error: Traceback (most recent call last):
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\venv\Lib\site-packages\flask\app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)        
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^        
+  File "C:\Users\igame\Desktop\Projects\Projects\Side-Projects\student-skills-platform\api\routes\student.py", line 58, in get_student_skills
+    cur.execute(
+    ~~~~~~~~~~~^
+        'SELECT id, student_id, name, level, description, category, notes, evidence_url, '
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        (student_id,)
+        ^^^^^^^^^^^^^
+    )
+    ^
+psycopg2.errors.UndefinedColumn: column "evidence_url" does not exist
+LINE 1: ...nt_id, name, level, description, category, notes, evidence_u...
+                                                             ^
+
+
+127.0.0.1 - - [12/Feb/2026 02:17:56] "GET /api/student/d648b981-33d5-444d-9431-e892df5897c0/skills HTTP/1.1" 500 -

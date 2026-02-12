@@ -32,7 +32,10 @@ async function exportStudentsData() {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `students_data_${new Date().toISOString().split('T')[0]}.json`;
+    // Use local date instead of UTC
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    link.download = `students_data_${localDate}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
@@ -133,8 +136,8 @@ async function processImport(studentsData) {
                             skill.name,
                             skill.level || 1,
                             skill.description || '',
-                            skill.category || '',
-                            skill.notes || ''
+                            skill.notes || '',
+                            skill.evidence_url || null
                         );
                     }
                 }

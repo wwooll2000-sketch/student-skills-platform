@@ -82,6 +82,7 @@ class StudentAPI {
                     status: skill.level === 3 ? "مكتمل" : "قيد التطوير",
                     description: skill.description,
                     category: skill.category,
+                    evidence_url: skill.evidence_url,
                     addedDate: skill.created_at,
                     completedDate: skill.updated_at
                 }));

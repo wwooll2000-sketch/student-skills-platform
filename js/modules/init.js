@@ -8,6 +8,14 @@ window.addEventListener('load', async function () {
         isAdmin = true;
         updateAdminUI();
         
+        // Load teacher profile and update welcome message
+        if (typeof loadCurrentTeacherProfile === 'function') {
+            await loadCurrentTeacherProfile();
+        }
+        if (typeof updateWelcomeMessage === 'function') {
+            updateWelcomeMessage();
+        }
+        
         // Initialize skill templates management
         if (typeof initSkillTemplatesManagement === 'function') {
             initSkillTemplatesManagement();
