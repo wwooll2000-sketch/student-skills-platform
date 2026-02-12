@@ -66,7 +66,7 @@ window.addEventListener('load', async function () {
             // Update student name and welcome message
             const studentNameEl = document.getElementById('studentName');
             studentNameEl.innerHTML = `
-                <div class="mb-2 text-indigo-600 text-lg sm:text-xl">مرحباً 👋</div>
+                <div class="mb-2 text-indigo-600 text-lg sm:text-xl">مرحباً بك</div>
                 <div>${sessionResult.student.name}</div>
             `;
 

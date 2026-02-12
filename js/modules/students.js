@@ -354,6 +354,9 @@ async function saveEditStudent() {
     if (button) setButtonLoading(button, false);
 
     if (result.success) {
+        // Store student ID before closing modal (which sets currentEditingStudent to null)
+        const editedStudentId = currentEditingStudent.id;
+        
         closeEditStudentModal();
         
         // Invalidate caches when data changes
@@ -369,7 +372,7 @@ async function saveEditStudent() {
         await renderAdminStudents({ refreshActivities: false, refreshStatistics: false });
 
         // Update the selected student if we're viewing their skills
-        if (selectedStudent && selectedStudent.id === currentEditingStudent.id) {
+        if (selectedStudent && selectedStudent.id === editedStudentId) {
             selectedStudent.name = name;
             selectedStudent.code = code;
             document.getElementById('currentStudentTitle').innerText = name;

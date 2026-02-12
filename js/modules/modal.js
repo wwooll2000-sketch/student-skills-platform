@@ -7,6 +7,12 @@ function showModal(options) {
     const message = document.getElementById('modalMessage');
     const buttons = document.getElementById('modalButtons');
 
+    // Check if all required elements exist
+    if (!modal || !modalContent || !icon || !title || !message || !buttons) {
+        console.error('Modal elements not found in DOM. Required elements: customModal, modalContent, modalIcon, modalTitle, modalMessage, modalButtons');
+        return;
+    }
+
     // Set icon
     icon.textContent = options.icon || '💬';
     
@@ -90,6 +96,12 @@ function showModal(options) {
 function closeModal() {
     const modal = document.getElementById('customModal');
     const modalContent = document.getElementById('modalContent');
+    
+    // Check if elements exist
+    if (!modal || !modalContent) {
+        console.error('Modal elements not found when trying to close');
+        return;
+    }
     
     modalContent.classList.remove('scale-100');
     modalContent.classList.add('scale-95');

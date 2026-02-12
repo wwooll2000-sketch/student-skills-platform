@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام مهارات الطلاب</title>
+    <title>نظام متابعة مهارات اللغة العربية</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
+        html {
+            scroll-behavior: smooth;
+        }
 
         body {
             font-family: 'Tajawal', sans-serif;
@@ -134,12 +138,8 @@
 
         <div id="studentLoginView"
             class="text-center py-12 sm:py-20 bg-white rounded-2xl shadow-sm border border-slate-200">
-<<<<<<< HEAD
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6 px-4">نظام متابعة مهارات اللغة العربية
             </h1>
-=======
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6 px-4">نظام متابعة مهارات اللغة العربية</h1>
->>>>>>> 49af084b356c7a0a5d949cbf525d742594f5d9f9
             <p class="text-slate-500 mb-6 sm:mb-8 px-4 text-sm sm:text-base">يرجى إدخال رقم الطالب الخاص بك للدخول</p>
             <div class="max-w-xs mx-auto px-4">
                 <input id="studentCodeInput" type="text" placeholder="أدخل رقم الطالب"
@@ -772,15 +772,17 @@
     <div id="evidenceViewerModal"
         class="fixed inset-0 bg-black bg-opacity-90 hidden flex items-center justify-center p-4 z-50"
         onclick="closeEvidenceViewer()">
-        <div class="max-w-5xl w-full max-h-[90vh] overflow-y-auto bg-slate-800 rounded-lg p-6" onclick="event.stopPropagation()">
+        <div class="max-w-5xl w-full max-h-[90vh] overflow-y-auto bg-slate-800 rounded-lg p-6"
+            onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-white font-bold text-xl">📸 الشواهد</h3>
                 <button onclick="closeEvidenceViewer()" class="text-white hover:text-slate-300 text-3xl">×</button>
             </div>
-            
+
             <!-- Add New Evidence Button (admin only) -->
             <div id="addEvidenceSection" class="hidden mb-4">
-                <button onclick="showAddEvidenceForm()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition">
+                <button onclick="showAddEvidenceForm()"
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition">
                     ➕ إضافة شاهد جديد
                 </button>
             </div>
@@ -804,9 +806,13 @@
     </div>
 
     <!-- Full Screen Image Viewer Modal -->
-    <div id="fullScreenImageModal" class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center z-[60]" onclick="closeFullScreenImage()">
-        <div class="relative max-w-7xl max-h-[95vh] w-full h-full flex items-center justify-center p-4" onclick="event.stopPropagation()">
-            <button onclick="closeFullScreenImage()" class="absolute top-4 right-4 text-white hover:text-slate-300 text-4xl z-10 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center">×</button>
+    <div id="fullScreenImageModal"
+        class="fixed inset-0 bg-black bg-opacity-95 hidden flex items-center justify-center z-[60]"
+        onclick="closeFullScreenImage()">
+        <div class="relative max-w-7xl max-h-[95vh] w-full h-full flex items-center justify-center p-4"
+            onclick="event.stopPropagation()">
+            <button onclick="closeFullScreenImage()"
+                class="absolute top-4 right-4 text-white hover:text-slate-300 text-4xl z-10 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center">×</button>
             <img id="fullScreenImage" src="" alt="عرض كامل" class="max-w-full max-h-full object-contain rounded-lg">
         </div>
     </div>

@@ -91,29 +91,80 @@ def create_app():
             # Return default robots.txt
             return 'User-agent: *\nAllow: /', 200, {'Content-Type': 'text/plain'}
     
-    # Custom 404 handler to suppress static file errors
+    # Custom 404 handler to serve HTML or JSON based on request type
     @app.errorhandler(404)
     def handle_404(error):
-        """Handle 404 errors gracefully without flooding logs"""
-        # Suppress logging for common missing files
-        from flask import request
+        """Handle 404 errors gracefully with custom page for browsers"""
+        from flask import request, send_from_directory
         path = request.path
+        
+        # Suppress logging for common missing files
         common_missing = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png', 
-                         '/apple-touch-icon-precomposed.png', '/manifest.json']
+                         '/apple-touch-icon-precomposed.png']
         
         if any(path.endswith(missing) for missing in common_missing):
             return '', 204
         
+        # Check if request accepts HTML (browser request)
+        if request.accept_mimetypes.accept_html and not path.startswith('/api/'):
+            try:
+                return send_from_directory(
+                    os.path.join(app.root_path, '..'),
+                    '404.html'
+                ), 404
+            except:
+                pass
+        
+        # Return JSON for API requests
         return {
             'success': False,
             'message': 'Resource not found',
             'path': path
         }, 404
     
-    # Add global error handler
+    # Global error handler for 500 errors
+    @app.errorhandler(500)
+    def handle_500(error):
+        """Handle 500 Internal Server Error"""
+        from flask import request, send_from_directory
+        
+        # Check if request accepts HTML (browser request)
+        if request.accept_mimetypes.accept_html and not request.path.startswith('/api/'):
+            try:
+                return send_from_directory(
+                    os.path.join(app.root_path, '..'),
+                    '500.html'
+                ), 500
+            except:
+                pass
+        
+        # Return JSON for API requests
+        return {
+            'success': False,
+            'message': 'Internal server error',
+            'error': str(error)
+        }, 500
+    
+    # Add global error handler for uncaught exceptions
     @app.errorhandler(Exception)
     def handle_error(error):
         """Global error handler"""
+        from flask import request, send_from_directory
+        
+        # Log the error
+        app.logger.error(f'Unhandled exception: {str(error)}', exc_info=True)
+        
+        # Check if request accepts HTML (browser request)
+        if request.accept_mimetypes.accept_html and not request.path.startswith('/api/'):
+            try:
+                return send_from_directory(
+                    os.path.join(app.root_path, '..'),
+                    '500.html'
+                ), 500
+            except:
+                pass
+        
+        # Return JSON for API requests
         return {
             'success': False,
             'message': str(error)

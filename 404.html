@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - الصفحة غير موجودة</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mx-auto px-4 text-center fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-2xl mx-auto">
+            <!-- Animated 404 Icon -->
+            <div class="float-animation mb-6">
+                <div
+                    class="text-9xl md:text-[12rem] font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">
+                    404
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+                عذراً! الصفحة غير موجودة 😕
+            </h1>
+
+            <p class="text-lg text-slate-600 mb-8">
+                الصفحة التي تبحث عنها غير موجودة أو تم نقلها إلى مكان آخر
+            </p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/"
+                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <span>🏠</span>
+                    <span>العودة للصفحة الرئيسية</span>
+                </a>
+
+                <button onclick="window.history.back()"
+                    class="inline-flex items-center justify-center gap-2 bg-slate-200 text-slate-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-300 transform hover:scale-105 transition-all duration-300">
+                    <span>↩️</span>
+                    <span>العودة للخلف</span>
+                </button>
+            </div>
+
+            <!-- Additional Help -->
+            <div class="mt-12 pt-8 border-t border-slate-200">
+                <p class="text-sm text-slate-500">
+                    إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال بمسؤول النظام
+                </p>
+            </div>
+        </div>
+
+        <!-- Decorative Elements -->
+        <div class="mt-8 text-white/30 text-sm">
+            <p>نظام مهارات اللغة العربية © 2026</p>
+        </div>
+    </div>
+</body>
+
+</html>
