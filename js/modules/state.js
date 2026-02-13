@@ -7,6 +7,10 @@ let allStudentsCache = [];
 let allSkillsCache = [];
 let currentStudentForNotes = null;
 
+// Student session validation state
+let studentSessionCheckInterval = null;
+let isLoggingOut = false; // Flag to prevent alerts during logout
+
 // Notification sound mute state
 let isNotificationMuted = localStorage.getItem('notificationMuted') === 'true';
 

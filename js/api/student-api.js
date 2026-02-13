@@ -73,6 +73,15 @@ class StudentAPI {
             });
 
             const result = await response.json();
+            
+            // Check if student was deleted
+            if (result.student_deleted) {
+                return {
+                    success: false,
+                    student_deleted: true,
+                    message: result.message || "تم حذف حسابك من قبل المعلم"
+                };
+            }
 
             if (result.success) {
                 const skills = result.skills.map(skill => ({
@@ -162,6 +171,39 @@ class StudentAPI {
         }
         
         return { success: false };
+    }
+
+    async validateSession() {
+        if (!this.isAuthorized()) {
+            return { success: false, valid: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/validate/${this.studentId}`, {
+                headers: { "Content-Type": "application/json" }
+            });
+
+            const result = await response.json();
+            
+            // Check if student was deleted
+            if (result.student_deleted || !result.success) {
+                return {
+                    success: false,
+                    valid: false,
+                    student_deleted: true,
+                    message: result.message || "تم حذف حسابك من قبل المعلم"
+                };
+            }
+
+            return result;
+        } catch (error) {
+            console.error("خطأ في التحقق من الجلسة:", error);
+            return {
+                success: false,
+                valid: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
     }
 }
 

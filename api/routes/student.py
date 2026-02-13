@@ -1,5 +1,6 @@
 # Student Routes
 from flask import Blueprint, request, jsonify
+from functools import wraps
 import sys
 import os
 
@@ -9,11 +10,41 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 try:
-    from database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached
+    from database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached, invalidate_cache
 except ImportError:
-    from api.database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached
+    from api.database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached, invalidate_cache
 
 student_bp = Blueprint('student', __name__, url_prefix='/api/student')
+
+def verify_student_exists(f):
+    """Decorator to verify student still exists in database"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        student_id = kwargs.get('student_id')
+        if not student_id:
+            return jsonify({'success': False, 'message': 'معرف الطالب مطلوب', 'student_deleted': True}), 400
+        
+        try:
+            # Check if student exists
+            student = execute_query(
+                'SELECT id FROM students WHERE id = %s',
+                (student_id,),
+                fetch_one=True
+            )
+            
+            if not student:
+                # Student was deleted - return special response
+                return jsonify({
+                    'success': False,
+                    'message': 'تم حذف حساب الطالب من قبل المعلم',
+                    'student_deleted': True
+                }), 404
+            
+            # Student exists, proceed with the route handler
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'خطأ في التحقق: {str(e)}'}), 500
+    return decorated
 
 @student_bp.route('/login', methods=['POST'])
 def student_login():
@@ -45,7 +76,18 @@ def student_login():
     except Exception as e:
         return jsonify({'success': False, 'message': f'خطأ في تسجيل الدخول: {str(e)}'}), 500
 
+@student_bp.route('/validate/<student_id>', methods=['GET'])
+@verify_student_exists
+def validate_student_session(student_id):
+    """Validate if a student session is still valid (student exists)"""
+    return jsonify({
+        'success': True,
+        'message': 'الجلسة صالحة',
+        'valid': True
+    })
+
 @student_bp.route('/<student_id>/skills', methods=['GET'])
+@verify_student_exists
 def get_student_skills(student_id):
     """Get all skills for a student with caching"""
     try:

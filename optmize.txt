@@ -351,3 +351,19 @@ can change the 📸 الشواهد model a little bit.. like for example the pho
 --------------
 
 add an emojie next to the settings emojie in the admin page for mute the notification toast and when i click on it it should toggle between mute and unmute.
+
+--------------
+
+there is an issue i noticed that for example when there is a user logged in as a student and the admin delete this student from the admin page it doesn't log out the student who is logged in and the student can still see his dashboard and his data even if he is deleted from the database, so please make sure to fix this issue and make sure that when the admin deletes a student it should log out the student immediately if he is logged in and also make sure that delete any leftover data for this student and not just delete the student from the database but also delete any data related to this student in the database.
+
+--------------
+
+it's kidna works it's kidna buggy!
+
+for exmaple i deleted the student and in the other browser it loges me out wich is good but when i try to login again with the same student number i can see the dashboard a little bit and then it logs me out again and shows a model says "تم حذف حساب الطالب من قبل المعلم" also if i stay sometime in the main website without doing anything it shows a model says "غير مصرح" i don't know why and whats for..
+
+--------------
+
+📤 استيراد بيانات and 📥 تصدير البيانات are the named right for there pleaces or it should be reversend names? please check that!
+
+also i changed the way the app looks when sending the url to someone else in whatsapp or discord or any other platform, now it shows a worse design than before and it doesn't show the favicon, and there is much text that not needed, i just want "نظام متابعة مهارات اللغة العربية" and the favicon next to it.

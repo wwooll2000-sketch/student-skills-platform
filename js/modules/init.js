@@ -72,6 +72,12 @@ window.addEventListener('load', async function () {
 
             // Load student data
             await loadSimpleStudentView(sessionResult.student.id);
+            
+            // Start session validation polling
+            if (typeof startStudentSessionValidation === 'function') {
+                startStudentSessionValidation();
+            }
+            
             console.log('✅ تم استرجاع جلسة الطالب تلقائياً');
         }
     }

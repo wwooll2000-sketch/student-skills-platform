@@ -136,12 +136,18 @@ async function accessWithCode() {
 
         // Load student data
         await loadSimpleStudentView(result.student.id);
+        
+        // Start session validation polling
+        startStudentSessionValidation();
     } else {
         customAlert(result.message || "الرقم غير صحيح", { icon: '❌', title: 'خطأ في الدخول' });
     }
 }
 
 function logoutStudent() {
+    // Stop session validation polling FIRST
+    stopStudentSessionValidation();
+    
     resetToLoginUI();
     document.getElementById('studentView').classList.add('hidden');
     document.getElementById('skillsDetailView').classList.add('hidden');
@@ -150,4 +156,54 @@ function logoutStudent() {
     document.getElementById('studentCodeInput').value = '';
     selectedStudent = null;
     selectedStudentId = null;
+}
+
+// Session validation polling for students
+function startStudentSessionValidation() {
+    // Clear any existing interval
+    stopStudentSessionValidation();
+    isLoggingOut = false;
+    
+    // Check session every 10 seconds
+    studentSessionCheckInterval = setInterval(async () => {
+        // Skip validation if already logging out
+        if (isLoggingOut) return;
+        
+        const result = await studentAPI.validateSession();
+        
+        // ONLY show alert and logout if student was specifically deleted
+        // Don't show alerts for normal session expiry or auth failures
+        if (result.student_deleted === true) {
+            isLoggingOut = true;
+            stopStudentSessionValidation();
+            
+            // Force logout
+            resetToLoginUI();
+            document.getElementById('studentView').classList.add('hidden');
+            document.getElementById('skillsDetailView').classList.add('hidden');
+            document.getElementById('studentLoginView').classList.remove('hidden');
+            studentAPI.logout();
+            document.getElementById('studentCodeInput').value = '';
+            selectedStudent = null;
+            selectedStudentId = null;
+            
+            // Show deletion message
+            customAlert(
+                result.message || "تم حذف حسابك من قبل المعلم. يرجى التواصل مع معلمك للمزيد من المعلومات.",
+                { 
+                    icon: '⚠️', 
+                    title: 'تم حذف الحساب',
+                    confirmText: 'حسناً'
+                }
+            );
+        }
+        // Silently handle other validation failures (session expiry, etc.)
+    }, 10000); // Check every 10 seconds
+}
+
+function stopStudentSessionValidation() {
+    if (studentSessionCheckInterval) {
+        clearInterval(studentSessionCheckInterval);
+        studentSessionCheckInterval = null;
+    }
 }

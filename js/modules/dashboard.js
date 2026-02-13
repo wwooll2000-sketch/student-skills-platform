@@ -132,6 +132,38 @@ async function loadSimpleStudentView(studentId) {
     
     const skillsResult = await studentAPI.getSkills();
     
+    // Check if student was deleted
+    if (skillsResult.student_deleted === true) {
+        // Set logging out flag to prevent polling alerts
+        isLoggingOut = true;
+        
+        // Stop session validation and logout
+        if (typeof stopStudentSessionValidation === 'function') {
+            stopStudentSessionValidation();
+        }
+        
+        // Logout without re-triggering alerts
+        resetToLoginUI();
+        document.getElementById('studentView').classList.add('hidden');
+        document.getElementById('skillsDetailView').classList.add('hidden');
+        document.getElementById('studentLoginView').classList.remove('hidden');
+        studentAPI.logout();
+        document.getElementById('studentCodeInput').value = '';
+        selectedStudent = null;
+        selectedStudentId = null;
+        
+        // Show deletion message
+        customAlert(
+            skillsResult.message || "تم حذف حسابك من قبل المعلم. يرجى التواصل مع معلمك للمزيد من المعلومات.",
+            { 
+                icon: '⚠️', 
+                title: 'تم حذف الحساب',
+                confirmText: 'حسناً'
+            }
+        );
+        return;
+    }
+    
     if (!skillsResult.success || !skillsResult.data) {
         return;
     }

@@ -124,23 +124,30 @@ def add_student():
 @admin_bp.route('/students/<student_id>', methods=['DELETE'])
 @verify_admin
 def delete_student(student_id):
-    """Delete a student"""
+    """Delete a student and all related data"""
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # Get all skill names for this student BEFORE deleting
-                cur.execute('SELECT DISTINCT name FROM skills WHERE student_id = %s', (student_id,))
-                skill_names = [row['name'] for row in cur.fetchall()]
-                
-                # Delete student's skills
-                cur.execute('DELETE FROM skills WHERE student_id = %s', (student_id,))
-                
-                # Delete the student
-                cur.execute('DELETE FROM students WHERE id = %s RETURNING *', (student_id,))
+                # First verify student exists
+                cur.execute('SELECT code, name FROM students WHERE id = %s', (student_id,))
                 student = cur.fetchone()
                 
                 if not student:
                     return jsonify({'success': False, 'message': 'الطالب غير موجود'}), 404
+                
+                student_code = student['code']
+                student_name = student['name']
+                
+                # Get all skill names for this student BEFORE deleting
+                cur.execute('SELECT DISTINCT name FROM skills WHERE student_id = %s', (student_id,))
+                skill_names = [row['name'] for row in cur.fetchall()]
+                
+                # Delete all student's skills (this will cascade to skill_evidence due to ON DELETE CASCADE)
+                cur.execute('DELETE FROM skills WHERE student_id = %s', (student_id,))
+                skills_deleted = cur.rowcount
+                
+                # Delete the student
+                cur.execute('DELETE FROM students WHERE id = %s', (student_id,))
                 
                 # Update usage counts for all affected skill templates
                 for skill_name in skill_names:
@@ -154,9 +161,22 @@ def delete_student(student_id):
                 
                 conn.commit()
         
-        invalidate_cache('get_all_students_cached')
-        return jsonify({'success': True, 'message': 'تم حذف الطالب بنجاح'})
+        # Invalidate ALL caches to ensure no stale data
+        invalidate_cache()  # Clear entire cache
+        
+        print(f"[INFO] Student deleted: ID={student_id}, Name={student_name}, Code={student_code}, Skills deleted={skills_deleted}")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'تم حذف الطالب بنجاح',
+            'deleted': {
+                'student_id': student_id,
+                'student_name': student_name,
+                'skills_count': skills_deleted
+            }
+        })
     except Exception as e:
+        print(f"[ERROR] delete_student: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/students/<student_id>', methods=['PUT'])
