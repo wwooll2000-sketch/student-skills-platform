@@ -414,3 +414,10 @@ add select all in the إضافة مهارة section.
 perfect! do you remember the issue that we fixed of the sequential API calls for each skill and we found a good news is there's already a batch endpoint /api/admin/skills/batch that can add all skills in one request.
 
 i want you to look for the whole app and find any place that has the same issue of sequential API calls and fix it by using batch endpoints or by creating new batch endpoints if there is no existing.
+
+--------------
+
+there is a bit of issue for the title that shows when sending the url to someone else for example:
+
+- in discord eferything is good it shows the title and the image.
+- in the whatsapp it it shows the title twice wich is the issue!
