@@ -83,6 +83,7 @@ class StudentAPI {
                     description: skill.description,
                     category: skill.category,
                     evidence_url: skill.evidence_url,
+                    evidence_count: skill.evidence_count || 0,
                     addedDate: skill.created_at,
                     completedDate: skill.updated_at
                 }));
@@ -119,6 +120,27 @@ class StudentAPI {
         const now = Date.now();
 
         return !(!studentId || now - loginTime > 86400000);
+    }
+
+    async getSkillEvidence(skillId) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/${skillId}/evidence`, {
+                headers: { "Content-Type": "application/json" }
+            });
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error("خطأ في جلب الشواهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
     }
 
     async restoreSession() {

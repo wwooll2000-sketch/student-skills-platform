@@ -76,3 +76,35 @@ def get_student_skills(student_id):
     except Exception as e:
         print(f"[ERROR] get_student_skills: {str(e)}")
         return jsonify({'success': False, 'message': f'خطأ في جلب المهارات: {str(e)}'}), 500
+
+@student_bp.route('/skills/<skill_id>/evidence', methods=['GET'])
+def get_student_skill_evidence(skill_id):
+    """Get evidence/photos for a skill (student read-only view)"""
+    try:
+        evidence_list = execute_query(
+            'SELECT id, skill_id, evidence_url, created_at FROM skill_evidence WHERE skill_id = %s ORDER BY created_at DESC',
+            (skill_id,),
+            fetch_all=True
+        )
+        
+        return jsonify({
+            'success': True,
+            'evidence': [
+                {
+                    'id': str(ev['id']),
+                    'skill_id': str(ev['skill_id']),
+                    'evidence_url': ev['evidence_url'],
+                    'created_at': ev['created_at'].isoformat() if ev['created_at'] else None
+                }
+                for ev in evidence_list
+            ] if evidence_list else []
+        })
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[ERROR] get_student_skill_evidence: {error_msg}")
+        
+        # Return empty array if table doesn't exist (graceful degradation)
+        if 'skill_evidence' in error_msg and ('does not exist' in error_msg or 'not exist' in error_msg):
+            return jsonify({'success': True, 'evidence': []})
+        
+        return jsonify({'success': False, 'message': error_msg}), 500

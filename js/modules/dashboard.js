@@ -221,7 +221,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
     tbody.innerHTML = '';
 
     if (!skills || skills.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
         return;
     }
 
@@ -240,6 +240,15 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
+        // Evidence display for students
+        const evidenceCount = skill.evidence_count || 0;
+        const evidenceHtml = evidenceCount > 0 ? 
+            `<button onclick="viewSkillEvidenceStudent('${skill.id}')" class="text-2xl hover:scale-110 transition-transform relative" title="عرض الشواهد">
+                🖼️
+                ${evidenceCount > 1 ? `<span class="absolute -top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
+            </button>` : 
+            `<span class="text-slate-300 text-xl">—</span>`;
+
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
                 <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
@@ -249,6 +258,9 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
                 <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
                     📂
                 </a>
+            </td>
+            <td class="p-2 sm:p-4 text-center">
+                ${evidenceHtml}
             </td>
             <td class="p-2 sm:p-4 text-center">
                 <span class="${statusColor} font-bold text-xs sm:text-sm">

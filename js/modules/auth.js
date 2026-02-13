@@ -35,11 +35,6 @@ async function verifyAdminLogin() {
     if (result.success) {
         isAdmin = true;
         
-        // Store teacher name if available
-        if (result.user && result.user.name) {
-            currentTeacherName = result.user.name;
-        }
-        
         updateAdminUI();
         toggleAdminLoginModal();
         showToast("مرحباً بك في لوحة التحكم!", { icon: '🎉', title: 'نجح تسجيل الدخول', type: 'success' });
@@ -54,7 +49,10 @@ async function verifyAdminLogin() {
             initSkillTemplatesManagement();
         }
         
-        // Update welcome message
+        // Load teacher profile and update welcome message
+        if (typeof loadCurrentTeacherProfile === 'function') {
+            await loadCurrentTeacherProfile();
+        }
         if (typeof updateWelcomeMessage === 'function') {
             updateWelcomeMessage();
         }

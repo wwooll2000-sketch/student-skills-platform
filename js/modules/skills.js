@@ -498,7 +498,7 @@ function renderEvidenceGrid(evidenceList) {
             </button>` : '';
         
         div.innerHTML = `
-            <img src="${evidence.evidence_url}" alt="شاهد ${index + 1}" class="w-full h-64 object-cover cursor-pointer" onclick="openImageInFullScreen('${evidence.evidence_url}')">
+            <img src="${evidence.evidence_url}" alt="شاهد ${index + 1}" class="w-full aspect-[3/4] object-cover cursor-pointer" onclick="openImageInFullScreen('${evidence.evidence_url}')">
             ${isAdmin ? `
             <div class="p-3 flex gap-2">
                 ${changeBtn}
@@ -520,7 +520,20 @@ function openImageInFullScreen(imageUrl) {
 
 function closeFullScreenImage() {
     const modal = document.getElementById('fullScreenImageModal');
+    const img = document.getElementById('fullScreenImage');
+    const overlay = document.getElementById('imageProtectOverlay');
+    
     modal.classList.add('hidden');
+    
+    // Clear image source and reset protection
+    img.src = '';
+    img.style.pointerEvents = '';
+    if (overlay) {
+        overlay.classList.add('hidden');
+    }
+    
+    // Remove event listener
+    modal.oncontextmenu = null;
 }
 
 async function deleteEvidenceItem(evidenceId) {
@@ -677,6 +690,111 @@ function closeEvidenceViewer() {
     const modal = document.getElementById('evidenceViewerModal');
     modal.classList.add('hidden');
     currentViewingSkillId = null;
+    
+    // Remove context menu protection
+    modal.oncontextmenu = null;
+}
+
+// Student evidence viewer function (read-only, no download)
+async function viewSkillEvidenceStudent(skillId) {
+    currentViewingSkillId = skillId;
+    const modal = document.getElementById('evidenceViewerModal');
+    const grid = document.getElementById('evidenceGrid');
+    const loading = document.getElementById('evidenceLoading');
+    const empty = document.getElementById('evidenceEmpty');
+    const addSection = document.getElementById('addEvidenceSection');
+    
+    // Show modal and loading
+    modal.classList.remove('hidden');
+    grid.classList.add('hidden');
+    empty.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    // Hide add button for students
+    addSection.classList.add('hidden');
+    
+    // Add context menu protection for students
+    modal.oncontextmenu = (e) => {
+        e.preventDefault();
+        return false;
+    };
+    
+    // Fetch evidence from student API
+    const result = await studentAPI.getSkillEvidence(skillId);
+    
+    loading.classList.add('hidden');
+    
+    if (result.success && result.evidence && result.evidence.length > 0) {
+        grid.classList.remove('hidden');
+        renderEvidenceGridStudent(result.evidence);
+    } else {
+        empty.classList.remove('hidden');
+    }
+}
+
+// Render evidence grid for students (with download protection)
+function renderEvidenceGridStudent(evidenceList) {
+    const grid = document.getElementById('evidenceGrid');
+    grid.innerHTML = '';
+    
+    evidenceList.forEach((evidence, index) => {
+        const div = document.createElement('div');
+        div.className = "bg-slate-700 rounded-lg overflow-hidden relative";
+        
+        // Use background image instead of img tag for better protection
+        div.innerHTML = `
+            <div class="relative aspect-[3/4] cursor-pointer" 
+                 style="background-image: url('${evidence.evidence_url}'); background-size: cover; background-position: center;"
+                 onclick="openImageInFullScreenStudent('${evidence.evidence_url}')"
+                 oncontextmenu="return false;"
+                 ondragstart="return false;"
+                 onselectstart="return false;">
+                <!-- Transparent overlay to block all interactions with image -->
+                <div class="absolute inset-0" style="background: transparent; user-select: none; -webkit-user-select: none;"></div>
+            </div>
+        `;
+        
+        // Add additional event listeners to prevent downloads
+        div.addEventListener('contextmenu', (e) => e.preventDefault());
+        div.addEventListener('dragstart', (e) => e.preventDefault());
+        div.addEventListener('selectstart', (e) => e.preventDefault());
+        
+        grid.appendChild(div);
+    });
+}
+
+// Open full screen image for students (with download protection)
+function openImageInFullScreenStudent(imageUrl) {
+    const modal = document.getElementById('fullScreenImageModal');
+    const img = document.getElementById('fullScreenImage');
+    const overlay = document.getElementById('imageProtectOverlay');
+    
+    // Set image source
+    img.src = imageUrl;
+    
+    // Add comprehensive download protection
+    img.setAttribute('oncontextmenu', 'return false;');
+    img.setAttribute('ondragstart', 'return false;');
+    img.setAttribute('onselectstart', 'return false;');
+    img.style.userSelect = 'none';
+    img.style.webkitUserSelect = 'none';
+    img.style.mozUserSelect = 'none';
+    img.style.msUserSelect = 'none';
+    img.style.pointerEvents = 'none';
+    img.classList.add('select-none');
+    
+    // Show protective overlay
+    if (overlay) {
+        overlay.classList.remove('hidden');
+    }
+    
+    // Add event listeners to modal to prevent context menu
+    modal.oncontextmenu = (e) => {
+        e.preventDefault();
+        return false;
+    };
+    
+    modal.classList.remove('hidden');
 }
 
 async function deleteSkill(skillId, skillName) {

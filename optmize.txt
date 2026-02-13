@@ -335,3 +335,15 @@ Note: make sure to not break any functionality while fixing this issue.
 perfect! there is small tweak that i want to do:
 
 when i open the ➕ إضافة مهارة جديدة the buttons are not in the right pleace. also when i open the ✏️ تعديل المهارة next to the buttons i see this "\n"
+
+--------------
+
+after we added the الشواهد feature to the admin students page i wanna also to show the الشواهد for the students page but in a simple way, he can click to the image to open a larger view but make it simple and user-friendly for the students, also make the image not downloadable for the students because it's just a proof for them that they finished the task and they should not have access to download it.
+
+--------------
+
+can you show the favicon for the app when i sent the url to someone else for example in whatsapp or discord or something like that?
+
+also there is an issue that when i sign in as admin the welcome message shows "مرحباً بك أ. المعلم" but it should show the teacher name that i set in the settings.. i have to refresh the page to show the teacher name in the welcome message.. please make sure to fix this.
+
+can change the 📸 الشواهد model a little bit.. like for example the photos right now is wide-shaped but proply the photos that are uploaded here is is from a phone wich is rectangular-shape.
