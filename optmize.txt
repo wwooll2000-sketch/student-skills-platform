@@ -347,3 +347,7 @@ can you show the favicon for the app when i sent the url to someone else for exa
 also there is an issue that when i sign in as admin the welcome message shows "مرحباً بك أ. المعلم" but it should show the teacher name that i set in the settings.. i have to refresh the page to show the teacher name in the welcome message.. please make sure to fix this.
 
 can change the 📸 الشواهد model a little bit.. like for example the photos right now is wide-shaped but proply the photos that are uploaded here is is from a phone wich is rectangular-shape.
+
+--------------
+
+add an emojie next to the settings emojie in the admin page for mute the notification toast and when i click on it it should toggle between mute and unmute.

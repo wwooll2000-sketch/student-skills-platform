@@ -255,8 +255,8 @@ function showToast(message, options = {}) {
     container.appendChild(toast);
     toastQueue.push(toast);
     
-    // Play sound for success toasts
-    if (type === 'success') {
+    // Play sound for success toasts (only if not muted)
+    if (type === 'success' && !isNotificationMuted) {
         playSuccessSound();
     }
     
@@ -283,4 +283,32 @@ function removeToast(toast) {
             toastQueue.splice(index, 1);
         }
     }, 300);
+}
+// Toggle notification sound mute
+function toggleNotificationMute() {
+    isNotificationMuted = !isNotificationMuted;
+    localStorage.setItem('notificationMuted', isNotificationMuted.toString());
+    updateNotificationMuteButton();
+    
+    // Show a brief message (sound will play only if unmuting)
+    const message = isNotificationMuted ? 'تم كتم الصوت' : 'تم تفعيل الصوت';
+    showToast(message, { 
+        type: 'success', 
+        title: 'الصوت',
+        duration: 2000
+    });
+}
+
+// Update notification sound mute button icon
+function updateNotificationMuteButton() {
+    const btn = document.getElementById('notificationMuteBtn');
+    if (!btn) return;
+    
+    if (isNotificationMuted) {
+        btn.textContent = '🔇';
+        btn.title = 'تفعيل الصوت';
+    } else {
+        btn.textContent = '🔊';
+        btn.title = 'كتم الصوت';
+    }
 }

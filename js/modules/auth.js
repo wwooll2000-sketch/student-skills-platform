@@ -63,11 +63,15 @@ async function verifyAdminLogin() {
 
 function updateAdminUI() {
     document.getElementById('adminLoginBtn').classList.add('hidden');
+    document.getElementById('notificationMuteBtn').classList.remove('hidden');
     document.getElementById('adminSettingsBtn').classList.remove('hidden');
     document.getElementById('adminLogoutBtn').classList.remove('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');
     const adminControls = document.getElementById('adminControls');
     if (adminControls) adminControls.classList.remove('hidden');
+    
+    // Update notification button icon based on mute state
+    updateNotificationMuteButton();
 }
 
 function updateStudentUI() {
@@ -78,6 +82,7 @@ function updateStudentUI() {
 
 function resetToLoginUI() {
     document.getElementById('adminLoginBtn').classList.remove('hidden');
+    document.getElementById('notificationMuteBtn').classList.add('hidden');
     document.getElementById('adminSettingsBtn').classList.add('hidden');
     document.getElementById('adminLogoutBtn').classList.add('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');

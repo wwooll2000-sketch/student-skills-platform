@@ -7,6 +7,9 @@ let allStudentsCache = [];
 let allSkillsCache = [];
 let currentStudentForNotes = null;
 
+// Notification sound mute state
+let isNotificationMuted = localStorage.getItem('notificationMuted') === 'true';
+
 // Global cache for skill templates with timestamp
 let skillTemplatesCache = {
     data: [],
