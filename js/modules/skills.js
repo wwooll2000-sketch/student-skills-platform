@@ -68,7 +68,7 @@ async function renderStudentSkillsFromDB(studentId) {
         const template = skillTemplatesMap[skillName];
         const skillIcon = template?.icon || '📚';
 
-        const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
+        const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
         const statusButtonClass = isAdmin ? 'cursor-pointer hover:opacity-70' : 'cursor-default';
 
@@ -1593,7 +1593,7 @@ function applySkillFilter() {
         const template = skillTemplatesMap[skillName];
         const skillIcon = template?.icon || '📚';
 
-        const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
+        const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
         const statusButtonClass = isAdmin ? 'cursor-pointer hover:opacity-70' : 'cursor-default';
 

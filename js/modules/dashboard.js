@@ -289,7 +289,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         const template = skillTemplatesMap[skillName];
         const skillIcon = template?.icon || '📚';
 
-        const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
+        const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
 
         // Evidence display for students
