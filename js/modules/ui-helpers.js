@@ -20,16 +20,20 @@ function setButtonLoading(button, loading, originalText = '') {
 
 function updateStudentProgressBar(completedCount, totalCount) {
     const progressBar = document.getElementById('studentProgressBar');
+    const progressText = document.getElementById('studentProgressText');
     if (!progressBar) return;
 
     const percentage = totalCount > 0 ? ((completedCount / totalCount) * 100).toFixed(1) : 0;
     
+    // Update progress text
+    if (progressText) {
+        progressText.textContent = `${completedCount}/${totalCount} (${percentage}%)`;
+    }
+    
+    // Update progress bar
     progressBar.innerHTML = `
-        <div class="flex items-center gap-2 text-xs sm:text-sm">
-            <div class="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
-                <div class="bg-gradient-to-r from-green-400 to-green-600 h-full transition-all duration-500" style="width: ${percentage}%"></div>
-            </div>
-            <span class="font-bold text-slate-700 min-w-[60px]">${completedCount}/${totalCount} (${percentage}%)</span>
+        <div class="bg-slate-200 rounded-full h-3 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-400 to-green-600 h-full transition-all duration-500" style="width: ${percentage}%"></div>
         </div>
     `;
 }

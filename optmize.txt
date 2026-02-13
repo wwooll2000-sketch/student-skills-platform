@@ -421,3 +421,13 @@ there is a bit of issue for the title that shows when sending the url to someone
 
 - in discord eferything is good it shows the title and the image.
 - in the whatsapp it it shows the title twice wich is the issue!
+
+--------------
+
+can you make the رجوع button looks like a button because right now it looks like a text and it's not clear for the users that it's a button.
+
+can you also change the place of 0/6 (0.0%) this to maybe in top left of the student progress bar?
+
+--------------
+
+there is an issue with the responsive design for mobile devices in the المهارات section table in the admin students page, please make sure to optmize and fix the responsive design for mobile devices.
