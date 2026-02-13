@@ -453,3 +453,7 @@ in the admin page in the 📝 آخر النشاطات i want also the ability to
 --------------
 
 show the student number in the admin students page only.
+
+--------------
+
+in the admin students page there is a bug in the filters that when i change to for example المهارات المكتملة then i go back to جميع المهارات then the الشواهد column disappear from all the rows but i can see the الشواهد title only.. please find and fix this issue.

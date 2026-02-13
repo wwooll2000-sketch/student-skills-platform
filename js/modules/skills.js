@@ -1580,7 +1580,7 @@ function applySkillFilter() {
         return;
     }
 
-    filteredSkills.forEach((skill) => {
+    filteredSkills.forEach(async (skill) => {
         const row = document.createElement('tr');
         row.className = "border-b border-slate-100";
 
@@ -1588,20 +1588,42 @@ function applySkillFilter() {
         const skillUrl = skill.description || '#';
         const isDone = skill.level === 3 || skill.level === 2;
 
+        // Get icon from template if available
+        const skillTemplatesMap = isAdmin ? await getSkillTemplatesMap() : {};
+        const template = skillTemplatesMap[skillName];
+        const skillIcon = template?.icon || '📚';
+
         const statusText = isDone ? '✅ تم' : '❌ لم تكتمل';
-        const statusColor = isDone ? 'text-green-600' : 'text-red-400';
+        const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
+        const statusButtonClass = isAdmin ? 'cursor-pointer hover:opacity-70' : 'cursor-default';
+
+        // Evidence display
+        const evidenceCount = skill.evidence_count || 0;
+        const evidenceHtml = evidenceCount > 0 ? 
+            `<button onclick="viewSkillEvidence('${skill.id}')" class="text-2xl hover:scale-110 transition-transform relative" title="عرض الشواهد">
+                📸
+                ${evidenceCount > 1 ? `<span class="absolute -top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
+            </button>` : 
+            `<span class="text-slate-300 text-xl">—</span>`;
 
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
-            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">${skillName}</td>
+            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
+                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
+                <span>${skillName}</span>
+            </td>
             <td class="p-2 sm:p-4 text-center">
                 <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
                     📂
                 </a>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <button onclick="toggleSkill('${skill.id}', ${skill.level})" class="${statusColor} font-bold px-2 sm:px-3 py-1 hover:opacity-80 text-xs sm:text-sm">
+                ${evidenceHtml}
+            </td>
+            <td class="p-2 sm:p-4 text-center">
+                <button onclick="toggleSkill('${skill.id}', ${skill.level})" 
+                    class="${statusColor} ${statusButtonClass} font-semibold px-3 sm:px-4 py-2 rounded-lg border-2 text-xs sm:text-sm transition-all">
                     ${statusText}
                 </button>
             </td>
