@@ -2,6 +2,26 @@
 
 منصة سهلة لمتابعة مهارات الطلاب في اللغة العربية، تساعد المعلمين على تتبع تقدم الطلاب على معرفة المهارات التي يحتاجون لتحسينها.
 
+## معاينة التطبيق 📸
+
+<div align="center">
+
+### الصفحة الرئيسية
+<img src="static/images/github/Screenshot-1.png" alt="الصفحة الرئيسية" width="800">
+
+### لوحة تحكم المعلم
+<img src="static/images/github/Screenshot-2.png" alt="لوحة تحكم المعلم" width="800">
+
+### إدارة المهارات
+<img src="static/images/github/Screenshot-3.png" alt="إدارة المهارات" width="800">
+
+### واجهة الطالب
+<img src="static/images/github/Screenshot-4.png" alt="واجهة الطالب" width="800">
+
+</div>
+
+---
+
 ## ما هو هذا النظام؟ 🎯
 
 نظام بسيط يمكّن:

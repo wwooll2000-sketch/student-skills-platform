@@ -34,7 +34,18 @@ async function renderStudentSkillsFromDB(studentId) {
         const colspan = isAdmin ? '6' : '4';
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
         updateStudentProgressBar(0, 0);
+        
+        // Hide delete all button when no skills
+        const deleteAllBtn = document.getElementById('deleteAllSkillsBtn');
+        if (deleteAllBtn) deleteAllBtn.classList.add('hidden');
+        
         return;
+    }
+
+    // Show delete all button for admin when there are skills
+    if (isAdmin) {
+        const deleteAllBtn = document.getElementById('deleteAllSkillsBtn');
+        if (deleteAllBtn) deleteAllBtn.classList.remove('hidden');
     }
 
     const skills = skillsResult.data.skills;
@@ -149,14 +160,9 @@ async function confirmMarkIncomplete(skillId) {
     tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-indigo-600 mx-auto mb-2"></div><p class="text-slate-600">جاري التحديث...</p></td></tr>';
     
     try {
-        // If checkbox is checked, delete all evidence first
+        // If checkbox is checked, delete all evidence at once
         if (deleteEvidence) {
-            const evidenceResult = await adminAPI.getSkillEvidence(skillId);
-            if (evidenceResult.success && evidenceResult.evidence) {
-                for (const evidence of evidenceResult.evidence) {
-                    await adminAPI.deleteEvidence(evidence.id);
-                }
-            }
+            await adminAPI.deleteAllSkillEvidence(skillId);
         }
         
         // Then update skill status to incomplete
@@ -864,6 +870,55 @@ async function deleteSkill(skillId, skillName) {
     });
 }
 
+async function deleteAllStudentSkills() {
+    if (!isAdmin || !selectedStudentId) return;
+
+    customConfirm("هل أنت متأكد من حذف جميع المهارات لهذا الطالب؟", async () => {
+        const tbody = document.getElementById('skillsTableBody');
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-4 border-red-600 mx-auto mb-2"></div><p class="text-slate-600">جاري حذف جميع المهارات...</p></td></tr>';
+
+        const result = await adminAPI.deleteAllStudentSkills(selectedStudentId);
+
+        if (result.success) {
+            // Invalidate all caches
+            invalidateAllCaches();
+            
+            // Force refresh by re-rendering immediately
+            await renderStudentSkillsFromDB(selectedStudentId);
+            
+            // Reload available skills for this student
+            await loadSkillsForStudent(selectedStudentId);
+            
+            // Update other UI elements in background
+            if (typeof loadSkillTemplates === 'function') {
+                loadSkillTemplates();
+            }
+            if (typeof updateStatisticsOptimized === 'function') {
+                updateStatisticsOptimized();
+            }
+            if (typeof loadRecentActivityOptimized === 'function') {
+                loadRecentActivityOptimized();
+            }
+            
+            showToast(result.message || "تم حذف جميع المهارات بنجاح", { 
+                title: 'تم الحذف',
+                type: 'success'
+            });
+        } else {
+            customAlert("خطأ في حذف المهارات: " + (result.message || ''), { 
+                icon: '❌', 
+                title: 'خطأ',
+                onClose: () => renderStudentSkillsFromDB(selectedStudentId)
+            });
+        }
+    }, {
+        icon: '🗑️',
+        title: 'تأكيد حذف جميع المهارات',
+        confirmText: 'حذف الكل',
+        cancelText: 'إلغاء'
+    });
+}
+
 async function saveNewSkill() {
     // This function is deprecated - kept for backward compatibility
     // New system uses loadSkillsForStudent and addSkillToStudent
@@ -1020,12 +1075,14 @@ function renderAvailableSkills() {
     `;
     }).join('');
     
-    // Update button state
+    // Update button states
     updateAddButtonState();
+    updateSelectAllButtonState();
 }
 
 function filterAvailableSkills() {
     renderAvailableSkills();
+    updateSelectAllButtonState();
 }
 
 function toggleSkillSelection(templateId, skillName, skillUrl) {
@@ -1049,6 +1106,74 @@ function toggleSkillSelection(templateId, skillName, skillUrl) {
     }
     
     renderAvailableSkills();
+    updateSelectAllButtonState();
+}
+
+function toggleSelectAllSkills() {
+    const searchTerm = document.getElementById('skillSearchInput')?.value.toLowerCase() || '';
+    const studentSkillNames = (window.studentSkillsCache || []).map(s => s.name);
+    const availableSkills = availableSkillsCache.filter(template => 
+        !studentSkillNames.includes(template.name) &&
+        (searchTerm === '' || template.name.toLowerCase().includes(searchTerm))
+    );
+    
+    // Check if all visible skills are selected
+    const allSelected = availableSkills.every(template => selectedSkillsToAdd.has(template.id));
+    
+    if (!window.selectedSkillsData) {
+        window.selectedSkillsData = new Map();
+    }
+    
+    if (allSelected) {
+        // Deselect all visible skills
+        availableSkills.forEach(template => {
+            selectedSkillsToAdd.delete(template.id);
+            window.selectedSkillsData.delete(template.id);
+        });
+    } else {
+        // Select all visible skills
+        availableSkills.forEach(template => {
+            selectedSkillsToAdd.add(template.id);
+            window.selectedSkillsData.set(template.id, {
+                id: template.id,
+                name: template.name,
+                url: template.url || ''
+            });
+        });
+    }
+    
+    renderAvailableSkills();
+    updateSelectAllButtonState();
+}
+
+function updateSelectAllButtonState() {
+    const button = document.getElementById('selectAllSkillsBtn');
+    if (!button) return;
+    
+    const searchTerm = document.getElementById('skillSearchInput')?.value.toLowerCase() || '';
+    const studentSkillNames = (window.studentSkillsCache || []).map(s => s.name);
+    const availableSkills = availableSkillsCache.filter(template => 
+        !studentSkillNames.includes(template.name) &&
+        (searchTerm === '' || template.name.toLowerCase().includes(searchTerm))
+    );
+    
+    if (availableSkills.length === 0) {
+        button.disabled = true;
+        button.className = 'px-3 py-2 text-sm bg-slate-100 border border-slate-300 text-slate-400 rounded-lg cursor-not-allowed font-medium whitespace-nowrap';
+        button.innerHTML = '☐ تحديد الكل';
+        return;
+    }
+    
+    const allSelected = availableSkills.every(template => selectedSkillsToAdd.has(template.id));
+    
+    button.disabled = false;
+    if (allSelected) {
+        button.className = 'px-3 py-2 text-sm bg-indigo-600 border border-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium whitespace-nowrap';
+        button.innerHTML = '☑️ إلغاء الكل';
+    } else {
+        button.className = 'px-3 py-2 text-sm bg-white border border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition font-medium whitespace-nowrap';
+        button.innerHTML = '☐ تحديد الكل';
+    }
 }
 
 function updateAddButtonState() {
@@ -1066,6 +1191,9 @@ function updateAddButtonState() {
         button.className = 'w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium transition';
         button.textContent = `إضافة ${count} ${count === 1 ? 'مهارة' : 'مهارات'}`;
     }
+    
+    // Also update select all button state
+    updateSelectAllButtonState();
 }
 
 async function addSelectedSkillsToStudent() {
@@ -1074,45 +1202,74 @@ async function addSelectedSkillsToStudent() {
     const button = document.getElementById('addSelectedSkillsBtn');
     if (button) setButtonLoading(button, true);
     
-    let successCount = 0;
-    let failCount = 0;
-    let templatesNeedReload = false;
+    // Prepare all skills for batch insert
+    const skillsToAdd = [];
+    const templateIds = [];
     
     for (const templateId of selectedSkillsToAdd) {
         const skillData = window.selectedSkillsData?.get(templateId);
         if (!skillData) continue;
         
-        const result = await adminAPI.addSkill(
-            selectedStudentId,
-            skillData.name,
-            1,
-            skillData.url,
-            null,
-            null
-        );
+        skillsToAdd.push({
+            student_id: selectedStudentId,
+            name: skillData.name,
+            level: 1,
+            description: skillData.url || null,
+            category: null,
+            notes: null,
+            evidence_url: skillData.url || null
+        });
         
-        if (result.success) {
-            successCount++;
-            templatesNeedReload = true;
-            // Update usage count
-            try {
-                await fetch(`/api/skill-templates/${templateId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                    },
-                    body: JSON.stringify({ 
-                        name: skillData.name,
-                        url: skillData.url,
-                        is_active: true
-                    })
+        templateIds.push(templateId);
+    }
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    if (skillsToAdd.length > 0) {
+        try {
+            // Use batch endpoint for much faster insertion
+            const response = await fetch('/api/admin/skills/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                },
+                body: JSON.stringify({ skills: skillsToAdd })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                successCount = skillsToAdd.length;
+                
+                // Update template usage counts in parallel (non-blocking)
+                const updatePromises = templateIds.map(templateId => {
+                    const skillData = window.selectedSkillsData?.get(templateId);
+                    if (!skillData) return Promise.resolve();
+                    
+                    return fetch(`/api/skill-templates/${templateId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                        },
+                        body: JSON.stringify({ 
+                            name: skillData.name,
+                            url: skillData.url,
+                            is_active: true
+                        })
+                    }).catch(e => console.error('Error updating usage count:', e));
                 });
-            } catch (e) {
-                console.error('Error updating usage count:', e);
+                
+                // Fire and forget - don't wait for usage count updates
+                Promise.all(updatePromises).catch(e => console.error('Error updating usage counts:', e));
+            } else {
+                failCount = skillsToAdd.length;
             }
-        } else {
-            failCount++;
+        } catch (error) {
+            console.error('Error adding skills:', error);
+            failCount = skillsToAdd.length;
         }
     }
     
@@ -1132,10 +1289,10 @@ async function addSelectedSkillsToStudent() {
     await loadSkillsForStudent(selectedStudentId);
     
     // Update other UI elements in background
-    if (templatesNeedReload && typeof loadSkillTemplates === 'function') {
-        loadSkillTemplates();
-    }
     if (successCount > 0) {
+        if (typeof loadSkillTemplates === 'function') {
+            loadSkillTemplates();
+        }
         if (typeof updateStatisticsOptimized === 'function') {
             updateStatisticsOptimized();
         }

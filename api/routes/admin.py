@@ -179,6 +179,56 @@ def delete_student(student_id):
         print(f"[ERROR] delete_student: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@admin_bp.route('/students/delete-all', methods=['DELETE'])
+@verify_admin
+def delete_all_students():
+    """Delete all students - much faster than individual deletes"""
+    try:
+        with get_db() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                # Get count before deleting
+                cur.execute('SELECT COUNT(*) as count FROM students')
+                count_result = cur.fetchone()
+                student_count = count_result['count'] if count_result else 0
+                
+                if student_count == 0:
+                    return jsonify({'success': True, 'message': 'لا يوجد طلاب لحذفهم', 'count': 0})
+                
+                # Get all skill names before deleting for usage count updates
+                cur.execute('SELECT DISTINCT name FROM skills')
+                skill_names = [row['name'] for row in cur.fetchall()]
+                
+                # Delete all students (CASCADE will delete skills and skill_evidence)
+                cur.execute('DELETE FROM students')
+                
+                # Update usage counts for all affected skill templates
+                for skill_name in skill_names:
+                    cur.execute(
+                        '''UPDATE skill_templates 
+                           SET usage_count = 0,
+                               updated_at = CURRENT_TIMESTAMP
+                           WHERE name = %s''',
+                        (skill_name,)
+                    )
+                
+                conn.commit()
+        
+        # Invalidate ALL caches
+        invalidate_cache()
+        
+        print(f"[INFO] Deleted all students: count={student_count}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'تم حذف جميع الطلاب ({student_count}) بنجاح',
+            'count': student_count
+        })
+    except Exception as e:
+        print(f"[ERROR] delete_all_students: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @admin_bp.route('/students/<student_id>', methods=['PUT'])
 @verify_admin
 def update_student(student_id):
@@ -352,6 +402,46 @@ def delete_skill(skill_id):
         return jsonify({'success': True, 'message': 'تم حذف المهارة بنجاح'})
     except Exception as e:
         print(f"[ERROR] delete_skill: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/students/<student_id>/skills', methods=['DELETE'])
+@verify_admin
+def delete_all_student_skills(student_id):
+    """Delete all skills for a specific student"""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Get all skill names for this student before deleting
+                cur.execute('SELECT DISTINCT name FROM skills WHERE student_id = %s', (student_id,))
+                skill_names = [row['name'] for row in cur.fetchall()]
+                
+                # Delete all skills for this student
+                cur.execute('DELETE FROM skills WHERE student_id = %s RETURNING id', (student_id,))
+                deleted_skills = cur.fetchall()
+                deleted_count = len(deleted_skills)
+                
+                # Update usage counts for all affected skill templates
+                for skill_name in skill_names:
+                    cur.execute(
+                        '''UPDATE skill_templates 
+                           SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                               updated_at = CURRENT_TIMESTAMP
+                           WHERE name = %s''',
+                        (skill_name, skill_name)
+                    )
+                
+                conn.commit()
+        
+        # Invalidate cache for this student
+        invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'تم حذف {deleted_count} مهارة بنجاح',
+            'deleted_count': deleted_count
+        })
+    except Exception as e:
+        print(f"[ERROR] delete_all_student_skills: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/recent-activities', methods=['GET'])
@@ -580,16 +670,22 @@ def batch_add_students():
         return jsonify({'success': False, 'message': 'يجب إرسال قائمة الطلاب'}), 400
     
     try:
-        success = batch_insert_students(students)
-        if success:
+        created_students = batch_insert_students(students)
+        if created_students is not None:
+            # Invalidate entire cache to ensure fresh data
+            invalidate_cache()
             return jsonify({
                 'success': True,
-                'message': f'تم إضافة {len(students)} طالب بنجاح',
-                'count': len(students)
+                'message': f'تم إضافة {len(created_students)} طالب بنجاح',
+                'count': len(created_students),
+                'students': created_students
             }), 201
         else:
             return jsonify({'success': False, 'message': 'فشل في إضافة الطلاب'}), 500
     except Exception as e:
+        print(f"[ERROR] batch_add_students: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': f'خطأ في الإضافة الجماعية: {str(e)}'}), 500
 
 @admin_bp.route('/skills/batch', methods=['POST'])
@@ -605,6 +701,8 @@ def batch_add_skills():
     try:
         success = batch_insert_skills(skills)
         if success:
+            # Invalidate entire cache to ensure fresh data
+            invalidate_cache()
             return jsonify({
                 'success': True,
                 'message': f'تم إضافة {len(skills)} مهارة بنجاح',
@@ -613,6 +711,9 @@ def batch_add_skills():
         else:
             return jsonify({'success': False, 'message': 'فشل في إضافة المهارات'}), 500
     except Exception as e:
+        print(f"[ERROR] Batch add skills exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': f'خطأ في الإضافة الجماعية: {str(e)}'}), 500
 
 @admin_bp.route('/cache/clear', methods=['POST'])
@@ -715,6 +816,38 @@ def add_skill_evidence(skill_id):
             }), 500
         
         return jsonify({'success': False, 'message': error_msg}), 500
+
+@admin_bp.route('/skills/<skill_id>/evidence', methods=['DELETE'])
+@verify_admin
+def delete_all_skill_evidence(skill_id):
+    """Delete all evidence/photos for a skill - much faster than individual deletes"""
+    try:
+        # Get student_id before deletion for cache invalidation
+        skill = execute_query('SELECT student_id FROM skills WHERE id = %s', (skill_id,), fetch_one=True)
+        
+        if not skill:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        
+        # Delete all evidence for this skill
+        result = execute_query(
+            'DELETE FROM skill_evidence WHERE skill_id = %s RETURNING id',
+            (skill_id,),
+            fetch_all=True
+        )
+        
+        deleted_count = len(result) if result else 0
+        
+        # Invalidate cache
+        invalidate_cache(f"get_student_skills_cached:('{skill['student_id']}',)")
+        
+        return jsonify({
+            'success': True,
+            'message': f'تم حذف {deleted_count} شاهد بنجاح',
+            'count': deleted_count
+        })
+    except Exception as e:
+        print(f"[ERROR] delete_all_skill_evidence: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/evidence/<evidence_id>', methods=['DELETE'])
 @verify_admin

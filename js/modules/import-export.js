@@ -107,46 +107,68 @@ async function processImport(studentsData) {
         ? existingResult.students.map(s => s.code) 
         : [];
 
+    // Prepare students and skills for batch insert
+    const studentsToAdd = [];
+    const studentIdMap = new Map(); // Map import data to new student IDs
+
+    // Filter out duplicate students
     for (const studentData of studentsData) {
+        if (existingCodes.includes(studentData.code)) {
+            skipCount++;
+            continue;
+        }
+        studentsToAdd.push({
+            name: studentData.name,
+            code: studentData.code,
+            email: null,
+            class: null,
+            _skills: studentData.skills // Store skills temporarily
+        });
+    }
+
+    // Batch add all students
+    if (studentsToAdd.length > 0) {
         try {
-            // Skip if student code already exists
-            if (existingCodes.includes(studentData.code)) {
-                skipCount++;
-                continue;
-            }
-
-            // Add student
-            const result = await adminAPI.addStudent(
-                studentData.name,
-                studentData.code,
-                null,
-                null
-            );
-
-            if (result.success) {
-                successCount++;
-
-                // Add skills if available
-                if (studentData.skills && studentData.skills.length > 0) {
-                    const newStudentId = result.student.id;
-                    
-                    for (const skill of studentData.skills) {
-                        await adminAPI.addSkill(
-                            newStudentId,
-                            skill.name,
-                            skill.level || 1,
-                            skill.description || '',
-                            skill.notes || '',
-                            skill.evidence_url || null
-                        );
+            const result = await adminAPI.batchAddStudents(studentsToAdd);
+            
+            if (result.success && result.students) {
+                successCount = result.students.length;
+                
+                // Map old codes to new IDs for skill insertion
+                result.students.forEach((student, index) => {
+                    studentIdMap.set(studentsToAdd[index].code, student.id);
+                });
+                
+                // Prepare all skills for batch insert
+                const allSkills = [];
+                
+                studentsToAdd.forEach(studentData => {
+                    const newStudentId = studentIdMap.get(studentData.code);
+                    if (newStudentId && studentData._skills && studentData._skills.length > 0) {
+                        studentData._skills.forEach(skill => {
+                            allSkills.push({
+                                student_id: newStudentId,
+                                name: skill.name,
+                                level: skill.level || 1,
+                                description: skill.description || null,
+                                category: skill.category || null,
+                                notes: skill.notes || null,
+                                evidence_url: skill.evidence_url || null
+                            });
+                        });
                     }
+                });
+                
+                // Batch add all skills at once
+                if (allSkills.length > 0) {
+                    await adminAPI.batchAddSkills(allSkills);
                 }
             } else {
-                errorCount++;
+                errorCount = studentsToAdd.length;
             }
         } catch (error) {
-            console.error('خطأ في استيراد طالب:', error);
-            errorCount++;
+            console.error('خطأ في الاستيراد الجماعي:', error);
+            errorCount = studentsToAdd.length;
         }
     }
 

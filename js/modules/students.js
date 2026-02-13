@@ -248,21 +248,12 @@ async function deleteAllStudents() {
         async () => {
             showLoading('adminStudentsList', `جاري حذف ${studentCount} طالب...`);
 
-            let successCount = 0;
-            let failCount = 0;
-
-            for (const student of allStudentsCache) {
-                const deleteResult = await adminAPI.deleteStudent(student.id);
-                if (deleteResult.success) {
-                    successCount++;
-                } else {
-                    failCount++;
-                }
-            }
-
-            const message = failCount > 0 
-                ? `تم حذف ${successCount} طالب بنجاح\nفشل حذف ${failCount} طالب`
-                : `تم حذف جميع الطلاب (${successCount}) بنجاح`;
+            // Use batch delete endpoint instead of sequential deletes
+            const result = await adminAPI.deleteAllStudents();
+            
+            const message = result.success
+                ? result.message || `تم حذف جميع الطلاب (${studentCount}) بنجاح`
+                : `فشل في حذف الطلاب: ${result.message}`;
 
             // Invalidate all caches FIRST
             invalidateAllCaches();

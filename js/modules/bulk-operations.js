@@ -23,20 +23,27 @@ async function processBulkImport() {
     closeBulkImportModal();
     showLoading('adminStudentsList', `جاري إضافة ${names.length} طالب...`);
 
+    // Prepare all students for batch insert
+    const studentsToAdd = names
+        .map(name => name.trim())
+        .filter(name => name)
+        .map(name => ({
+            name: name,
+            code: generateRandomCode(),
+            email: null,
+            class: null
+        }));
+
     let successCount = 0;
     let failCount = 0;
 
-    for (const name of names) {
-        const trimmedName = name.trim();
-        if (!trimmedName) continue;
-
-        const code = generateRandomCode();
-        const result = await adminAPI.addStudent(trimmedName, code, null, null);
-
+    if (studentsToAdd.length > 0) {
+        const result = await adminAPI.batchAddStudents(studentsToAdd);
+        
         if (result.success) {
-            successCount++;
+            successCount = studentsToAdd.length;
         } else {
-            failCount++;
+            failCount = studentsToAdd.length;
         }
     }
 
@@ -250,21 +257,37 @@ async function processBatchSkill() {
         console.error('Error fetching students with skills:', error);
     }
 
+    // Prepare skills for batch insert (exclude students who already have this skill)
+    const skillsToAdd = [];
+    
     for (const checkbox of selectedCheckboxes) {
         const studentId = checkbox.value;
         
-        // Double-check if student already has this skill (server-side validation)
+        // Skip if student already has this skill
         if (studentsWithSkills.get(studentId)?.includes(skillName)) {
             skippedCount++;
             continue;
         }
         
-        const result = await adminAPI.addSkill(studentId, skillName, 1, skillUrl, null, null);
+        skillsToAdd.push({
+            student_id: studentId,
+            name: skillName,
+            level: 1,
+            description: skillUrl || null,
+            category: null,
+            notes: null,
+            evidence_url: skillUrl || null
+        });
+    }
+
+    // Batch add all skills at once
+    if (skillsToAdd.length > 0) {
+        const result = await adminAPI.batchAddSkills(skillsToAdd);
         
         if (result.success) {
-            successCount++;
+            successCount = skillsToAdd.length;
         } else {
-            failCount++;
+            failCount = skillsToAdd.length;
         }
     }
     

@@ -4,6 +4,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 import os
 import time
+import uuid
 from cachetools import TTLCache
 from functools import wraps
 from typing import Optional, Any, Dict, List
@@ -176,9 +177,9 @@ def get_student_by_code_cached(code: str) -> Optional[Dict]:
     query = 'SELECT * FROM students WHERE code = %s'
     return execute_query(query, (code,), fetch_one=True)
 
-@cache_query(ttl=60)
+@cache_query(ttl=10)
 def get_student_skills_cached(student_id: str) -> List[Dict]:
-    """Get student skills with 1-minute cache"""
+    """Get student skills with 10-second cache for real-time updates"""
     query = '''
         SELECT s.id, s.student_id, s.name, s.level, s.description, s.category, s.notes, s.evidence_url,
                s.created_at AT TIME ZONE 'UTC' as created_at,
@@ -190,33 +191,49 @@ def get_student_skills_cached(student_id: str) -> List[Dict]:
     '''
     return execute_query(query, (student_id,), fetch_all=True) or []
 
-def batch_insert_students(students_data: List[Dict]) -> bool:
-    """Batch insert students efficiently"""
+def batch_insert_students(students_data: List[Dict]) -> List[Dict]:
+    """Batch insert students efficiently - returns created students with IDs"""
     try:
-        query = '''
-            INSERT INTO students (name, code, email, class) 
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (code) DO NOTHING
-        '''
-        params_list = [
-            (s['name'], s['code'], s.get('email'), s.get('class'))
-            for s in students_data
-        ]
-        execute_batch(query, params_list)
+        with get_db() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                created_students = []
+                for student in students_data:
+                    student_id = str(uuid.uuid4())
+                    cur.execute(
+                        '''INSERT INTO students (id, name, code, email, class, created_at, updated_at)
+                           VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                           ON CONFLICT (code) DO NOTHING
+                           RETURNING id, name, code, email, class''',
+                        (student_id, student['name'], student['code'], student.get('email'), student.get('class'))
+                    )
+                    result = cur.fetchone()
+                    if result:
+                        created_students.append({
+                            'id': str(result['id']),
+                            'name': result['name'],
+                            'code': result['code'],
+                            'email': result['email'],
+                            'class': result['class']
+                        })
+                conn.commit()
+        
         invalidate_cache('get_all_students_cached')
-        return True
+        return created_students
     except Exception as e:
-        return False
+        print(f"[ERROR] batch_insert_students: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 def batch_insert_skills(skills_data: List[Dict]) -> bool:
     """Batch insert skills efficiently"""
     try:
         query = '''
-            INSERT INTO skills (student_id, name, level, description, category, notes, evidence_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO skills (id, student_id, name, level, description, category, notes, evidence_url, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         '''
         params_list = [
-            (s['student_id'], s['name'], s['level'], s.get('description'), 
+            (str(uuid.uuid4()), s['student_id'], s['name'], s['level'], s.get('description'), 
              s.get('category'), s.get('notes'), s.get('evidence_url'))
             for s in skills_data
         ]
@@ -226,4 +243,7 @@ def batch_insert_skills(skills_data: List[Dict]) -> bool:
             invalidate_cache(f"get_student_skills_cached:{skill['student_id']}")
         return True
     except Exception as e:
+        print(f"[ERROR] batch_insert_skills failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False

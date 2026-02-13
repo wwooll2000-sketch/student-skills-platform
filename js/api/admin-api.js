@@ -99,6 +99,27 @@ class AdminAPI {
         }
     }
 
+    async deleteAllStudents() {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/students/delete-all`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في حذف جميع الطلاب:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
     async updateStudent(studentId, name, code, email, studentClass) {
         if (!this.isAuthorized()) {
             return { success: false, message: "غير مصرح" };
@@ -188,6 +209,27 @@ class AdminAPI {
             return await response.json();
         } catch (error) {
             console.error("خطأ في حذف المهارة:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async deleteAllStudentSkills(studentId) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/students/${studentId}/skills`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في حذف جميع المهارات:", error);
             return {
                 success: false,
                 message: "خطأ في الاتصال بالخادم"
@@ -474,6 +516,29 @@ class AdminAPI {
             return await response.json();
         } catch (error) {
             console.error("خطأ في حذف الشاهد:", error);
+            return {
+                success: false,
+                message: "خطأ في الاتصال بالخادم"
+            };
+        }
+    }
+
+    async deleteAllSkillEvidence(skillId) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/${skillId}/evidence`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${this.authToken}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في حذف الشواهد:", error);
             return {
                 success: false,
                 message: "خطأ في الاتصال بالخادم"

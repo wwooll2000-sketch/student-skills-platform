@@ -126,11 +126,31 @@ function renderBadges(earnedBadges) {
 }
 
 // Simple Student View (Single Page)
-async function loadSimpleStudentView(studentId) {
+async function loadSimpleStudentView(studentId, showLoading = true) {
+    // Show loading indicator
+    if (showLoading) {
+        const loadingEl = document.getElementById('studentSkillsLoading');
+        const tableContainer = document.getElementById('studentSkillsTableContainer');
+        if (loadingEl && tableContainer) {
+            loadingEl.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+        }
+    }
+    
     // Use cached skill templates
     const skillTemplatesMap = await getSkillTemplatesMap();
     
     const skillsResult = await studentAPI.getSkills();
+    
+    // Hide loading indicator
+    if (showLoading) {
+        const loadingEl = document.getElementById('studentSkillsLoading');
+        const tableContainer = document.getElementById('studentSkillsTableContainer');
+        if (loadingEl && tableContainer) {
+            loadingEl.classList.add('hidden');
+            tableContainer.classList.remove('hidden');
+        }
+    }
     
     // Check if student was deleted
     if (skillsResult.student_deleted === true) {

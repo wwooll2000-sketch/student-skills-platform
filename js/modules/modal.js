@@ -2,6 +2,17 @@
 function showModal(options) {
     const modal = document.getElementById('customModal');
     const modalContent = document.getElementById('modalContent');
+    
+    // Store original content on first use
+    if (modalContent && !modalContent.dataset.originalContent) {
+        modalContent.dataset.originalContent = modalContent.innerHTML;
+    }
+    
+    // Restore the original structure if it's been replaced
+    if (modalContent && modalContent.dataset.originalContent && !document.getElementById('modalIcon')) {
+        modalContent.innerHTML = modalContent.dataset.originalContent;
+    }
+    
     const icon = document.getElementById('modalIcon');
     const title = document.getElementById('modalTitle');
     const message = document.getElementById('modalMessage');
@@ -141,6 +152,11 @@ function showCustomModal(htmlContent) {
     const modal = document.getElementById('customModal');
     const modalContent = document.getElementById('modalContent');
     
+    // Store original content before replacing
+    if (!modalContent.dataset.originalContent) {
+        modalContent.dataset.originalContent = modalContent.innerHTML;
+    }
+    
     // Clear and set custom content
     modalContent.innerHTML = htmlContent;
     
@@ -168,6 +184,11 @@ function closeCustomModal() {
     
     setTimeout(() => {
         modal.classList.add('hidden');
+        
+        // Restore original modal structure
+        if (modalContent.dataset.originalContent) {
+            modalContent.innerHTML = modalContent.dataset.originalContent;
+        }
     }, 200);
 }
 

@@ -367,3 +367,50 @@ for exmaple i deleted the student and in the other browser it loges me out wich 
 📤 استيراد بيانات and 📥 تصدير البيانات are the named right for there pleaces or it should be reversend names? please check that!
 
 also i changed the way the app looks when sending the url to someone else in whatsapp or discord or any other platform, now it shows a worse design than before and it doesn't show the favicon, and there is much text that not needed, i just want "نظام متابعة مهارات اللغة العربية" and the favicon next to it.
+
+--------------
+
+i have uploaded 3 screen shots for a preview of the app please add them to the readme.md file in a nice way to show the preview of the app for the users.
+
+please make sure as like this:
+1 is the الصفحة الرئيسية
+2 is the لوحة تحكم المعلم
+3 is the إدارة المهارات
+4 is the واجهة الطالب
+
+--------------
+
+- for the 📚 مهاراتي section in the student page there is no loading indiecator please add a loading.
+
+- Also some time it shows some of the المهارات for the student is not complated so i have to refresh the page to see that it's complated also in the same time i refresh again it shows some of the المهارات is not complated again so please fix this
+
+- Also when a student in his dashboard and the admin add a new مهارة to this student or remove a مهارة or edit a مهارة or added a شواهد to a مهارة or remove a شواهد from a مهارة or change the الحالة of a مهارة it should reflect immediately in the student dashboard without the need to refresh the page.
+
+--------------
+
+perfect! now please in the "أدخل رقم الطالب" input field make it only to accept numbers and not more than 4 digits because the student number is only 4 digits.
+
+--------------
+
+there is a bug in the app that in the admin page in a student page when i change the الحالة of a مهارة from ✅ تم to ❌ لم تكتمل then after that i tried to remove a مهارة from the student it shows this in the console:
+modal.js:12 Modal elements not found in DOM. Required elements: customModal, modalContent, modalIcon, modalTitle, modalMessage, modalButtons
+showModal	@	modal.js:12
+customConfirm	@	modal.js:126
+deleteSkill	@	skills.js:803
+onclick	@	(index):1
+
+--------------
+
+perfect! there is another issue that when i try to add multiple مهارات to a student in the إضافة مهارة section it takes along time to process it feels like not one request but multiple requests.. please find the issue and fix it.
+
+--------------
+
+in the المهارات section in the admin students page please add a button for delete all المهارات for the student at once.
+
+add select all in the إضافة مهارة section.
+
+--------------
+
+perfect! do you remember the issue that we fixed of the sequential API calls for each skill and we found a good news is there's already a batch endpoint /api/admin/skills/batch that can add all skills in one request.
+
+i want you to look for the whole app and find any place that has the same issue of sequential API calls and fix it by using batch endpoints or by creating new batch endpoints if there is no existing.

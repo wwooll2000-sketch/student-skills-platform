@@ -159,15 +159,25 @@ function logoutStudent() {
 }
 
 // Session validation polling for students
+let studentDataRefreshInterval = null;
+
 function startStudentSessionValidation() {
     // Clear any existing interval
     stopStudentSessionValidation();
     isLoggingOut = false;
     
-    // Check session every 10 seconds
+    // Check session every 10 seconds and refresh data every 15 seconds
+    let validationCounter = 0;
     studentSessionCheckInterval = setInterval(async () => {
         // Skip validation if already logging out
         if (isLoggingOut) return;
+        
+        validationCounter++;
+        
+        // Refresh student data every 15 seconds (every 1.5 validation cycles)
+        if (validationCounter % 2 === 0 && selectedStudentId) {
+            await loadSimpleStudentView(selectedStudentId, false); // Refresh without showing loading
+        }
         
         const result = await studentAPI.validateSession();
         
