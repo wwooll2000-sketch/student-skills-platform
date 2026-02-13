@@ -431,3 +431,25 @@ can you also change the place of 0/6 (0.0%) this to maybe in top left of the stu
 --------------
 
 there is an issue with the responsive design for mobile devices in the المهارات section table in the admin students page, please make sure to optmize and fix the responsive design for mobile devices.
+
+--------------
+
+in the students page after the student logend in they can see the المهارات section.. in the الشواهد column right now it shows this emojie 🖼️, what i want is insted of this emojie i want a small preview of the first photo.
+
+Note: it must shows a small preview of the first photo that the teacher uploaded the الشواهد for this مهارة no matter if its one photo or multiple photos.
+
+--------------
+
+its kinda buggy! i uploaded one photo for a test and it shows 5 photos in the الشواهد and when i click to see them 4 of them is just blank not a photo and i don't know why are they here!
+
+also the small thumnil is blank also and i noticed it uses a youtube link in the src why?
+
+<img src="https://www.youtube.com/watch?v=AJnIc0QdPf0" alt="شاهد" class="w-12 h-16 object-cover rounded border-2 border-slate-300" oncontextmenu="return false;" ondragstart="return false;" style="user-select: none;">
+
+--------------
+
+in the admin page in the 📝 آخر النشاطات i want also the ability to log if a student logged in or loged out with his number..
+
+--------------
+
+show the student number in the admin students page only.

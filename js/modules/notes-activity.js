@@ -74,15 +74,39 @@ async function loadRecentActivity() {
         const div = document.createElement('div');
         div.className = 'flex items-start gap-2 p-2 hover:bg-slate-50 rounded text-sm';
         const timeAgo = getTimeAgo(activity.date);
-        div.innerHTML = `
-            <span class="text-lg">✅</span>
-            <div class="flex-1">
-                <span class="font-medium">${activity.studentName}</span>
-                <span class="text-slate-600">أكمل</span>
-                <span class="font-medium text-indigo-600">${activity.skillName}</span>
-                <div class="text-xs text-slate-400">${timeAgo}</div>
-            </div>
-        `;
+        
+        // Different display for login, logout, and completed skill
+        if (activity.type === 'login') {
+            div.innerHTML = `
+                <span class="text-lg">🔐</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">قام بتسجيل الدخول</span>
+                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else if (activity.type === 'logout') {
+            div.innerHTML = `
+                <span class="text-lg">🚪</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">قام بتسجيل الخروج</span>
+                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else {
+            div.innerHTML = `
+                <span class="text-lg">✅</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">أكمل</span>
+                    <span class="font-medium text-indigo-600">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        }
         container.appendChild(div);
     });
 }
@@ -125,15 +149,39 @@ function renderActivities(container, activities) {
         const div = document.createElement('div');
         div.className = 'flex items-start gap-2 p-2 hover:bg-slate-50 rounded text-sm';
         const timeAgo = getTimeAgo(activity.date);
-        div.innerHTML = `
-            <span class="text-lg">✅</span>
-            <div class="flex-1">
-                <span class="font-medium">${activity.studentName}</span>
-                <span class="text-slate-600">أكمل</span>
-                <span class="font-medium text-indigo-600">${activity.skillName}</span>
-                <div class="text-xs text-slate-400">${timeAgo}</div>
-            </div>
-        `;
+        
+        // Different display for login, logout, and completed skill
+        if (activity.type === 'login') {
+            div.innerHTML = `
+                <span class="text-lg">🔐</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">قام بتسجيل الدخول</span>
+                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else if (activity.type === 'logout') {
+            div.innerHTML = `
+                <span class="text-lg">🚪</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">قام بتسجيل الخروج</span>
+                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else {
+            div.innerHTML = `
+                <span class="text-lg">✅</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">أكمل</span>
+                    <span class="font-medium text-indigo-600">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        }
         container.appendChild(div);
     });
 }

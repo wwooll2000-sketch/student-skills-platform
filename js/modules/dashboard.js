@@ -294,10 +294,12 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
 
         // Evidence display for students
         const evidenceCount = skill.evidence_count || 0;
-        const evidenceHtml = evidenceCount > 0 ? 
-            `<button onclick="viewSkillEvidenceStudent('${skill.id}')" class="text-2xl hover:scale-110 transition-transform relative" title="عرض الشواهد">
-                🖼️
-                ${evidenceCount > 1 ? `<span class="absolute -top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
+        const firstEvidenceUrl = skill.first_evidence_url;
+        const evidenceHtml = evidenceCount > 0 && firstEvidenceUrl ? 
+            `<button onclick="viewSkillEvidenceStudent('${skill.id}')" class="relative hover:scale-105 transition-transform" title="عرض الشواهد">
+                <img src="${firstEvidenceUrl}" alt="شاهد" class="w-12 h-16 object-cover rounded border-2 border-slate-300" 
+                     oncontextmenu="return false;" ondragstart="return false;" style="user-select: none;">
+                ${evidenceCount > 1 ? `<span class="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
             </button>` : 
             `<span class="text-slate-300 text-xl">—</span>`;
 

@@ -184,7 +184,8 @@ def get_student_skills_cached(student_id: str) -> List[Dict]:
         SELECT s.id, s.student_id, s.name, s.level, s.description, s.category, s.notes, s.evidence_url,
                s.created_at AT TIME ZONE 'UTC' as created_at,
                s.updated_at AT TIME ZONE 'UTC' as updated_at,
-               (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = s.id) as evidence_count
+               (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%')) as evidence_count,
+               (SELECT se.evidence_url FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%') ORDER BY se.created_at ASC LIMIT 1) as first_evidence_url
         FROM skills s
         WHERE s.student_id = %s 
         ORDER BY s.level DESC, s.created_at DESC

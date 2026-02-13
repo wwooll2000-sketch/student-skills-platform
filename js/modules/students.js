@@ -177,7 +177,7 @@ async function showStudentSkills(id) {
     }
 
     selectedStudent = student;
-    document.getElementById('currentStudentTitle').innerText = student.name;
+    document.getElementById('currentStudentTitle').innerText = `${student.name} - ${student.code}`;
 
     await renderStudentSkillsFromDB(id);
 

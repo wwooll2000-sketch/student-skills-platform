@@ -447,36 +447,98 @@ def delete_all_student_skills(student_id):
 @admin_bp.route('/recent-activities', methods=['GET'])
 @verify_admin
 def get_recent_activities():
-    """Get recent activities (completed skills) from all students in one query"""
+    """Get recent activities (completed skills and student logins) from all students"""
     try:
         # Get recent completed skills (level 2 or 3) joined with student info
-        results = execute_query('''
+        skill_results = execute_query('''
             SELECT 
                 s.name as student_name,
+                s.code as student_code,
                 sk.name as skill_name,
-                sk.updated_at AT TIME ZONE 'UTC' as updated_at,
-                sk.level
+                sk.updated_at AT TIME ZONE 'UTC' as activity_date,
+                'completed' as activity_type
             FROM skills sk
             JOIN students s ON sk.student_id = s.id
             WHERE sk.level IN (2, 3)
             ORDER BY sk.updated_at DESC
-            LIMIT 50
+            LIMIT 30
         ''', fetch_all=True) or []
         
-        activities = []
-        for row in results:
-            # Convert to ISO format with Z suffix for UTC
-            updated_at = row['updated_at']
-            date_str = updated_at.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if updated_at else None
-            activities.append({
+        # Get recent student logins - try with action_type first, fallback if column doesn't exist
+        login_results = []
+        try:
+            login_results = execute_query('''
+                SELECT 
+                    s.name as student_name,
+                    s.code as student_code,
+                    l.logged_in_at AT TIME ZONE 'UTC' as activity_date,
+                    l.action_type as activity_type
+                FROM student_login_logs l
+                JOIN students s ON l.student_id = s.id
+                ORDER BY l.logged_in_at DESC
+                LIMIT 30
+            ''', fetch_all=True) or []
+        except Exception as login_error:
+            # If table doesn't exist or action_type column missing, try simpler query or skip
+            error_msg = str(login_error).lower()
+            if 'does not exist' in error_msg or 'student_login_logs' in error_msg:
+                # Table doesn't exist yet - skip login logs
+                print(f"[INFO] student_login_logs table not found, skipping login activities")
+                login_results = []
+            elif 'action_type' in error_msg or 'column' in error_msg:
+                # Column doesn't exist - use old query without action_type
+                print(f"[INFO] action_type column not found, using default 'login' type")
+                try:
+                    login_results = execute_query('''
+                        SELECT 
+                            s.name as student_name,
+                            s.code as student_code,
+                            l.logged_in_at AT TIME ZONE 'UTC' as activity_date,
+                            'login' as activity_type
+                        FROM student_login_logs l
+                        JOIN students s ON l.student_id = s.id
+                        ORDER BY l.logged_in_at DESC
+                        LIMIT 30
+                    ''', fetch_all=True) or []
+                except:
+                    login_results = []
+            else:
+                print(f"[WARNING] Unexpected error fetching login logs: {login_error}")
+                login_results = []
+        
+        # Combine and sort all activities
+        all_activities = []
+        
+        for row in skill_results:
+            activity_date = row['activity_date']
+            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
+            all_activities.append({
                 'studentName': row['student_name'],
-                'skillName': row['skill_name'],
+                'studentCode': row['student_code'],
+                'skillName': row.get('skill_name'),
                 'date': date_str,
                 'type': 'completed'
             })
         
-        return jsonify({'success': True, 'activities': activities})
+        for row in login_results:
+            activity_date = row['activity_date']
+            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
+            all_activities.append({
+                'studentName': row['student_name'],
+                'studentCode': row['student_code'],
+                'date': date_str,
+                'type': row.get('activity_type', 'login')  # Use action_type from DB (login or logout)
+            })
+        
+        # Sort by date descending and limit to 50
+        all_activities.sort(key=lambda x: x['date'] if x['date'] else '', reverse=True)
+        all_activities = all_activities[:50]
+        
+        return jsonify({'success': True, 'activities': all_activities})
     except Exception as e:
+        print(f"[ERROR] get_recent_activities: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/statistics', methods=['GET'])
@@ -527,7 +589,7 @@ def get_students_with_skills():
                 sk.description, sk.category, sk.notes, sk.evidence_url,
                 sk.created_at AT TIME ZONE 'UTC' as created_at, 
                 sk.updated_at AT TIME ZONE 'UTC' as updated_at,
-                (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = sk.id) as evidence_count
+                (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = sk.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%')) as evidence_count
             FROM skills sk
             ORDER BY sk.student_id, sk.updated_at DESC
         ''', fetch_all=True) or []
@@ -737,7 +799,7 @@ def get_skill_evidence(skill_id):
     """Get all evidence/photos for a skill"""
     try:
         evidence_list = execute_query(
-            'SELECT id, skill_id, evidence_url, created_at FROM skill_evidence WHERE skill_id = %s ORDER BY created_at DESC',
+            "SELECT id, skill_id, evidence_url, created_at FROM skill_evidence WHERE skill_id = %s AND (evidence_url NOT LIKE '%%youtube%%' AND evidence_url NOT LIKE '%%youtu.be%%') ORDER BY created_at DESC",
             (skill_id,),
             fetch_all=True
         )

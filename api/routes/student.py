@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from functools import wraps
 import sys
 import os
+import uuid
 
 # Add parent directory to path for imports
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +63,27 @@ def student_login():
         if not student:
             return jsonify({'success': False, 'message': 'رقم الطالب غير موجود'}), 404
         
+        # Log the student login for activity tracking
+        try:
+            # Try with action_type first
+            execute_query(
+                "INSERT INTO student_login_logs (id, student_id, action_type, logged_in_at) VALUES (%s, %s, 'login', CURRENT_TIMESTAMP)",
+                (str(uuid.uuid4()), student['id'])
+            )
+        except Exception as log_error:
+            # If action_type column doesn't exist, try without it
+            error_msg = str(log_error).lower()
+            if 'action_type' in error_msg or 'column' in error_msg:
+                try:
+                    execute_query(
+                        "INSERT INTO student_login_logs (id, student_id, logged_in_at) VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                        (str(uuid.uuid4()), student['id'])
+                    )
+                except Exception as fallback_error:
+                    print(f"[WARNING] Failed to log student login: {fallback_error}")
+            else:
+                print(f"[WARNING] Failed to log student login: {log_error}")
+        
         return jsonify({
             'success': True, 
             'message': 'تم الدخول بنجاح', 
@@ -75,6 +97,42 @@ def student_login():
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'خطأ في تسجيل الدخول: {str(e)}'}), 500
+
+@student_bp.route('/logout', methods=['POST'])
+def student_logout():
+    """Student logout endpoint - logs the logout activity"""
+    data = request.json
+    student_id = data.get('studentId')
+    
+    if not student_id:
+        return jsonify({'success': False, 'message': 'معرف الطالب مطلوب'}), 400
+    
+    try:
+        # Log the student logout for activity tracking
+        try:
+            execute_query(
+                "INSERT INTO student_login_logs (id, student_id, action_type, logged_in_at) VALUES (%s, %s, 'logout', CURRENT_TIMESTAMP)",
+                (str(uuid.uuid4()), student_id)
+            )
+        except Exception as log_error:
+            # If action_type column doesn't exist, just skip logout logging (can't distinguish from login)
+            error_msg = str(log_error).lower()
+            if 'action_type' in error_msg or 'column' in error_msg:
+                print(f"[INFO] action_type column not found, skipping logout logging (run migration to enable)")
+            else:
+                print(f"[WARNING] Failed to log student logout: {log_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تسجيل الخروج بنجاح'
+        })
+    except Exception as e:
+        # Don't fail logout if logging fails
+        print(f"[WARNING] Failed to log student logout: {str(e)}")
+        return jsonify({
+            'success': True,
+            'message': 'تم تسجيل الخروج بنجاح'
+        })
 
 @student_bp.route('/validate/<student_id>', methods=['GET'])
 @verify_student_exists
@@ -110,6 +168,7 @@ def get_student_skills(student_id):
                 'notes': row['notes'],
                 'evidence_url': row['evidence_url'],
                 'evidence_count': row['evidence_count'],
+                'first_evidence_url': row.get('first_evidence_url'),
                 'created_at': created_at, 
                 'updated_at': updated_at
             })
@@ -124,7 +183,7 @@ def get_student_skill_evidence(skill_id):
     """Get evidence/photos for a skill (student read-only view)"""
     try:
         evidence_list = execute_query(
-            'SELECT id, skill_id, evidence_url, created_at FROM skill_evidence WHERE skill_id = %s ORDER BY created_at DESC',
+            "SELECT id, skill_id, evidence_url, created_at FROM skill_evidence WHERE skill_id = %s AND (evidence_url NOT LIKE '%%youtube%%' AND evidence_url NOT LIKE '%%youtu.be%%') ORDER BY created_at DESC",
             (skill_id,),
             fetch_all=True
         )

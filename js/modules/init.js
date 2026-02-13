@@ -30,7 +30,7 @@ window.addEventListener('load', async function () {
             selectedStudentId = savedStudentId;
             selectedStudent = JSON.parse(savedStudentData);
             
-            document.getElementById('currentStudentTitle').innerText = selectedStudent.name;
+            document.getElementById('currentStudentTitle').innerText = `${selectedStudent.name} - ${selectedStudent.code}`;
             document.getElementById('studentLoginView').classList.add('hidden');
             document.getElementById('adminDashboardView').classList.add('hidden');
             document.getElementById('skillsDetailView').classList.remove('hidden');

@@ -44,6 +44,22 @@ class StudentAPI {
 
     async logout() {
         try {
+            // Log the logout activity before clearing session
+            const studentId = this.studentId || sessionStorage.getItem("student_id");
+            if (studentId) {
+                try {
+                    await fetch(`${this.baseURL}/logout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studentId })
+                    });
+                } catch (logError) {
+                    // Don't fail logout if logging fails
+                    console.warn("Failed to log logout:", logError);
+                }
+            }
+            
+            // Clear session
             this.studentId = null;
             this.studentCode = null;
             sessionStorage.removeItem("student_id");
@@ -93,6 +109,7 @@ class StudentAPI {
                     category: skill.category,
                     evidence_url: skill.evidence_url,
                     evidence_count: skill.evidence_count || 0,
+                    first_evidence_url: skill.first_evidence_url,
                     addedDate: skill.created_at,
                     completedDate: skill.updated_at
                 }));
