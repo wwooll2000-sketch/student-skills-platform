@@ -1,7 +1,6 @@
 // Skill Templates Management Module
 
 let localSkillTemplatesCache = [];
-let skillCategoriesCache = [];
 let currentEditingTemplateId = null;
 let currentDetailsTemplateId = null;
 
@@ -32,16 +31,6 @@ async function loadSkillTemplates() {
     }
 }
 
-// Load skill categories - deprecated, kept for compatibility
-async function loadSkillCategories() {
-    // Categories removed from the app
-}
-
-// Populate category dropdowns - deprecated, kept for compatibility
-function populateCategoryDropdowns() {
-    // Categories removed from the app
-}
-
 // Render skill templates
 function renderSkillTemplates(templates) {
     const container = document.getElementById('skillTemplatesList');
@@ -61,7 +50,7 @@ function renderSkillTemplates(templates) {
         <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group">
             <div class="flex items-start justify-between mb-2">
                 <div class="flex items-center gap-2 flex-1">
-                    <span class="text-2xl flex-shrink-0">${template.icon || '📚'}</span>
+                    <span class="flex-shrink-0">${getSkillLinkIcon(template.icon || 'file')}</span>
                     <div class="flex-1 min-w-0">
                         <h4 class="font-semibold text-slate-800 break-words line-clamp-2" title="${template.name}">${template.name}</h4>
                         ${template.description ? `<p class="text-xs text-slate-500 line-clamp-1">${template.description}</p>` : ''}
@@ -112,7 +101,8 @@ function showAddSkillTemplateModal() {
     document.getElementById('newTemplateName').value = '';
     document.getElementById('newTemplateDescription').value = '';
     document.getElementById('newTemplateUrl').value = '';
-    document.getElementById('newTemplateIcon').value = '📚';
+    document.getElementById('newTemplateIcon').value = 'file';
+    updateIconPreview('newTemplateIcon', 'newTemplateIconPreview');
     
     modal.classList.remove('hidden');
     document.getElementById('newTemplateName').focus();
@@ -202,7 +192,8 @@ function editSkillTemplate(templateId) {
     document.getElementById('editTemplateName').value = template.name;
     document.getElementById('editTemplateDescription').value = template.description || '';
     document.getElementById('editTemplateUrl').value = template.url || '';
-    document.getElementById('editTemplateIcon').value = template.icon || '📚';
+    document.getElementById('editTemplateIcon').value = template.icon || 'file';
+    updateIconPreview('editTemplateIcon', 'editTemplateIconPreview');
     
     modal.classList.remove('hidden');
     document.getElementById('editTemplateName').focus();
@@ -440,7 +431,5 @@ async function showBulkAssignFromDetails() {
 // Initialize skill templates management
 async function initSkillTemplatesManagement() {
     if (!isAdmin) return;
-    
-    await loadSkillCategories();
     await loadSkillTemplates();
 }

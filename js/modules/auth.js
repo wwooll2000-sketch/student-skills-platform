@@ -44,6 +44,11 @@ async function verifyAdminLogin() {
 
         renderAdminStudents();
         
+        // Populate the ready-students skill filter dropdown
+        if (typeof populateReadySkillSelect === 'function') {
+            populateReadySkillSelect();
+        }
+        
         // Initialize skill templates management
         if (typeof initSkillTemplatesManagement === 'function') {
             initSkillTemplatesManagement();

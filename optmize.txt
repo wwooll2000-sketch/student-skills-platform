@@ -457,3 +457,77 @@ show the student number in the admin students page only.
 --------------
 
 in the admin students page there is a bug in the filters that when i change to for example المهارات المكتملة then i go back to جميع المهارات then the الشواهد column disappear from all the rows but i can see the الشواهد title only.. please find and fix this issue.
+
+--------------
+
+i noticed that there is leftover code for skill_categories.. please make sure to remove any code related to skill_categories, Also try to find unused code/functionality/variables/etc.. and remove them to make the code cleaner and more efficient.
+
+--------------
+
+change the 	الملف column name to الرابط.
+
+--------------
+
+don't made any sound notifications for the students dashboard.
+
+--------------
+
+You didnt make the teacher can be able to toggle ready/not ready for the students. please do that!
+
+--------------
+
+Add more feature to the "🙋 الطلاب الجاهزين للمهارة" section.. like who the students that not ready if i open a model for exmaple.. add more funcunalatys/buttons and numbers shown, etc..
+
+--------------
+
+switching pages in the admin page should reset the search for the "🙋 الطلاب الجاهزين للمهارة" section.
+
+--------------
+
+alright! let's do some tweaks:
+
+- remove the row that shows إجمالي الطلاب, ✅ جاهز, ❌ غير جاهز complatly because these info shows in the tabs.
+- remove نسبة الجاهزية completely with it's functionality.
+- remove the "👁 غير الجاهزين — قائمة كاملة" button/model complatly.
+- add a button for each tab that says toggle all students to ready if i'm in the غير الجاهزين tab and toggle all students to not ready if i'm in the الجاهزين tab.
+- in both tabs add the functionality t select multiple students and a button to toggle the selected students to ready or not ready based on the current tab.
+
+--------------
+
+- remove the emojie from the tabs ✅ and ❌.
+- change the emojies from these buttons "🔄 تحويل المحددين لغير جاهز (0)" and "🔄 تحويل الكل لغير جاهز"
+- why it shows a model that says "إشعار" when doing any action for the ready/not ready status? please fix that to show the current message and it should be a toast notification.
+
+--------------
+
+remove the ✖ تحويل الكل لغير جاهز button completely with its functionality because we can select all students and toggle them ready or not ready with the other button.
+
+--------------
+
+is this good that when for exmaple i select all students to ready then press the make ready button the server makes a request for each student one by one to update the ready status, like can we make it one request to update all the selected students at once instead of making a request for each student one by one?
+
+--------------
+
+when a student mark a مهارة as ready or not ready, show the info in the 📝 آخر النشاطات, but don't show any if the admin mark a student ready or not.
+
+--------------
+
+i want to add a new thing!
+
+when creating a new مهارة from the إدارة المهارات section there is الأيقونة section that is uselss right now, but i wanna change that! i want for this when it changed it should show the same icon for the المهارات table in the الرابط column for the admin or students beacuse right now it only shows this icon "📂".
+
+also we need to chnage some of the icons we have! remove all the icons and add these:
+- a youtube icon.
+- a pdf icon.
+- a website icon.
+- a default file icon for any other file type.
+
+--------------
+
+remove this becaus what i ment for a default file icon is this "📁"!
+
+also the same svg icon should show in the إدارة المهارات when adding/editing a مهارة in the الأيقونة section.
+
+--------------
+
+perfect! but when adding/editing a مهارة in the الأيقونة section remove the emojies that shows in the dropdown list it should just show the text.

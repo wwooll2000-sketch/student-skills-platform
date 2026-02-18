@@ -38,6 +38,24 @@ function updateStudentProgressBar(completedCount, totalCount) {
     `;
 }
 
+function getSkillLinkIcon(iconKey) {
+    const icons = {
+        youtube: `<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle"><path fill="#FF0000" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8z"/><polygon fill="white" points="9.6,15.6 15.8,12 9.6,8.4"/></svg>`,
+        pdf: `<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle"><path fill="#E53E3E" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path fill="#FEB2B2" d="M14 2v6h6"/><text x="5" y="18" font-size="5.5" fill="white" font-weight="bold" font-family="Arial,sans-serif">PDF</text></svg>`,
+        website: `<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+        file: `<span style="display:inline-block;vertical-align:middle;font-size:22px;">📁</span>`
+    };
+    return icons[iconKey] || icons.file;
+}
+
+function updateIconPreview(selectId, previewId) {
+    const select = document.getElementById(selectId);
+    const preview = document.getElementById(previewId);
+    if (select && preview) {
+        preview.innerHTML = getSkillLinkIcon(select.value);
+    }
+}
+
 function getTimeAgo(dateString) {
     if (!dateString) return 'منذ فترة';
     

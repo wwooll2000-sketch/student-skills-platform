@@ -138,7 +138,7 @@ async function renderAdminStudents(options = {}) {
         calls.push(updateStatisticsOptimized());
     }
     
-    if (refreshActivities) {
+    if (refreshActivities && typeof loadRecentActivityOptimized === 'function') {
         calls.push(loadRecentActivityOptimized());
     }
 

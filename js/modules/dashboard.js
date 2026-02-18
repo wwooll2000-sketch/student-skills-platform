@@ -273,7 +273,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
     tbody.innerHTML = '';
 
     if (!skills || skills.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
         return;
     }
 
@@ -287,7 +287,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         
         // Get icon from template if available
         const template = skillTemplatesMap[skillName];
-        const skillIcon = template?.icon || '📚';
+        const skillLinkIcon = getSkillLinkIcon(template?.icon || 'file');
 
         const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'text-green-600' : 'text-red-400';
@@ -303,15 +303,23 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
             </button>` : 
             `<span class="text-slate-300 text-xl">—</span>`;
 
+        // Student ready checkbox
+        const isStudentReady = skill.is_student_ready || false;
+
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
-                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
                 <span>${skillName}</span>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
-                    📂
+                <a href="${skillUrl}" target="_blank" class="hover:scale-110 transition-transform inline-block" title="فتح الرابط">
+                    ${skillLinkIcon}
                 </a>
+            </td>
+            <td class="p-2 sm:p-4 text-center">
+                <input type="checkbox" id="ready_simple_${skill.id}" ${isStudentReady ? 'checked' : ''}
+                    onchange="handleSkillReadyChange('${skill.id}', this.checked)"
+                    class="w-5 h-5 accent-green-500 cursor-pointer rounded"
+                    title="ضع علامة إذا كنت جاهزاً لهذه المهارة">
             </td>
             <td class="p-2 sm:p-4 text-center">
                 ${evidenceHtml}
@@ -324,4 +332,212 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         `;
         tbody.appendChild(row);
     });
+}
+// ----- Ready Students by Skill -----
+
+async function populateReadySkillSelect() {
+    const select = document.getElementById('readySkillSelect');
+    if (!select) return;
+
+    try {
+        const response = await fetch('/api/skill-templates?is_active=true', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+        });
+        const data = await response.json();
+        if (!data.success) return;
+
+        const templates = data.templates || [];
+        select.innerHTML = '<option value="">-- اختر المهارة --</option>' +
+            templates.map(t => `<option value="${t.name.replace(/"/g, '&quot;')}">${t.name}</option>`).join('');
+    } catch (e) {
+        console.error('Error loading skills for ready-select:', e);
+    }
+}
+
+// Tracks the currently active tab ('ready' | 'notready')
+let _currentReadyTab = 'ready';
+// Unused legacy var kept to avoid reference errors in case any external code references it
+let _currentNotReadyStudents = [];
+let _currentTabStudents = [];
+
+async function loadReadyStudentsForSkill() {
+    const select = document.getElementById('readySkillSelect');
+    const container = document.getElementById('readyStudentsList');
+    if (!select || !container) return;
+
+    const skillName = select.value.trim();
+    if (!skillName) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-3">اختر مهارة من القائمة لعرض النتائج</p>';
+        return;
+    }
+
+    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-3">⏳ جاري التحميل...</p>';
+
+    const result = await adminAPI.getAllStudentsBySkill(skillName);
+
+    if (!result.success) {
+        container.innerHTML = `<p class="text-red-500 text-sm text-center py-3">${result.message || 'خطأ في جلب البيانات'}</p>`;
+        return;
+    }
+
+    window._cachedReadyArr = result.ready || [];
+    window._cachedNotReadyArr = result.not_ready || [];
+    window._currentReadySkillName = skillName;
+
+    const readyCount = window._cachedReadyArr.length;
+    const notReadyCount = window._cachedNotReadyArr.length;
+
+    container.innerHTML = `
+        <div class="flex gap-1 bg-slate-100 rounded-lg p-1">
+            <button id="tabReady" onclick="_switchReadyTab('ready')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-green-700">
+                الجاهزون <span class="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full ml-1">${readyCount}</span>
+            </button>
+            <button id="tabNotReady" onclick="_switchReadyTab('notready')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500">
+                غير الجاهزين <span class="bg-red-100 text-red-500 text-xs px-1.5 py-0.5 rounded-full ml-1">${notReadyCount}</span>
+            </button>
+        </div>
+        <div id="readyTabContent" class="mt-3"></div>
+    `;
+
+    _switchReadyTab(_currentReadyTab === 'ready' ? 'ready' : 'notready');
+}
+
+function _switchReadyTab(tab) {
+    _currentReadyTab = tab;
+    const content = document.getElementById('readyTabContent');
+    const tabReadyBtn = document.getElementById('tabReady');
+    const tabNotReadyBtn = document.getElementById('tabNotReady');
+    if (!content) return;
+
+    if (tabReadyBtn) tabReadyBtn.className = tab === 'ready'
+        ? 'flex-1 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-green-700'
+        : 'flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500';
+    if (tabNotReadyBtn) tabNotReadyBtn.className = tab === 'notready'
+        ? 'flex-1 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-red-600'
+        : 'flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500';
+
+    const students = tab === 'ready' ? (window._cachedReadyArr || []) : (window._cachedNotReadyArr || []);
+    const isReady = tab === 'ready';
+    const bg = isReady ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+    const icon = isReady ? '✅' : '❌';
+    const toggleSelActiveCls = isReady
+        ? 'bg-red-600 hover:bg-red-700 text-white'
+        : 'bg-green-600 hover:bg-green-700 text-white';
+    const toggleSelLabel = isReady ? '✖ تحويل المحددين لغير جاهز (0)' : '✔ تحويل المحددين لجاهز (0)';
+
+    if (students.length === 0) {
+        content.innerHTML = `<p class="text-slate-400 text-sm text-center py-8">${isReady ? 'لا يوجد طلاب جاهزون لهذه المهارة' : '🎉 جميع الطلاب جاهزون!'}</p>`;
+        return;
+    }
+
+    content.innerHTML = `
+        <div class="flex flex-wrap items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
+            <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                <input type="checkbox" id="selectAllReady" onchange="_toggleSelectAll(this)"
+                    class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                تحديد الكل
+            </label>
+            <div class="flex-1"></div>
+            <button onclick="_copyCurrentTabNames()"
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs transition">
+                📋 نسخ الأسماء
+            </button>
+            <button id="toggleSelectedBtn" onclick="_toggleSelectedInCurrentTab()" disabled
+                class="bg-slate-300 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-medium cursor-not-allowed"
+                data-active-cls="${toggleSelActiveCls}">
+                ${toggleSelLabel}
+            </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            ${students.map(s => `
+                <label class="flex items-center gap-3 p-3 ${bg} border rounded-lg cursor-pointer hover:opacity-80 transition select-none">
+                    <input type="checkbox" class="ready-check w-4 h-4 accent-indigo-500 rounded cursor-pointer flex-shrink-0"
+                        data-skill-id="${s.skill_id}" onchange="_onReadyCheckChange()">
+                    <span class="text-lg flex-shrink-0">${icon}</span>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm text-slate-800 truncate">${s.name}</p>
+                        <p class="text-xs text-slate-500">رقم: ${s.code}${s.class ? ' | ' + s.class : ''}</p>
+                    </div>
+                </label>`).join('')}
+        </div>
+    `;
+}
+
+function _onReadyCheckChange() {
+    const allChecks = document.querySelectorAll('.ready-check');
+    const checkedCount = document.querySelectorAll('.ready-check:checked').length;
+    const btn = document.getElementById('toggleSelectedBtn');
+    const masterCb = document.getElementById('selectAllReady');
+    if (!btn) return;
+
+    if (checkedCount === 0) {
+        btn.disabled = true;
+        btn.className = 'bg-slate-300 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-medium cursor-not-allowed';
+        const base = _currentReadyTab === 'ready' ? '✖ تحويل المحددين لغير جاهز' : '✔ تحويل المحددين لجاهز';
+        btn.textContent = `${base} (0)`;
+    } else {
+        btn.disabled = false;
+        const activeCls = btn.dataset.activeCls;
+        btn.className = `${activeCls} px-3 py-1.5 rounded-lg text-xs font-medium transition`;
+        const base = _currentReadyTab === 'ready' ? '✖ تحويل المحددين لغير جاهز' : '✔ تحويل المحددين لجاهز';
+        btn.textContent = `${base} (${checkedCount})`;
+    }
+
+    if (masterCb) {
+        masterCb.checked = checkedCount === allChecks.length && allChecks.length > 0;
+        masterCb.indeterminate = checkedCount > 0 && checkedCount < allChecks.length;
+    }
+}
+
+function _toggleSelectAll(masterCb) {
+    document.querySelectorAll('.ready-check').forEach(cb => { cb.checked = masterCb.checked; });
+    _onReadyCheckChange();
+}
+
+async function _toggleSelectedInCurrentTab() {
+    const checked = [...document.querySelectorAll('.ready-check:checked')];
+    if (checked.length === 0) return;
+    const newIsReady = _currentReadyTab !== 'ready';
+    await _bulkToggleStudents(checked.map(cb => cb.dataset.skillId), newIsReady);
+}
+
+async function _bulkToggleStudents(skillIds, newIsReady) {
+    if (skillIds.length === 0) return;
+    const content = document.getElementById('readyTabContent');
+    if (content) content.style.opacity = '0.5';
+    const container = document.getElementById('readyStudentsList');
+    const loadingMsg = document.createElement('p');
+    loadingMsg.className = 'text-xs text-slate-500 text-center mt-2';
+    loadingMsg.textContent = '⏳ جاري التحديث...';
+    if (content) content.appendChild(loadingMsg);
+
+    try {
+        const result = await adminAPI.batchSetSkillReady(skillIds, newIsReady);
+        if (!result.success) {
+            showToast(result.message || 'خطأ أثناء التحديث', { type: 'error' });
+        } else {
+            const msg = newIsReady
+                ? `تم تحويل ${result.updated} طالب إلى جاهز`
+                : `تم تحويل ${result.updated} طالب إلى غير جاهز`;
+            showToast(msg, { type: 'success' });
+        }
+    } catch (e) {
+        showToast('خطأ أثناء التحديث', { type: 'error' });
+    }
+
+    // Reload and stay on same tab
+    await loadReadyStudentsForSkill();
+}
+
+function _copyCurrentTabNames() {
+    const students = _currentReadyTab === 'ready' ? (window._cachedReadyArr || []) : (window._cachedNotReadyArr || []);
+    if (!students || students.length === 0) {
+        showToast('لا توجد أسماء للنسخ', { type: 'info' });
+        return;
+    }
+    navigator.clipboard.writeText(students.map(s => s.name).join('\n'))
+        .then(() => showToast(`تم نسخ ${students.length} اسم`, { type: 'success' }))
+        .catch(() => showToast('تعذر النسخ — جرب مرة أخرى', { type: 'error' }));
 }

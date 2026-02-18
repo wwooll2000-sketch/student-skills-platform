@@ -66,28 +66,6 @@ def get_skill_templates():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@custom_skills_bp.route('/categories', methods=['GET'])
-def get_categories():
-    """Get all skill categories - optimized"""
-    try:
-        results = execute_query(
-            'SELECT id, name, icon, color, display_order FROM skill_categories ORDER BY display_order ASC',
-            fetch_all=True
-        ) or []
-        
-        categories = []
-        for row in results:
-            categories.append({
-                'id': str(row['id']),
-                'name': row['name'],
-                'icon': row['icon'] or '📁',
-                'color': row['color'] or 'slate',
-                'display_order': row['display_order'] or 0
-            })
-        return jsonify({'success': True, 'categories': categories})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
 @custom_skills_bp.route('', methods=['POST'])
 @verify_admin
 def add_skill_template():

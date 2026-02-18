@@ -169,6 +169,7 @@ def get_student_skills(student_id):
                 'evidence_url': row['evidence_url'],
                 'evidence_count': row['evidence_count'],
                 'first_evidence_url': row.get('first_evidence_url'),
+                'is_student_ready': row.get('is_student_ready', False) or False,
                 'created_at': created_at, 
                 'updated_at': updated_at
             })
@@ -177,6 +178,48 @@ def get_student_skills(student_id):
     except Exception as e:
         print(f"[ERROR] get_student_skills: {str(e)}")
         return jsonify({'success': False, 'message': f'خطأ في جلب المهارات: {str(e)}'}), 500
+
+@student_bp.route('/<student_id>/skills/<skill_id>/ready', methods=['PATCH'])
+@verify_student_exists
+def toggle_skill_ready(student_id, skill_id):
+    """Student marks themselves as ready (or not ready) for a skill"""
+    data = request.json or {}
+    is_ready = bool(data.get('is_ready', False))
+
+    try:
+        skill = execute_query(
+            'UPDATE skills SET is_student_ready = %s, updated_at = CURRENT_TIMESTAMP '
+            'WHERE id = %s AND student_id = %s RETURNING id, is_student_ready',
+            (is_ready, skill_id, student_id),
+            fetch_one=True
+        )
+
+        if not skill:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+
+        # Invalidate cache so teacher panel reflects the change immediately
+        invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
+
+        # Log the event (student-only — admin endpoints never write here)
+        try:
+            execute_query(
+                '''INSERT INTO student_ready_log (student_id, skill_id, skill_name, is_ready)
+                   SELECT %s, sk.id, sk.name, %s FROM skills sk WHERE sk.id = %s''',
+                (student_id, is_ready, skill_id)
+            )
+        except Exception as log_err:
+            # Non-fatal: log but don't fail the request
+            print(f"[WARN] Could not write student_ready_log: {log_err}")
+
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث حالة الجاهزية',
+            'is_student_ready': skill['is_student_ready']
+        })
+    except Exception as e:
+        print(f"[ERROR] toggle_skill_ready: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
 
 @student_bp.route('/skills/<skill_id>/evidence', methods=['GET'])
 def get_student_skill_evidence(skill_id):

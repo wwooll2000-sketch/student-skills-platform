@@ -182,6 +182,7 @@ def get_student_skills_cached(student_id: str) -> List[Dict]:
     """Get student skills with 10-second cache for real-time updates"""
     query = '''
         SELECT s.id, s.student_id, s.name, s.level, s.description, s.category, s.notes, s.evidence_url,
+               s.is_student_ready,
                s.created_at AT TIME ZONE 'UTC' as created_at,
                s.updated_at AT TIME ZONE 'UTC' as updated_at,
                (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%')) as evidence_count,

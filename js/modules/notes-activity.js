@@ -96,6 +96,26 @@ async function loadRecentActivity() {
                     <div class="text-xs text-slate-400">${timeAgo}</div>
                 </div>
             `;
+        } else if (activity.type === 'ready') {
+            div.innerHTML = `
+                <span class="text-lg">🙋</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">جاهز لمهارة</span>
+                    <span class="font-medium text-green-600">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else if (activity.type === 'unready') {
+            div.innerHTML = `
+                <span class="text-lg">↩️</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">ألغى جاهزيته لمهارة</span>
+                    <span class="font-medium text-red-500">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
         } else {
             div.innerHTML = `
                 <span class="text-lg">✅</span>
@@ -171,7 +191,26 @@ function renderActivities(container, activities) {
                     <div class="text-xs text-slate-400">${timeAgo}</div>
                 </div>
             `;
-        } else {
+        } else if (activity.type === 'ready') {
+            div.innerHTML = `
+                <span class="text-lg">🙋</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">جاهز لمهارة</span>
+                    <span class="font-medium text-green-600">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;
+        } else if (activity.type === 'unready') {
+            div.innerHTML = `
+                <span class="text-lg">↩️</span>
+                <div class="flex-1">
+                    <span class="font-medium">${activity.studentName}</span>
+                    <span class="text-slate-600">ألغى جاهزيته لمهارة</span>
+                    <span class="font-medium text-red-500">${activity.skillName}</span>
+                    <div class="text-xs text-slate-400">${timeAgo}</div>
+                </div>
+            `;        } else {
             div.innerHTML = `
                 <span class="text-lg">✅</span>
                 <div class="flex-1">

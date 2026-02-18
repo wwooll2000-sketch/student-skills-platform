@@ -31,7 +31,7 @@ async function renderStudentSkillsFromDB(studentId) {
     }
 
     if (!skillsResult.success || !skillsResult.data || skillsResult.data.skills.length === 0) {
-        const colspan = isAdmin ? '6' : '4';
+        const colspan = isAdmin ? '6' : '5';
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
         updateStudentProgressBar(0, 0);
         
@@ -66,7 +66,7 @@ async function renderStudentSkillsFromDB(studentId) {
         
         // Get icon from template if available
         const template = skillTemplatesMap[skillName];
-        const skillIcon = template?.icon || '📚';
+        const skillLinkIcon = getSkillLinkIcon(template?.icon || 'file');
 
         const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
@@ -81,18 +81,28 @@ async function renderStudentSkillsFromDB(studentId) {
             </button>` : 
             `<span class="text-slate-300 text-xl">—</span>`;
 
+        // Student ready checkbox (both admin and student can toggle)
+        const isStudentReady = skill.is_student_ready || false;
+        const readyTitle = isAdmin ? 'تغيير حالة جاهزية الطالب' : 'ضع علامة إذا كنت جاهزاً لهذه المهارة';
+        const readyCell = `<td class="p-2 sm:p-4 text-center">
+                <input type="checkbox" id="ready_${skill.id}" ${isStudentReady ? 'checked' : ''}
+                    onchange="handleSkillReadyChange('${skill.id}', this.checked)"
+                    class="w-5 h-5 accent-green-500 cursor-pointer rounded"
+                    title="${readyTitle}">
+               </td>`;
+
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
-                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
                 <span>${skillName}</span>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
-                    📂
+                <a href="${skillUrl}" target="_blank" class="hover:scale-110 transition-transform inline-block" title="فتح الرابط">
+                    ${skillLinkIcon}
                 </a>
             </td>
+            ${readyCell}
             <td class="p-2 sm:p-4 text-center">
                 ${evidenceHtml}
             </td>
@@ -110,6 +120,33 @@ async function renderStudentSkillsFromDB(studentId) {
 
 // Global variable to store current skill being toggled
 let currentTogglingSkillId = null;
+
+async function handleSkillReadyChange(skillId, isReady) {
+    // Both admin and student can toggle ready status
+    const checkbox = document.getElementById(`ready_${skillId}`) || document.getElementById(`ready_simple_${skillId}`);
+    if (checkbox) checkbox.disabled = true; // Prevent double-clicks
+
+    try {
+        const result = isAdmin
+            ? await adminAPI.setSkillReady(skillId, isReady)
+            : await studentAPI.setSkillReady(skillId, isReady);
+
+        if (!result.success) {
+            // Revert checkbox on failure
+            if (checkbox) { checkbox.checked = !isReady; checkbox.disabled = false; }
+            showToast(result.message || 'خطأ في تحديث الحالة', { type: 'error', title: 'خطأ' });
+        } else {
+            if (checkbox) checkbox.disabled = false;
+            const msg = isAdmin
+                ? (isReady ? 'تم تأشير الطالب كجاهز ✅' : 'تم إلغاء جاهزية الطالب')
+                : (isReady ? 'تم تسجيل جاهزيتك ✅' : 'تم إلغاء علامة الجاهزية');
+            showToast(msg, { type: 'success' });
+        }
+    } catch (e) {
+        if (checkbox) { checkbox.checked = !isReady; checkbox.disabled = false; }
+        showToast('خطأ في الاتصال بالخادم', { type: 'error', title: 'خطأ' });
+    }
+}
 
 async function toggleSkill(skillId, currentLevel) {
     if (!isAdmin) return;
@@ -1545,6 +1582,13 @@ function backToHome() {
     
     if (isAdmin) {
         document.getElementById('adminDashboardView').classList.remove('hidden');
+        // Reset the ready-students search section
+        const readySkillSelect = document.getElementById('readySkillSelect');
+        const readyStudentsList = document.getElementById('readyStudentsList');
+        if (readySkillSelect) readySkillSelect.value = '';
+        if (readyStudentsList) readyStudentsList.innerHTML = '';
+        window._cachedReadyArr = [];
+        window._cachedNotReadyArr = [];
         // Refetch data when going back to ensure fresh data
         renderAdminStudents();
     } else {
@@ -1575,7 +1619,7 @@ function applySkillFilter() {
     tbody.innerHTML = '';
 
     if (filteredSkills.length === 0) {
-        const colspan = isAdmin ? '5' : '3';
+        const colspan = isAdmin ? '6' : '5';
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="p-10 text-center text-slate-400">لا توجد مهارات</td></tr>`;
         return;
     }
@@ -1591,7 +1635,7 @@ function applySkillFilter() {
         // Get icon from template if available
         const skillTemplatesMap = isAdmin ? await getSkillTemplatesMap() : {};
         const template = skillTemplatesMap[skillName];
-        const skillIcon = template?.icon || '📚';
+        const skillLinkIcon = getSkillLinkIcon(template?.icon || 'file');
 
         const statusText = isDone ? 'تم إنجازها' : 'لم تكتمل';
         const statusColor = isDone ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300';
@@ -1606,18 +1650,28 @@ function applySkillFilter() {
             </button>` : 
             `<span class="text-slate-300 text-xl">—</span>`;
 
+        // Student ready checkbox (both admin and student can toggle)
+        const isStudentReady = skill.is_student_ready || false;
+        const readyTitle = isAdmin ? 'تغيير حالة جاهزية الطالب' : 'ضع علامة إذا كنت جاهزاً لهذه المهارة';
+        const readyCell = `<td class="p-2 sm:p-4 text-center">
+                <input type="checkbox" id="ready_${skill.id}" ${isStudentReady ? 'checked' : ''}
+                    onchange="handleSkillReadyChange('${skill.id}', this.checked)"
+                    class="w-5 h-5 accent-green-500 cursor-pointer rounded"
+                    title="${readyTitle}">
+               </td>`;
+
         let deleteBtn = isAdmin ? `<td class="p-2 sm:p-4 text-center"><button onclick="deleteSkill('${skill.id}', '${skillName.replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-xl sm:text-2xl">🗑️</button></td>` : '';
 
         row.innerHTML = `
             <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
-                <span class="text-xl sm:text-2xl mr-2">${skillIcon}</span>
                 <span>${skillName}</span>
             </td>
             <td class="p-2 sm:p-4 text-center">
-                <a href="${skillUrl}" target="_blank" class="text-xl sm:text-2xl hover:scale-110 transition-transform inline-block" title="فتح الملف">
-                    📂
+                <a href="${skillUrl}" target="_blank" class="hover:scale-110 transition-transform inline-block" title="فتح الرابط">
+                    ${skillLinkIcon}
                 </a>
             </td>
+            ${readyCell}
             <td class="p-2 sm:p-4 text-center">
                 ${evidenceHtml}
             </td>

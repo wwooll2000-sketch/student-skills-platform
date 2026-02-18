@@ -44,14 +44,18 @@ def create_app():
         app.register_blueprint(custom_skills_bp)
         app.register_blueprint(health_bp)
     except Exception as e:
+        # Capture error details before Python deletes the 'e' variable at end of except block
+        _init_error_msg = str(e)
+        _init_traceback = traceback.format_exc()
+
         # Register a fallback error route
         @app.route('/')
         @app.route('/<path:path>')
         def error_route(path=''):
             return {
                 'success': False,
-                'message': f'Application initialization error: {str(e)}',
-                'traceback': traceback.format_exc()
+                'message': f'Application initialization error: {_init_error_msg}',
+                'traceback': _init_traceback
             }, 500
     
     # Handle common static file requests

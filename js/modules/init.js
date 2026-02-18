@@ -44,6 +44,10 @@ window.addEventListener('load', async function () {
             document.getElementById('studentLoginView').classList.add('hidden');
             document.getElementById('adminDashboardView').classList.remove('hidden');
             renderAdminStudents();
+            // Populate skill-ready filter dropdown
+            if (typeof populateReadySkillSelect === 'function') {
+                populateReadySkillSelect();
+            }
             console.log('✅ تم تسجيل دخول المعلم تلقائياً');
         }
     }

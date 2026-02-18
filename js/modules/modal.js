@@ -276,8 +276,8 @@ function showToast(message, options = {}) {
     container.appendChild(toast);
     toastQueue.push(toast);
     
-    // Play sound for success toasts (only if not muted)
-    if (type === 'success' && !isNotificationMuted) {
+    // Play sound for success toasts (only for admin and only if not muted)
+    if (type === 'success' && !isNotificationMuted && isAdmin) {
         playSuccessSound();
     }
     

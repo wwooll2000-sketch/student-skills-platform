@@ -506,9 +506,41 @@ def get_recent_activities():
                 print(f"[WARNING] Unexpected error fetching login logs: {login_error}")
                 login_results = []
         
+        # Get recent student-initiated ready/unready events
+        ready_results = []
+        try:
+            ready_results = execute_query('''
+                SELECT
+                    s.name as student_name,
+                    s.code as student_code,
+                    rl.skill_name,
+                    rl.is_ready,
+                    rl.logged_at AT TIME ZONE 'UTC' as activity_date
+                FROM student_ready_log rl
+                JOIN students s ON rl.student_id = s.id
+                ORDER BY rl.logged_at DESC
+                LIMIT 30
+            ''', fetch_all=True) or []
+        except Exception as ready_err:
+            if 'student_ready_log' in str(ready_err).lower() or 'does not exist' in str(ready_err).lower():
+                print('[INFO] student_ready_log table not found, skipping ready activities')
+            else:
+                print(f'[WARNING] Unexpected error fetching ready log: {ready_err}')
+
         # Combine and sort all activities
         all_activities = []
-        
+
+        for row in ready_results:
+            activity_date = row['activity_date']
+            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
+            all_activities.append({
+                'studentName': row['student_name'],
+                'studentCode': row['student_code'],
+                'skillName': row['skill_name'],
+                'date': date_str,
+                'type': 'ready' if row['is_ready'] else 'unready'
+            })
+
         for row in skill_results:
             activity_date = row['activity_date']
             date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
@@ -777,6 +809,155 @@ def batch_add_skills():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': f'خطأ في الإضافة الجماعية: {str(e)}'}), 500
+
+@admin_bp.route('/skills/students-by-skill', methods=['GET'])
+@verify_admin
+def get_all_students_by_skill():
+    """Get all students who have a skill by name, split into ready/not_ready, each with skill_id"""
+    skill_name = request.args.get('skill_name', '').strip()
+    if not skill_name:
+        return jsonify({'success': False, 'message': 'اسم المهارة مطلوب'}), 400
+    try:
+        rows = execute_query(
+            '''SELECT st.id, st.name, st.code, st.class, st.email,
+                      sk.id as skill_id, sk.is_student_ready
+               FROM students st
+               JOIN skills sk ON sk.student_id = st.id
+               WHERE sk.name = %s
+               ORDER BY st.name ASC''',
+            (skill_name,),
+            fetch_all=True
+        )
+        ready = []
+        not_ready = []
+        for r in (rows or []):
+            entry = {
+                'id': str(r['id']),
+                'name': r['name'],
+                'code': r['code'],
+                'class': r['class'] or '',
+                'email': r['email'] or '',
+                'skill_id': str(r['skill_id'])
+            }
+            if r['is_student_ready']:
+                ready.append(entry)
+            else:
+                not_ready.append(entry)
+        return jsonify({'success': True, 'skill_name': skill_name, 'ready': ready, 'not_ready': not_ready})
+    except Exception as e:
+        print(f"[ERROR] get_all_students_by_skill: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_bp.route('/skills/ready-students', methods=['GET'])
+@verify_admin
+def get_ready_students_for_skill():
+    """Get all students who marked themselves ready for a specific skill (by name)"""
+    skill_name = request.args.get('skill_name', '').strip()
+
+    if not skill_name:
+        return jsonify({'success': False, 'message': 'اسم المهارة مطلوب'}), 400
+
+    try:
+        rows = execute_query(
+            '''SELECT st.id, st.name, st.code, st.class, st.email,
+                      sk.id as skill_id, sk.updated_at
+               FROM students st
+               JOIN skills sk ON sk.student_id = st.id
+               WHERE sk.name = %s AND sk.is_student_ready = TRUE
+               ORDER BY st.name ASC''',
+            (skill_name,),
+            fetch_all=True
+        )
+
+        return jsonify({
+            'success': True,
+            'skill_name': skill_name,
+            'students': [
+                {
+                    'id': str(r['id']),
+                    'name': r['name'],
+                    'code': r['code'],
+                    'class': r['class'],
+                    'email': r['email'],
+                    'skill_id': str(r['skill_id']),
+                    'ready_at': r['updated_at'].isoformat() if r['updated_at'] else None
+                }
+                for r in rows
+            ] if rows else []
+        })
+    except Exception as e:
+        print(f"[ERROR] get_ready_students_for_skill: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_bp.route('/skills/batch-ready', methods=['PATCH'])
+@verify_admin
+def admin_batch_toggle_skill_ready():
+    """Admin batch-updates is_student_ready for multiple skill IDs in one query"""
+    data = request.json or {}
+    skill_ids = data.get('skill_ids', [])
+    is_ready = bool(data.get('is_ready', False))
+
+    if not skill_ids or not isinstance(skill_ids, list):
+        return jsonify({'success': False, 'message': 'skill_ids مطلوب'}), 400
+
+    try:
+        import uuid
+        skill_uuids = [uuid.UUID(sid) for sid in skill_ids]
+
+        rows = execute_query(
+            'UPDATE skills SET is_student_ready = %s, updated_at = CURRENT_TIMESTAMP '
+            'WHERE id = ANY(%s) RETURNING id, student_id',
+            (is_ready, skill_uuids),
+            fetch_all=True
+        )
+
+        # Invalidate each affected student's cache
+        seen = set()
+        for r in (rows or []):
+            sid = str(r['student_id'])
+            if sid not in seen:
+                seen.add(sid)
+                invalidate_cache(f"get_student_skills_cached:('{sid}',)")
+
+        updated = len(rows) if rows else 0
+        return jsonify({'success': True, 'updated': updated, 'message': f'تم تحديث {updated} مهارة'})
+    except Exception as e:
+        print(f"[ERROR] admin_batch_toggle_skill_ready: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_bp.route('/skills/<skill_id>/ready', methods=['PATCH'])
+@verify_admin
+def admin_toggle_skill_ready(skill_id):
+    """Admin toggles is_student_ready for any skill"""
+    data = request.json or {}
+    is_ready = bool(data.get('is_ready', False))
+
+    try:
+        skill = execute_query(
+            'UPDATE skills SET is_student_ready = %s, updated_at = CURRENT_TIMESTAMP '
+            'WHERE id = %s RETURNING id, student_id, is_student_ready',
+            (is_ready, skill_id),
+            fetch_one=True
+        )
+
+        if not skill:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+
+        student_id = skill['student_id']
+        invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
+
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث حالة الجاهزية',
+            'is_student_ready': skill['is_student_ready']
+        })
+    except Exception as e:
+        print(f"[ERROR] admin_toggle_skill_ready: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
 
 @admin_bp.route('/cache/clear', methods=['POST'])
 @verify_admin

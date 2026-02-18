@@ -110,6 +110,7 @@ class StudentAPI {
                     evidence_url: skill.evidence_url,
                     evidence_count: skill.evidence_count || 0,
                     first_evidence_url: skill.first_evidence_url,
+                    is_student_ready: skill.is_student_ready || false,
                     addedDate: skill.created_at,
                     completedDate: skill.updated_at
                 }));
@@ -166,6 +167,24 @@ class StudentAPI {
                 success: false,
                 message: "خطأ في الاتصال بالخادم"
             };
+        }
+    }
+
+    async setSkillReady(skillId, isReady) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/${this.studentId}/skills/${skillId}/ready`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_ready: isReady })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في تحديث حالة الجاهزية:", error);
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
         }
     }
 

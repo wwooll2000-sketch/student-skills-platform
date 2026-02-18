@@ -571,6 +571,82 @@ class AdminAPI {
         }
     }
 
+    async batchSetSkillReady(skillIds, isReady) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+        try {
+            const response = await fetch(`${this.baseURL}/skills/batch-ready`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify({ skill_ids: skillIds, is_ready: isReady })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في التحديث الجماعي:", error);
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async setSkillReady(skillId, isReady) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/skills/${skillId}/ready`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.authToken}`
+                },
+                body: JSON.stringify({ is_ready: isReady })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في تحديث حالة الجاهزية:", error);
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async getStudentsReadyForSkill(skillName) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+
+        try {
+            const response = await fetch(
+                `${this.baseURL}/skills/ready-students?skill_name=${encodeURIComponent(skillName)}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${this.authToken}`
+                    }
+                }
+            );
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في جلب الطلاب الجاهزين:", error);
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async getAllStudentsBySkill(skillName) {
+        if (!this.isAuthorized()) {
+            return { success: false, message: "غير مصرح - يرجى تسجيل الدخول" };
+        }
+        try {
+            const response = await fetch(
+                `${this.baseURL}/skills/students-by-skill?skill_name=${encodeURIComponent(skillName)}`,
+                { headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.authToken}` } }
+            );
+            return await response.json();
+        } catch (error) {
+            console.error("خطأ في جلب طلاب المهارة:", error);
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
 }
 
 const adminAPI = new AdminAPI();

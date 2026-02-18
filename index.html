@@ -242,7 +242,8 @@
                         <thead>
                             <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                 <th class="p-3 sm:p-4 font-bold text-sm sm:text-base">المهارة</th>
-                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الملف</th>
+                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الرابط</th>
+                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">جاهز ✅</th>
                                 <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الشواهد</th>
                                 <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الحالة</th>
                             </tr>
@@ -318,6 +319,22 @@
                         <div class="text-xs sm:text-sm opacity-90">نسبة الإنجاز</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Ready Students by Skill Panel -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+                <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-4">🙋 الطلاب الجاهزين للمهارة</h3>
+                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <select id="readySkillSelect" onchange="loadReadyStudentsForSkill()"
+                        class="flex-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="">-- اختر المهارة --</option>
+                    </select>
+                    <button onclick="loadReadyStudentsForSkill()"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium whitespace-nowrap">
+                        🔍 بحث
+                    </button>
+                </div>
+                <div id="readyStudentsList" class="mt-4"></div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -429,6 +446,7 @@
                             <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                 <th class="p-2 sm:p-4 font-bold text-xs sm:text-sm">المهارة</th>
                                 <th class="p-2 sm:p-4 font-bold text-xs sm:text-sm">الملفات</th>
+                                <th class="p-2 sm:p-4 font-bold text-center text-xs sm:text-sm">جاهز ✅</th>
                                 <th class="p-2 sm:p-4 font-bold text-center text-xs sm:text-sm">الشواهد</th>
                                 <th class="p-2 sm:p-4 font-bold text-center text-xs sm:text-sm">الحالة</th>
                                 <th id="adminHeaderDelete"
@@ -635,19 +653,17 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">الأيقونة</label>
-                    <select id="newTemplateIcon"
-                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="📚">📚 كتاب</option>
-                        <option value="📖">📖 قراءة</option>
-                        <option value="✍️">✍️ كتابة</option>
-                        <option value="🔢">🔢 رياضيات</option>
-                        <option value="🔬">🔬 علوم</option>
-                        <option value="💻">💻 برمجة</option>
-                        <option value="🎨">🎨 فن</option>
-                        <option value="🎵">🎵 موسيقى</option>
-                        <option value="⚽">⚽ رياضة</option>
-                        <option value="⭐">⭐ عامة</option>
-                    </select>
+                    <div class="flex items-center gap-3">
+                        <span id="newTemplateIconPreview" class="flex-shrink-0"></span>
+                        <select id="newTemplateIcon"
+                            onchange="updateIconPreview('newTemplateIcon','newTemplateIconPreview')"
+                            class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="file" selected>ملف (افتراضي)</option>
+                            <option value="youtube">يوتيوب</option>
+                            <option value="pdf">PDF</option>
+                            <option value="website">موقع ويب</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -683,19 +699,17 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">الأيقونة</label>
-                    <select id="editTemplateIcon"
-                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="📚">📚 كتاب</option>
-                        <option value="📖">📖 قراءة</option>
-                        <option value="✍️">✍️ كتابة</option>
-                        <option value="🔢">🔢 رياضيات</option>
-                        <option value="🔬">🔬 علوم</option>
-                        <option value="💻">💻 برمجة</option>
-                        <option value="🎨">🎨 فن</option>
-                        <option value="🎵">🎵 موسيقى</option>
-                        <option value="⚽">⚽ رياضة</option>
-                        <option value="⭐">⭐ عامة</option>
-                    </select>
+                    <div class="flex items-center gap-3">
+                        <span id="editTemplateIconPreview" class="flex-shrink-0"></span>
+                        <select id="editTemplateIcon"
+                            onchange="updateIconPreview('editTemplateIcon','editTemplateIconPreview')"
+                            class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="file">ملف (افتراضي)</option>
+                            <option value="youtube">يوتيوب</option>
+                            <option value="pdf">PDF</option>
+                            <option value="website">موقع ويب</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
