@@ -34,12 +34,24 @@ def add_skill(student_id):
 
     try:
         skill_id = str(uuid.uuid4())
-        skill = execute_query(
-            'INSERT INTO skills (id, student_id, name, level, description, notes, evidence_url, created_at, updated_at) '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-            (skill_id, student_id, name, level, description, notes, evidence),
-            fetch_one=True
-        )
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'INSERT INTO skills (id, student_id, name, level, description, notes, evidence_url, created_at, updated_at) '
+                    'VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+                    (skill_id, student_id, name, level, description, notes, evidence)
+                )
+                skill = cur.fetchone()
+
+                # Recalculate usage count for this skill template
+                cur.execute(
+                    '''UPDATE skill_templates
+                       SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                           updated_at = CURRENT_TIMESTAMP
+                       WHERE name = %s''',
+                    (name, name)
+                )
+                conn.commit()
 
         invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
 
@@ -188,6 +200,20 @@ def batch_add_skills():
     try:
         success = batch_insert_skills(skills)
         if success:
+            # Recalculate usage counts for all affected skill templates
+            skill_names = list({s['name'] for s in skills if s.get('name')})
+            if skill_names:
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        for skill_name in skill_names:
+                            cur.execute(
+                                '''UPDATE skill_templates
+                                   SET usage_count = (SELECT COUNT(DISTINCT student_id) FROM skills WHERE name = %s AND student_id IS NOT NULL),
+                                       updated_at = CURRENT_TIMESTAMP
+                                   WHERE name = %s''',
+                                (skill_name, skill_name)
+                            )
+                        conn.commit()
             invalidate_cache()
             return jsonify({
                 'success': True,
@@ -347,4 +373,249 @@ def admin_toggle_skill_ready(skill_id):
         })
     except Exception as e:
         print(f"[ERROR] admin_toggle_skill_ready: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+# ─── Test Questions CRUD ─────────────────────────────────────────────────────
+
+@admin_skills_bp.route('/skill-templates/<template_id>/test-questions', methods=['GET'])
+@verify_admin
+def get_test_questions(template_id):
+    """Get all test questions for a skill template"""
+    try:
+        rows = execute_query(
+            'SELECT id, question, correct_answer, order_num FROM skill_test_questions '
+            'WHERE template_id = %s ORDER BY order_num ASC, created_at ASC',
+            (template_id,),
+            fetch_all=True
+        )
+        return jsonify({
+            'success': True,
+            'questions': [
+                {
+                    'id': str(r['id']),
+                    'question': r['question'],
+                    'correct_answer': r['correct_answer'],
+                    'order_num': r['order_num']
+                }
+                for r in (rows or [])
+            ]
+        })
+    except Exception as e:
+        print(f"[ERROR] get_test_questions: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/skill-templates/<template_id>/test-questions', methods=['POST'])
+@verify_admin
+def add_test_question(template_id):
+    """Add a test question to a skill template (max 5)"""
+    data = request.json or {}
+    question_text = data.get('question', '').strip()
+    correct_answer = data.get('correct_answer')
+    order_num = data.get('order_num', 0)
+
+    if not question_text or correct_answer is None:
+        return jsonify({'success': False, 'message': 'السؤال والإجابة مطلوبان'}), 400
+
+    try:
+        count_row = execute_query(
+            'SELECT COUNT(*) as cnt FROM skill_test_questions WHERE template_id = %s',
+            (template_id,),
+            fetch_one=True
+        )
+        if count_row and count_row['cnt'] >= 5:
+            return jsonify({'success': False, 'message': 'الحد الأقصى 5 أسئلة لكل اختبار'}), 400
+
+        q = execute_query(
+            'INSERT INTO skill_test_questions (template_id, question, correct_answer, order_num) '
+            'VALUES (%s, %s, %s, %s) RETURNING id, question, correct_answer, order_num',
+            (template_id, question_text, bool(correct_answer), int(order_num)),
+            fetch_one=True
+        )
+        return jsonify({
+            'success': True,
+            'question': {
+                'id': str(q['id']),
+                'question': q['question'],
+                'correct_answer': q['correct_answer'],
+                'order_num': q['order_num']
+            }
+        }), 201
+    except Exception as e:
+        print(f"[ERROR] add_test_question: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/test-questions/<question_id>', methods=['PUT'])
+@verify_admin
+def update_test_question(question_id):
+    """Update a test question"""
+    data = request.json or {}
+    question_text = data.get('question', '').strip()
+    correct_answer = data.get('correct_answer')
+    order_num = data.get('order_num')
+
+    if not question_text or correct_answer is None:
+        return jsonify({'success': False, 'message': 'السؤال والإجابة مطلوبان'}), 400
+
+    try:
+        q = execute_query(
+            'UPDATE skill_test_questions SET question = %s, correct_answer = %s, '
+            'order_num = COALESCE(%s, order_num) WHERE id = %s '
+            'RETURNING id, question, correct_answer, order_num',
+            (question_text, bool(correct_answer), order_num, question_id),
+            fetch_one=True
+        )
+        if not q:
+            return jsonify({'success': False, 'message': 'السؤال غير موجود'}), 404
+        return jsonify({
+            'success': True,
+            'question': {
+                'id': str(q['id']),
+                'question': q['question'],
+                'correct_answer': q['correct_answer'],
+                'order_num': q['order_num']
+            }
+        })
+    except Exception as e:
+        print(f"[ERROR] update_test_question: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/test-questions/<question_id>', methods=['DELETE'])
+@verify_admin
+def delete_test_question(question_id):
+    """Delete a test question"""
+    try:
+        q = execute_query(
+            'DELETE FROM skill_test_questions WHERE id = %s RETURNING id',
+            (question_id,),
+            fetch_one=True
+        )
+        if not q:
+            return jsonify({'success': False, 'message': 'السؤال غير موجود'}), 404
+        return jsonify({'success': True, 'message': 'تم حذف السؤال'})
+    except Exception as e:
+        print(f"[ERROR] delete_test_question: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/skill-templates/<template_id>/test-config', methods=['PATCH'])
+@verify_admin
+def update_test_config(template_id):
+    """Update test configuration (max attempts) for a skill template"""
+    data = request.json or {}
+    max_attempts = data.get('max_test_attempts')
+
+    if max_attempts is None:
+        return jsonify({'success': False, 'message': 'عدد المحاولات مطلوب'}), 400
+    try:
+        max_attempts = int(max_attempts)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'عدد المحاولات يجب أن يكون رقماً'}), 400
+    if max_attempts < 1:
+        return jsonify({'success': False, 'message': 'عدد المحاولات يجب أن يكون 1 على الأقل'}), 400
+
+    try:
+        t = execute_query(
+            'UPDATE skill_templates SET max_test_attempts = %s, updated_at = CURRENT_TIMESTAMP '
+            'WHERE id = %s RETURNING id',
+            (max_attempts, template_id),
+            fetch_one=True
+        )
+        if not t:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        return jsonify({'success': True, 'message': 'تم تحديث إعدادات الاختبار', 'max_test_attempts': max_attempts})
+    except Exception as e:
+        print(f"[ERROR] update_test_config: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/skills/<skill_id>/reset-test-attempts', methods=['POST'])
+@verify_admin
+def reset_test_attempts(skill_id):
+    """Reset test attempts for a specific student skill"""
+    try:
+        execute_query(
+            'DELETE FROM skill_test_attempts WHERE skill_id = %s',
+            (skill_id,)
+        )
+        return jsonify({'success': True, 'message': 'تم إعادة تعيين محاولات الاختبار'})
+    except Exception as e:
+        print(f"[ERROR] reset_test_attempts: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/skill-templates/<template_id>/reset-all-test-attempts', methods=['POST'])
+@verify_admin
+def reset_all_test_attempts_for_template(template_id):
+    """Reset test attempts for ALL students for a given skill template"""
+    try:
+        # Delete attempts for all skills with the same template name
+        template = execute_query(
+            'SELECT name FROM skill_templates WHERE id = %s',
+            (template_id,),
+            fetch_one=True
+        )
+        if not template:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+
+        execute_query(
+            '''DELETE FROM skill_test_attempts
+               WHERE skill_id IN (
+                   SELECT id FROM skills WHERE name = %s
+               )''',
+            (template['name'],)
+        )
+        return jsonify({'success': True, 'message': 'تم إعادة تعيين محاولات جميع الطلاب'})
+    except Exception as e:
+        print(f"[ERROR] reset_all_test_attempts_for_template: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@admin_skills_bp.route('/skill-templates/<template_id>/test-stats', methods=['GET'])
+@verify_admin
+def get_test_stats(template_id):
+    """Get test attempt statistics for a skill template (for admin view)"""
+    try:
+        template = execute_query(
+            'SELECT name, max_test_attempts FROM skill_templates WHERE id = %s',
+            (template_id,),
+            fetch_one=True
+        )
+        if not template:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+
+        rows = execute_query(
+            '''SELECT st.name as student_name, st.code,
+                      sk.id as skill_id,
+                      COUNT(ta.id) as attempts_used,
+                      MAX(ta.score) as best_score,
+                      BOOL_OR(ta.passed) as ever_passed
+               FROM students st
+               JOIN skills sk ON sk.student_id = st.id AND sk.name = %s
+               LEFT JOIN skill_test_attempts ta ON ta.skill_id = sk.id
+               GROUP BY st.name, st.code, sk.id
+               ORDER BY st.name ASC''',
+            (template['name'],),
+            fetch_all=True
+        )
+        return jsonify({
+            'success': True,
+            'max_test_attempts': template['max_test_attempts'] or 3,
+            'students': [
+                {
+                    'student_name': r['student_name'],
+                    'code': r['code'],
+                    'skill_id': str(r['skill_id']),
+                    'attempts_used': r['attempts_used'],
+                    'best_score': r['best_score'],
+                    'ever_passed': r['ever_passed'] or False
+                }
+                for r in (rows or [])
+            ]
+        })
+    except Exception as e:
+        print(f"[ERROR] get_test_stats: {str(e)}")
         return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500

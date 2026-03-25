@@ -1105,7 +1105,7 @@ function renderAvailableSkills() {
                 class="absolute top-2 right-2 w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                 ${isSelected ? 'checked' : ''}
                 onchange="toggleSkillSelection('${template.id}', '${template.name.replace(/'/g, "\\'")}', '${(template.url || '').replace(/'/g, "\\'")}')">
-            <div class="text-3xl mb-1 mt-4">${template.icon || '📚'}</div>
+            <div class="text-3xl mb-1 mt-4">${getSkillLinkIcon(template.icon || 'file')}</div>
             <div class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 line-clamp-2">${template.name}</div>
             ${template.category ? `` : ''}
         </label>
@@ -1280,27 +1280,6 @@ async function addSelectedSkillsToStudent() {
             if (result.success) {
                 successCount = skillsToAdd.length;
                 
-                // Update template usage counts in parallel (non-blocking)
-                const updatePromises = templateIds.map(templateId => {
-                    const skillData = window.selectedSkillsData?.get(templateId);
-                    if (!skillData) return Promise.resolve();
-                    
-                    return fetch(`/api/skill-templates/${templateId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                        },
-                        body: JSON.stringify({ 
-                            name: skillData.name,
-                            url: skillData.url,
-                            is_active: true
-                        })
-                    }).catch(e => console.error('Error updating usage count:', e));
-                });
-                
-                // Fire and forget - don't wait for usage count updates
-                Promise.all(updatePromises).catch(e => console.error('Error updating usage counts:', e));
             } else {
                 failCount = skillsToAdd.length;
             }
@@ -1360,27 +1339,9 @@ async function addSkillToStudent(templateId, skillName, skillUrl) {
     );
     
     if (result.success) {
-        // Update usage count
-        try {
-            await fetch(`/api/skill-templates/${templateId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                },
-                body: JSON.stringify({ 
-                    name: skillName,
-                    url: skillUrl,
-                    is_active: true
-                })
-            });
-            
-            // Reload skill templates to update usage count display
-            if (typeof loadSkillTemplates === 'function') {
-                await loadSkillTemplates();
-            }
-        } catch (e) {
-            console.error('Error updating usage count:', e);
+        // Reload skill templates to update usage count display
+        if (typeof loadSkillTemplates === 'function') {
+            await loadSkillTemplates();
         }
         
         // Update statistics - WAIT for completion

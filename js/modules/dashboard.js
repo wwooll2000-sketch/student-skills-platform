@@ -17,6 +17,7 @@ async function getColumnVisibility() {
 }
 
 function applyStudentColumnVisibility(visibility) {
+    updateReadyFeatureWarning(visibility);
     const container = document.getElementById('studentSkillsTableContainer');
     if (!container) return;
     ['الرابط', 'جاهز', 'الشواهد', 'الحالة'].forEach(col => {
@@ -25,6 +26,13 @@ function applyStudentColumnVisibility(visibility) {
             el.classList.toggle('hidden', !show);
         });
     });
+}
+
+function updateReadyFeatureWarning(visibility) {
+    const warning = document.getElementById('readyFeatureDisabledWarning');
+    if (!warning) return;
+    const isDisabled = visibility['جاهز'] === false;
+    warning.classList.toggle('hidden', !isDisabled);
 }
 // ==========================================
 
@@ -228,6 +236,15 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
     // Apply column visibility BEFORE revealing the table — zero flash guaranteed
     applyStudentColumnVisibility(visibility);
     if (tableContainer) tableContainer.classList.remove('hidden');
+
+    // Show pending test result banner from sessionStorage
+    const pendingResult = sessionStorage.getItem('pendingTestResult');
+    if (pendingResult) {
+        try {
+            showTestResultBanner(JSON.parse(pendingResult));
+        } catch(e) {}
+        sessionStorage.removeItem('pendingTestResult');
+    }
 }
 
 // Helper function to get skill templates map with caching
@@ -298,7 +315,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
     tbody.innerHTML = '';
 
     if (!skills || skills.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400">لا توجد مهارات مضافة حتى الآن</td></tr>`;
         return;
     }
 
@@ -354,15 +371,50 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
                     ${statusText}
                 </span>
             </td>
+            <td data-col="الاختبار" class="p-2 sm:p-4 text-center">
+                ${isDone
+                    ? `<span class="text-green-600 font-bold text-xs">✅ تم</span>`
+                    : template
+                        ? `<button onclick="openTestConfirmModal('${skill.id}', '${skillName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded text-xs font-medium transition">📝 قم بالإختبار</button>`
+                        : `<span class="text-slate-300 text-xs">—</span>`
+                }
+            </td>
         `;
         tbody.appendChild(row);
     });
 }
+// ----- Test Result Banner -----
+
+function showTestResultBanner(result) {
+    const container = document.getElementById('studentSkillsTableContainer');
+    if (!container) return;
+
+    const existing = document.getElementById('testResultBanner');
+    if (existing) existing.remove();
+
+    const passed = result.passed;
+    const score = result.score ?? 0;
+    const skillName = result.skill_name || '';
+    const remaining = result.remaining_attempts ?? 0;
+
+    const banner = document.createElement('div');
+    banner.id = 'testResultBanner';
+    banner.className = `mb-4 p-4 rounded-xl border-2 text-center ${passed ? 'bg-green-50 border-green-300 text-green-800' : remaining > 0 ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 'bg-red-50 border-red-300 text-red-800'}`;
+    banner.innerHTML = `
+        <div class="text-2xl mb-1">${passed ? '🎉' : remaining > 0 ? '💪' : '❌'}</div>
+        <div class="font-bold text-base">${skillName ? `<span class="block text-sm font-normal mb-1 opacity-75">${skillName}</span>` : ''}${result.message || (passed ? 'أحسنت! اجتزت الاختبار' : 'لم تجتز الاختبار')}</div>
+        <div class="text-sm mt-1">النتيجة: <strong>${score}/10</strong></div>
+        <button onclick="this.parentElement.remove()" class="mt-2 text-xs underline opacity-60 hover:opacity-100">إغلاق</button>
+    `;
+    container.insertAdjacentElement('beforebegin', banner);
+}
+
 // ----- Ready Students by Skill -----
 
 async function populateReadySkillSelect() {
     const select = document.getElementById('readySkillSelect');
-    if (!select) return;
+    const testSelect = document.getElementById('testStatsSkillSelect');
+    if (!select && !testSelect) return;
 
     try {
         const response = await fetch('/api/skill-templates?is_active=true', {
@@ -372,8 +424,14 @@ async function populateReadySkillSelect() {
         if (!data.success) return;
 
         const templates = data.templates || [];
-        select.innerHTML = '<option value="">-- اختر المهارة --</option>' +
-            templates.map(t => `<option value="${t.name.replace(/"/g, '&quot;')}">${t.name}</option>`).join('');
+        if (select) {
+            select.innerHTML = '<option value="">-- اختر المهارة --</option>' +
+                templates.map(t => `<option value="${t.name.replace(/"/g, '&quot;')}">${t.name}</option>`).join('');
+        }
+        if (testSelect) {
+            testSelect.innerHTML = '<option value="">-- اختر المهارة --</option>' +
+                templates.map(t => `<option value="${t.id}" data-name="${t.name.replace(/"/g, '&quot;')}">${t.name}</option>`).join('');
+        }
     } catch (e) {
         console.error('Error loading skills for ready-select:', e);
     }
@@ -565,4 +623,160 @@ function _copyCurrentTabNames() {
     navigator.clipboard.writeText(students.map(s => s.name).join('\n'))
         .then(() => showToast(`تم نسخ ${students.length} اسم`, { type: 'success' }))
         .catch(() => showToast('تعذر النسخ — جرب مرة أخرى', { type: 'error' }));
+}
+
+// ----- Test Stats by Skill -----
+
+async function loadTestStatsForSkill() {
+    const select = document.getElementById('testStatsSkillSelect');
+    const container = document.getElementById('testStatsList');
+    if (!select || !container) return;
+
+    const templateId = select.value.trim();
+    if (!templateId) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-3">اختر مهارة من القائمة لعرض النتائج</p>';
+        return;
+    }
+
+    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-3">⏳ جاري التحميل...</p>';
+
+    const result = await adminAPI.getTestStats(templateId);
+
+    if (!result.success) {
+        container.innerHTML = `<p class="text-red-500 text-sm text-center py-3">${result.message || 'خطأ في جلب البيانات'}</p>`;
+        return;
+    }
+
+    const students = result.students || [];
+    const maxAttempts = result.max_test_attempts || 3;
+
+    if (students.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-8">لا يوجد طلاب لديهم هذه المهارة</p>';
+        return;
+    }
+
+    const attempted = students.filter(s => s.attempts_used > 0);
+    const passed = students.filter(s => s.ever_passed);
+    const failed = students.filter(s => s.attempts_used > 0 && !s.ever_passed);
+    const notAttempted = students.filter(s => s.attempts_used === 0);
+    const avgScore = attempted.length > 0
+        ? (attempted.reduce((sum, s) => sum + (s.best_score || 0), 0) / attempted.length).toFixed(1)
+        : '—';
+
+    container.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div class="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-100">
+                <div class="text-2xl font-bold text-indigo-700">${students.length}</div>
+                <div class="text-xs text-slate-500 mt-0.5">إجمالي الطلاب</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-100">
+                <div class="text-2xl font-bold text-blue-700">${attempted.length}</div>
+                <div class="text-xs text-slate-500 mt-0.5">حاولوا الاختبار</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                <div class="text-2xl font-bold text-green-700">${passed.length}</div>
+                <div class="text-xs text-slate-500 mt-0.5">اجتازوا ✅</div>
+            </div>
+            <div class="bg-amber-50 rounded-lg p-3 text-center border border-amber-100">
+                <div class="text-2xl font-bold text-amber-700">${avgScore}</div>
+                <div class="text-xs text-slate-500 mt-0.5">متوسط أعلى نتيجة / 10</div>
+            </div>
+        </div>
+        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 mb-3">
+            <button id="tsTabAll" onclick="_switchTestStatsTab('all')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-indigo-700">
+                الكل <span class="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-0.5 rounded-full ml-1">${students.length}</span>
+            </button>
+            <button id="tsTabPassed" onclick="_switchTestStatsTab('passed')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500">
+                اجتازوا <span class="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full ml-1">${passed.length}</span>
+            </button>
+            <button id="tsTabFailed" onclick="_switchTestStatsTab('failed')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500">
+                لم يجتازوا <span class="bg-red-100 text-red-500 text-xs px-1.5 py-0.5 rounded-full ml-1">${failed.length}</span>
+            </button>
+            <button id="tsTabNone" onclick="_switchTestStatsTab('none')"
+                class="flex-1 py-1.5 rounded-md text-sm font-medium transition text-slate-500">
+                لم يحاولوا <span class="bg-slate-200 text-slate-600 text-xs px-1.5 py-0.5 rounded-full ml-1">${notAttempted.length}</span>
+            </button>
+        </div>
+        <div id="testStatsContent"></div>
+    `;
+
+    window._cachedTestStatsStudents = students;
+    window._cachedTestStatsMaxAttempts = maxAttempts;
+    _switchTestStatsTab('all');
+}
+
+function _switchTestStatsTab(tab) {
+    window._currentTestStatsTab = tab;
+    const all = window._cachedTestStatsStudents || [];
+    const maxAttempts = window._cachedTestStatsMaxAttempts || 3;
+
+    const tabBtns = {
+        all: { id: 'tsTabAll', activeCls: 'bg-white shadow text-indigo-700' },
+        passed: { id: 'tsTabPassed', activeCls: 'bg-white shadow text-green-700' },
+        failed: { id: 'tsTabFailed', activeCls: 'bg-white shadow text-red-600' },
+        none: { id: 'tsTabNone', activeCls: 'bg-white shadow text-slate-600' }
+    };
+    Object.entries(tabBtns).forEach(([t, cfg]) => {
+        const btn = document.getElementById(cfg.id);
+        if (!btn) return;
+        btn.className = `flex-1 py-1.5 rounded-md text-sm font-medium transition ${t === tab ? cfg.activeCls : 'text-slate-500'}`;
+    });
+
+    let filtered;
+    if (tab === 'all') filtered = all;
+    else if (tab === 'passed') filtered = all.filter(s => s.ever_passed);
+    else if (tab === 'failed') filtered = all.filter(s => s.attempts_used > 0 && !s.ever_passed);
+    else filtered = all.filter(s => s.attempts_used === 0);
+
+    const container = document.getElementById('testStatsContent');
+    if (!container) return;
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-8">لا يوجد طلاب في هذه الفئة</p>';
+        return;
+    }
+
+    container.innerHTML = `<div class="space-y-2">${filtered.map(s => {
+        const hasAttempts = s.attempts_used > 0;
+        const score = hasAttempts ? (s.best_score ?? 0) : null;
+        const pct = score !== null ? Math.round(score / 10 * 100) : 0;
+        const barColor = score !== null && score >= 6 ? 'bg-green-500' : 'bg-red-400';
+
+        const statusBadge = !hasAttempts
+            ? '<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">لم يحاول</span>'
+            : s.ever_passed
+                ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">✅ اجتاز</span>'
+                : '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">❌ لم يجتز</span>';
+
+        const attemptsLeft = Math.max(0, maxAttempts - s.attempts_used);
+        const attemptsColor = attemptsLeft === 0 ? 'text-red-500' : attemptsLeft <= 1 ? 'text-amber-600' : 'text-slate-500';
+
+        return `
+            <div class="flex items-center gap-3 p-3 rounded-lg border ${s.ever_passed ? 'bg-green-50 border-green-200' : !hasAttempts ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}">
+                <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
+                    ${s.code || '?'}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-slate-800">${_escHtml(s.student_name)}</span>
+                        <span class="text-xs text-slate-400">#${s.code}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="flex items-center gap-4 mt-1 text-xs ${attemptsColor}">
+                        <span>المحاولات: <strong>${s.attempts_used}</strong> / ${maxAttempts}</span>
+                        ${hasAttempts ? `<span class="text-slate-500">أعلى نتيجة: <strong class="text-slate-700">${score}/10</strong></span>` : ''}
+                    </div>
+                    ${hasAttempts ? `
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <div class="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div class="h-full rounded-full ${barColor}" style="width:${pct}%"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 w-8 text-right">${pct}%</span>
+                    </div>` : ''}
+                </div>
+            </div>`;
+    }).join('')}</div>`;
 }

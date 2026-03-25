@@ -252,3 +252,162 @@ def get_student_skill_evidence(skill_id):
             return jsonify({'success': True, 'evidence': []})
         
         return jsonify({'success': False, 'message': error_msg}), 500
+
+
+# ─── Skill Test Routes ────────────────────────────────────────────────────────
+
+@student_bp.route('/<student_id>/skills/<skill_id>/test-info', methods=['GET'])
+@verify_student_exists
+def get_test_info(student_id, skill_id):
+    """Get test questions and attempt info for a student's skill"""
+    try:
+        skill = execute_query(
+            'SELECT name FROM skills WHERE id = %s AND student_id = %s',
+            (skill_id, student_id),
+            fetch_one=True
+        )
+        if not skill:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة', 'has_test': False}), 404
+
+        template = execute_query(
+            'SELECT id, name, max_test_attempts FROM skill_templates WHERE name = %s',
+            (skill['name'],),
+            fetch_one=True
+        )
+        if not template:
+            return jsonify({'success': True, 'has_test': False, 'message': 'لا يوجد قالب لهذه المهارة'})
+
+        questions = execute_query(
+            'SELECT id, question, order_num FROM skill_test_questions '
+            'WHERE template_id = %s ORDER BY order_num ASC, created_at ASC',
+            (str(template['id']),),
+            fetch_all=True
+        )
+        if not questions:
+            return jsonify({'success': True, 'has_test': False, 'message': 'لا توجد أسئلة لهذا الاختبار'})
+
+        max_attempts = template['max_test_attempts'] or 3
+        attempts_row = execute_query(
+            'SELECT COUNT(*) as cnt FROM skill_test_attempts WHERE skill_id = %s AND student_id = %s',
+            (skill_id, student_id),
+            fetch_one=True
+        )
+        attempts_used = attempts_row['cnt'] if attempts_row else 0
+        remaining = max(0, max_attempts - attempts_used)
+
+        return jsonify({
+            'success': True,
+            'has_test': True,
+            'questions': [{'id': str(q['id']), 'question': q['question']} for q in questions],
+            'questions_count': len(questions),
+            'attempts_used': attempts_used,
+            'max_attempts': max_attempts,
+            'remaining_attempts': remaining
+        })
+    except Exception as e:
+        print(f"[ERROR] get_test_info: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+@student_bp.route('/<student_id>/skills/<skill_id>/test-submit', methods=['POST'])
+@verify_student_exists
+def submit_test(student_id, skill_id):
+    """Submit test answers and record result"""
+    data = request.json or {}
+    answers = data.get('answers', {})  # {question_id: true/false}
+
+    try:
+        skill = execute_query(
+            'SELECT name FROM skills WHERE id = %s AND student_id = %s',
+            (skill_id, student_id),
+            fetch_one=True
+        )
+        if not skill:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+
+        template = execute_query(
+            'SELECT id, max_test_attempts FROM skill_templates WHERE name = %s',
+            (skill['name'],),
+            fetch_one=True
+        )
+        if not template:
+            return jsonify({'success': False, 'message': 'لا يوجد اختبار لهذه المهارة'}), 404
+
+        max_attempts = template['max_test_attempts'] or 3
+        attempts_row = execute_query(
+            'SELECT COUNT(*) as cnt FROM skill_test_attempts WHERE skill_id = %s AND student_id = %s',
+            (skill_id, student_id),
+            fetch_one=True
+        )
+        attempts_used = attempts_row['cnt'] if attempts_row else 0
+
+        if attempts_used >= max_attempts:
+            return jsonify({
+                'success': False,
+                'message': 'لقد استنفذت جميع محاولاتك لهذا الاختبار',
+                'no_attempts': True
+            }), 403
+
+        questions = execute_query(
+            'SELECT id, correct_answer FROM skill_test_questions WHERE template_id = %s',
+            (str(template['id']),),
+            fetch_all=True
+        )
+        if not questions:
+            return jsonify({'success': False, 'message': 'لا توجد أسئلة لهذا الاختبار'}), 404
+
+        # Calculate score: each question is 2 points (10 total for 5 questions)
+        q_count = len(questions)
+        points_per_q = 10 // q_count if q_count else 2
+        correct = sum(
+            1 for q in questions
+            if str(q['id']) in answers and bool(answers[str(q['id'])]) == bool(q['correct_answer'])
+        )
+        score = correct * points_per_q
+        passed = score >= 6
+        attempt_number = attempts_used + 1
+
+        execute_query(
+            'INSERT INTO skill_test_attempts (student_id, skill_id, score, passed, attempt_number) '
+            'VALUES (%s, %s, %s, %s, %s)',
+            (student_id, skill_id, score, passed, attempt_number)
+        )
+
+        if passed:
+            execute_query(
+                'UPDATE skills SET level = 2, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+                (skill_id,)
+            )
+            invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
+            return jsonify({
+                'success': True,
+                'passed': True,
+                'score': score,
+                'message': 'مبروك! لقد اجتزت الاختبار بنجاح!'
+            })
+        else:
+            remaining = max_attempts - attempt_number
+            invalidate_cache(f"get_student_skills_cached:('{student_id}',)")
+            if remaining <= 0:
+                return jsonify({
+                    'success': True,
+                    'passed': False,
+                    'score': score,
+                    'remaining_attempts': 0,
+                    'message': f'لم تجتاز الاختبار. حصلت على {score} من 10. لقد استنفذت جميع محاولاتك.'
+                })
+            else:
+                def _attempts_label(n):
+                    if n == 1: return 'محاولة واحدة'
+                    if n == 2: return 'محاولتان'
+                    return f'{n} محاولات'
+                return jsonify({
+                    'success': True,
+                    'passed': False,
+                    'score': score,
+                    'remaining_attempts': remaining,
+                    'message': f'لم تجتاز الاختبار، حاول مرة أخرى. لديك {_attempts_label(remaining)} متبقية'
+                })
+    except Exception as e:
+        print(f"[ERROR] submit_test: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500

@@ -77,7 +77,7 @@ async function showBatchSkillModal(preSelectedTemplate = null) {
         skillContent.innerHTML = `
             <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                 <div class="text-sm text-indigo-600 mb-1">المهارة المحددة:</div>
-                <div class="font-bold text-indigo-900">${preSelectedTemplate.icon} ${preSelectedTemplate.name}</div>
+                <div class="font-bold text-indigo-900">${getSkillLinkIcon(preSelectedTemplate.icon || 'file')} ${preSelectedTemplate.name}</div>
             </div>
         `;
         
@@ -131,7 +131,7 @@ async function showBatchSkillModal(preSelectedTemplate = null) {
         templates.forEach(template => {
             const newOption = document.createElement('option');
             newOption.value = template.name;
-            newOption.textContent = `${template.icon || '📚'} ${template.name}`;
+            newOption.textContent = `${getSkillIconEmoji(template.icon || 'file')} ${template.name}`;
             newOption.setAttribute('data-url', template.url || '');
             newOption.setAttribute('data-id', template.id);
             skillSelect.appendChild(newOption);

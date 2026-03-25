@@ -1,4 +1,4 @@
-// Skill Templates Management Module
+﻿// Skill Templates Management Module
 
 let localSkillTemplatesCache = [];
 let currentEditingTemplateId = null;
@@ -101,6 +101,10 @@ function renderSkillTemplates(templates) {
                 <button onclick="editSkillTemplate('${template.id}')" 
                     class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded text-xs font-medium transition">
                     ✏️ تعديل
+                </button>
+                <button onclick="openTestQuestionsModal('${template.id}', '${template.name.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')"
+                    class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded text-xs font-medium transition">
+                    📝 الاختبار
                 </button>
                 <button onclick="deleteSkillTemplate('${template.id}')" 
                     class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded text-xs font-medium transition">
@@ -484,7 +488,7 @@ async function viewSkillTemplateDetails(templateId) {
     currentDetailsTemplateId = templateId;
     const modal = document.getElementById('skillTemplateDetailsModal');
     
-    document.getElementById('detailsTemplateName').textContent = `${template.icon} ${template.name}`;
+    document.getElementById('detailsTemplateName').innerHTML = `${getSkillLinkIcon(template.icon || 'file')} ${template.name}`;
     document.getElementById('detailsTemplateDescription').textContent = template.description || 'لا يوجد وصف';
     document.getElementById('detailsTemplateUsage').textContent = `${template.usage_count || 0} طالب`;
     
@@ -572,3 +576,262 @@ async function initSkillTemplatesManagement() {
     if (!isAdmin) return;
     await loadSkillTemplates();
 }
+
+// ─── Test Questions Modal ─────────────────────────────────────────────────────
+
+let _testQuestionsTemplateId = null;
+let _testQuestionsTemplateName = null;
+let _testQuestionsList = [];
+let _editingQuestionId = null;
+let _newQuestionCounter = 0;
+
+async function openTestQuestionsModal(templateId, templateName) {
+    _testQuestionsTemplateId = templateId;
+    _testQuestionsTemplateName = templateName;
+    _editingQuestionId = null;
+    _newQuestionCounter = 0;
+
+    const modal = document.getElementById('testQuestionsModal');
+    if (!modal) return;
+
+    document.getElementById('testQuestionsModalTitle').textContent = `أسئلة اختبار: ${templateName}`;
+    // Reset stale display before async load
+    const countInfoEl = document.getElementById('testQuestionsCount');
+    if (countInfoEl) countInfoEl.textContent = '0 / 5 أسئلة';
+    const listEl = document.getElementById('testQuestionsList');
+    if (listEl) listEl.innerHTML = '';
+    document.getElementById('testQuestionsLoading').classList.remove('hidden');
+    document.getElementById('testQuestionsContent').classList.add('hidden');
+    modal.classList.remove('hidden');
+
+    const questionsResult = await adminAPI.getTestQuestions(templateId);
+
+    document.getElementById('testQuestionsLoading').classList.add('hidden');
+    document.getElementById('testQuestionsContent').classList.remove('hidden');
+
+    // Set max attempts from local cache
+    const cachedTemplate = (localSkillTemplatesCache || []).find(t => t.id === templateId);
+    document.getElementById('testMaxAttempts').value = cachedTemplate?.max_test_attempts ?? 3;
+
+    _testQuestionsList = questionsResult.success ? questionsResult.questions : [];
+    resetTestQuestionForm();
+    renderTestQuestions();
+}
+
+function closeTestQuestionsModal() {
+    const modal = document.getElementById('testQuestionsModal');
+    if (modal) modal.classList.add('hidden');
+    _testQuestionsTemplateId = null;
+    _testQuestionsTemplateName = null;
+    _testQuestionsList = [];
+    _editingQuestionId = null;
+    _newQuestionCounter = 0;
+    resetTestQuestionForm();
+}
+
+function renderTestQuestions() {
+    const container = document.getElementById('testQuestionsList');
+    if (!container) return;
+
+    if (_testQuestionsList.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا توجد أسئلة بعد. أضف أول سؤال أدناه.</p>';
+    } else {
+        container.innerHTML = _testQuestionsList.map((q, i) => `
+            <div class="flex items-start gap-2 p-3 rounded-lg border ${q._isNew ? 'bg-blue-50 border-blue-200' : q._isDirty ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-200'}">
+                <span class="text-slate-500 text-sm font-bold mt-1">${i + 1}.</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm text-slate-800 break-words">${_escHtml(q.question)}</p>
+                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                        <span class="text-xs px-2 py-0.5 rounded-full font-medium ${q.correct_answer ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            الإجابة: ${q.correct_answer ? '✅ صح' : '❌ خطأ'}
+                        </span>
+                        ${q._isNew ? '<span class="text-xs text-blue-600 font-medium">• جديد</span>' : ''}
+                    </div>
+                </div>
+                <div class="flex gap-1 flex-shrink-0">
+                    <button onclick="editTestQuestion('${q.id}')" class="text-blue-600 hover:text-blue-800 text-sm p-1" title="تعديل">✏️</button>
+                    <button onclick="deleteTestQuestion('${q.id}')" class="text-red-500 hover:text-red-700 text-sm p-1" title="حذف">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    const addBtn = document.getElementById('saveTestQuestionBtn');
+    const countInfo = document.getElementById('testQuestionsCount');
+    if (countInfo) countInfo.textContent = `${_testQuestionsList.length} / 5 أسئلة`;
+
+    if (addBtn) {
+        // When editing, always enable (button becomes "save edit"); when adding, disable at max 5
+        const atMax = !_editingQuestionId && _testQuestionsList.length >= 5;
+        addBtn.disabled = atMax;
+        addBtn.classList.toggle('opacity-50', atMax);
+        addBtn.classList.toggle('cursor-not-allowed', atMax);
+    }
+}
+
+function editTestQuestion(questionId) {
+    const q = _testQuestionsList.find(q => q.id === questionId);
+    if (!q) return;
+    _editingQuestionId = questionId;
+    document.getElementById('testQuestionInput').value = q.question;
+    document.getElementById('testQuestionAnswer').value = q.correct_answer ? 'true' : 'false';
+
+    const saveBtn = document.getElementById('saveTestQuestionBtn');
+    if (saveBtn) {
+        saveBtn.textContent = '💾 حفظ التعديل';
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    document.getElementById('cancelEditQuestionBtn').classList.remove('hidden');
+    document.getElementById('testQuestionInput').focus();
+}
+
+function cancelEditQuestion() {
+    _editingQuestionId = null;
+    resetTestQuestionForm();
+    renderTestQuestions();
+}
+
+function resetTestQuestionForm() {
+    const input = document.getElementById('testQuestionInput');
+    const answer = document.getElementById('testQuestionAnswer');
+    const saveBtn = document.getElementById('saveTestQuestionBtn');
+    const cancelBtn = document.getElementById('cancelEditQuestionBtn');
+    if (input) input.value = '';
+    if (answer) answer.value = 'true';
+    if (saveBtn) {
+        saveBtn.textContent = '➕ إضافة سؤال';
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    if (cancelBtn) cancelBtn.classList.add('hidden');
+    _editingQuestionId = null;
+}
+
+function saveTestQuestion() {
+    const question = document.getElementById('testQuestionInput').value.trim();
+    const answer = document.getElementById('testQuestionAnswer').value === 'true';
+
+    if (!question) {
+        showToast('يرجى إدخال نص السؤال', { type: 'error' });
+        return;
+    }
+
+    if (_editingQuestionId) {
+        // Update locally, mark dirty if it was already saved to DB
+        const idx = _testQuestionsList.findIndex(q => q.id === _editingQuestionId);
+        if (idx !== -1) {
+            const existing = _testQuestionsList[idx];
+            _testQuestionsList[idx] = {
+                ...existing,
+                question,
+                correct_answer: answer,
+                // Keep _isNew flag; only mark _isDirty for already-saved questions
+                _isDirty: existing._isNew ? undefined : true,
+            };
+        }
+    } else {
+        if (_testQuestionsList.length >= 5) {
+            showToast('الحد الأقصى 5 أسئلة لكل اختبار', { type: 'error' });
+            return;
+        }
+        _testQuestionsList.push({
+            id: `_new_${_newQuestionCounter++}`,
+            question,
+            correct_answer: answer,
+            order_num: _testQuestionsList.length,
+            _isNew: true,
+        });
+    }
+
+    resetTestQuestionForm();
+    renderTestQuestions();
+}
+
+async function deleteTestQuestion(questionId) {
+    customConfirm('هل تريد حذف هذا السؤال؟', async () => {
+        if (String(questionId).startsWith('_new_')) {
+            // Local-only — just remove from list, no API call
+            _testQuestionsList = _testQuestionsList.filter(q => q.id !== questionId);
+            renderTestQuestions();
+        } else {
+            const result = await adminAPI.deleteTestQuestion(questionId);
+            if (result.success) {
+                _testQuestionsList = _testQuestionsList.filter(q => q.id !== questionId);
+                renderTestQuestions();
+                showToast('تم حذف السؤال', { type: 'success' });
+            } else {
+                showToast(result.message || 'خطأ في الحذف', { type: 'error' });
+            }
+        }
+    }, { icon: '🗑️', title: 'تأكيد الحذف', confirmText: 'حذف', cancelText: 'إلغاء' });
+}
+
+async function saveAllAndClose() {
+    const btn = document.getElementById('saveAllCloseBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...'; }
+
+    let hasError = false;
+
+    // Save new questions
+    for (const q of _testQuestionsList) {
+        if (q._isNew) {
+            const result = await adminAPI.addTestQuestion(_testQuestionsTemplateId, q.question, q.correct_answer, q.order_num ?? 0);
+            if (!result.success) {
+                showToast(result.message || 'خطأ في إضافة سؤال', { type: 'error' });
+                hasError = true;
+            }
+        }
+    }
+
+    // Save edited questions
+    for (const q of _testQuestionsList) {
+        if (q._isDirty) {
+            const result = await adminAPI.updateTestQuestion(q.id, q.question, q.correct_answer, q.order_num ?? 0);
+            if (!result.success) {
+                showToast(result.message || 'خطأ في تحديث سؤال', { type: 'error' });
+                hasError = true;
+            }
+        }
+    }
+
+    // Save max attempts
+    const maxAttempts = parseInt(document.getElementById('testMaxAttempts').value);
+    if (maxAttempts >= 1) {
+        const result = await adminAPI.updateTestConfig(_testQuestionsTemplateId, maxAttempts);
+        if (!result.success) {
+            showToast(result.message || 'خطأ في حفظ عدد المحاولات', { type: 'error' });
+            hasError = true;
+        } else {
+            const t = (localSkillTemplatesCache || []).find(t => t.id === _testQuestionsTemplateId);
+            if (t) t.max_test_attempts = maxAttempts;
+        }
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '💾 حفظ وإرسال'; }
+
+    if (!hasError) {
+        showToast('تم حفظ الاختبار بنجاح', { type: 'success' });
+        closeTestQuestionsModal();
+    }
+}
+
+async function resetAllTestAttemptsFromModal() {
+    customConfirm(
+        'هل تريد إعادة تعيين محاولات الاختبار لجميع الطلاب لهذه المهارة؟ لن يمكن التراجع عن هذا الإجراء.',
+        async () => {
+            const result = await adminAPI.resetAllTestAttemptsForTemplate(_testQuestionsTemplateId);
+            if (result.success) {
+                showToast('تم إعادة تعيين محاولات جميع الطلاب', { type: 'success' });
+            } else {
+                showToast(result.message || 'خطأ', { type: 'error' });
+            }
+        },
+        { icon: '⚠️', title: 'تأكيد إعادة التعيين', confirmText: 'إعادة تعيين', cancelText: 'إلغاء' }
+    );
+}
+
+function _escHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+

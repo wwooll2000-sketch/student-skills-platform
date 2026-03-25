@@ -241,6 +241,32 @@ class StudentAPI {
             };
         }
     }
+
+    // ─── Test API ─────────────────────────────────────────────────────────────
+
+    async getTestInfo(skillId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/${this.studentId}/skills/${skillId}/test-info`);
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async submitTest(skillId, answers) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/${this.studentId}/skills/${skillId}/test-submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers })
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
 }
 
 const studentAPI = new StudentAPI();

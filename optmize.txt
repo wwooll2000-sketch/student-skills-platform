@@ -570,6 +570,8 @@ the admin.py and index.html are getting little bit big, can you split them into 
 
 --------------
 
+perfect! let's do some tweaks:
+
 there is some issue that related to the الأيقونة for the المهارات, for example in the إدارة المهارات section when i click view the مهارة it shows like this for the title "youtube أن يميز الطالب الجملة الاسمية من بين الجمل" the youtube should be an icon not text, also this happens in the admin students page in the إضافة مهارة section, also make sure to find any other place in the app that has the same issue and fix it!
 
 --------------
@@ -586,7 +588,43 @@ Note2: when the student opens a test it should opens a new page but not in a new
 
 Note3: you can change anything you want in the code to implement these features and make sure to optimize and reflect the changes in the code and make it efficient and fast, also make sure to not break any existing functionality while implementing these features.
 
+---
+
+let's do some tweaks,
+
+- insted of 📝 اختبر نفسك change it to 📝 قم بالإختبار
+- remove the صنع بـ 🤍 بواسطة الأستاذ سلطان الوليعي from the Test page.
+- in the Test page, it shows this text "أجب على جميع الأسئلة بصح أو خطأ — المحاولات المتبقية بعد هذه: 2" remove the "— المحاولات المتبقية بعد هذه: 2" part.
+- for the أسئلة اختبار model, rename the title of "د أقصى للمحاولات" to "عدد المحاولات" and move the section under the إضافة سؤال section.
+- for the أسئلة اختبار model, for the إضافة سؤال section, the اضافة سؤال button takes the whole width, but it should be in the same line with الإجابة الصحيحة section.
+- for the أسئلة اختبار model, there is a bug that when i add 5 questions the button of اضافة سؤال is unclickable wich is good but the problem that when i try to edit any of the 5 questions the button of حفظ التعديل is also unclickable.
+- for the أسئلة اختبار model, the الأسئلة and إضافة سؤال sections should be one section insted of two separate sections. Also another thing that the button of اضافة سؤال should be blue and should not save the question directly when i click on it, but it should just add the question to the list of questions in the model, also next to close button add a new button that says "حفظ وإرسال", and when i click on it it should save all the questions once and then close the model. Also remove the save button from the عدد المحاولات section and make it save the number of attempts when i click on the "حفظ وإرسال" button. 
+
+---
+
+there is a bug, when i opens a الاختبار model for a مهارة that have for example 3 questions, it shows in the top of the model like this 3 / 5 أسئلة, the issue is when i close it and open another model it shows the same thing like this 3 / 5 أسئلة even if the new model have for example 5 questions or doesn't have any questions..
+
+---
+
+perfect! now add a new section in the admin page under the 🙋 الطلاب الجاهزين للمهارة that for to see who complated the الاختابارت and who is not and whats the points they got, etc..
+
+---
+
+in the students dashboard page, for the الاخبار column, it shows the قم بالإختبار button even for the المهارات that don't have any أسئلة اختبار, so please make sure to show the قم بالإختبار button only for the المهارات that have أسئلة اختبار. if the مهارة doesn't have any أسئلة اختبار then it should show a text that says "لا يوجد اختبار" or something like that.
+
 --------------
+
+there is a bug, in the admin students page, when i add a new مهارة to a student, it changes the icon of the مهارة to the default file icon "📁"
+
+--------------
+
+perfect! now in the admin page, for the 🙋 الطلاب الجاهزين للمهارة in the same line of this section at the left side, add a yellow warning icon that shows only if the teacher disable the جاهز columen from the settings.. also when i hover over it it shows a toltip that says somthing like this futere is disabled for the students in the setting!
+
+-------------- not done
+
+in the admin page add a new future section, and it is gonna be for announcements, so the teacher can add announcements and show them for the students in the students dashboard page, and in the announcements the teacher can choose the type of the announcement if like basic wich it has own icon and color like blue, and warning which has its own icon and color like yellow, and danger which has its own icon and color like red, also the teacher can add a title and description for the announcement, also the teacher can choose to show the announcement for all the students or just for specific students by selecting them from a list, also the teacher can edit or delete the announcement at any time.
+
+-------------- not done
 
 in the admin dashboard page,
 
@@ -596,10 +634,6 @@ in the admin dashboard page,
 
 - move the title "لوحة تحكم المعلم" with "مرحباً بك أ. سلطان" to be in the top right at the same line with the تسجيل خروج المعلم button and the settings and mute notifications buttons, to make it more organized and to free some space in the dashboard.
 
---------------
+-------------- not done
 
 we didnt update the 🏆 إنجازاتك in the students dashboard from a long time from the start of devoloping this app.. so we need to update it to reflect the changes that we made in this app, but first read everything and plan and then start implementing the changes!
-
---------------
-
-in the admin page add a new future section, and it is gonna be for announcements, so the teacher can add announcements and show them for the students

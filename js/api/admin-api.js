@@ -655,6 +655,113 @@ class AdminAPI {
         }
     }
 
+    // ─── Test Questions API ───────────────────────────────────────────────────
+
+    async getTestQuestions(templateId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skill-templates/${templateId}/test-questions`, {
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async addTestQuestion(templateId, question, correctAnswer, orderNum = 0) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skill-templates/${templateId}/test-questions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify({ question, correct_answer: correctAnswer, order_num: orderNum })
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async updateTestQuestion(questionId, question, correctAnswer, orderNum) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/test-questions/${questionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify({ question, correct_answer: correctAnswer, order_num: orderNum })
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async deleteTestQuestion(questionId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/test-questions/${questionId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async updateTestConfig(templateId, maxTestAttempts) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skill-templates/${templateId}/test-config`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify({ max_test_attempts: maxTestAttempts })
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async resetSkillTestAttempts(skillId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skills/${skillId}/reset-test-attempts`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async resetAllTestAttemptsForTemplate(templateId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skill-templates/${templateId}/reset-all-test-attempts`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
+    async getTestStats(templateId) {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/skill-templates/${templateId}/test-stats`, {
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
+
 }
 
 const adminAPI = new AdminAPI();

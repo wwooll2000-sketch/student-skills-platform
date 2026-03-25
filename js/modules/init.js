@@ -48,6 +48,12 @@ window.addEventListener('load', async function () {
             if (typeof populateReadySkillSelect === 'function') {
                 populateReadySkillSelect();
             }
+            // Initialize ready-feature warning icon
+            getColumnVisibility().then(visibility => {
+                if (typeof updateReadyFeatureWarning === 'function') {
+                    updateReadyFeatureWarning(visibility);
+                }
+            });
             console.log('✅ تم تسجيل دخول المعلم تلقائياً');
         }
     }

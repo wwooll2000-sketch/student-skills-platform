@@ -48,6 +48,11 @@ function getSkillLinkIcon(iconKey) {
     return icons[iconKey] || icons.file;
 }
 
+function getSkillIconEmoji(iconKey) {
+    const emojis = { youtube: '▶️', pdf: '📄', website: '🌐', file: '📁' };
+    return emojis[iconKey] || '📁';
+}
+
 function updateIconPreview(selectId, previewId) {
     const select = document.getElementById(selectId);
     const preview = document.getElementById(previewId);
