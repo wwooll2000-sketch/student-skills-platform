@@ -688,6 +688,29 @@ def get_teacher_profile():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@admin_bp.route('/teacher/column-visibility', methods=['PUT'])
+@verify_admin
+def update_column_visibility():
+    """Update which columns are visible in the student view"""
+    data = request.json
+    column_visibility = data.get('column_visibility', {})
+
+    # Validate: only allow known column keys
+    allowed_keys = {'الرابط', 'جاهز', 'الشواهد', 'الحالة'}
+    column_visibility = {k: bool(v) for k, v in column_visibility.items() if k in allowed_keys}
+
+    try:
+        import json
+        execute_query(
+            'UPDATE teacher SET column_visibility = %s WHERE id = (SELECT id FROM teacher LIMIT 1)',
+            (json.dumps(column_visibility),)
+        )
+        invalidate_cache('teacher')
+        return jsonify({'success': True, 'message': 'تم تحديث إعدادات الأعمدة'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @admin_bp.route('/teacher/update-name', methods=['PUT'])
 @verify_admin
 def update_teacher_name():

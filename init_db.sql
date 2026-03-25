@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS skills (
 -- Add is_student_ready column to existing databases (safe: ignored if already exists)
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_student_ready BOOLEAN DEFAULT FALSE;
 
+-- Add column_visibility to teacher table (safe: ignored if already exists)
+ALTER TABLE teacher ADD COLUMN IF NOT EXISTS column_visibility JSONB DEFAULT '{}';
+
 -- Log table for student-initiated ready/unready events
 CREATE TABLE IF NOT EXISTS student_ready_log (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

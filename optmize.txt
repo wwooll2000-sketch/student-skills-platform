@@ -531,3 +531,33 @@ also the same svg icon should show in the إدارة المهارات when addin
 --------------
 
 perfect! but when adding/editing a مهارة in the الأيقونة section remove the emojies that shows in the dropdown list it should just show the text.
+
+----------------------------
+---------------------------- 3/25/2026
+----------------------------
+
+for the الشواهد column in the admin students page, i want to add an ability to toggle between hide and show this column for the students. Also for all the columns in the table add the ability to toggle between hide and show for the students, so the teacher can choose which columns to show for the students and which columns to hide for the students.
+
+these colmuns toggle should be in the إعدادات المعلم model in a new section on the right!
+
+---
+
+there is a small issue that when i for example hide the الشواهد column for the students and then i logged in as a student i see the الشواهد column for a second and then it disappears after the page is fully loaded, so please make sure to fix this issue and make sure that when i hide a column for the students it should not show at all for the students and not even for a second.
+
+--------------
+
+in the admin page in قائمة الطلاب المضافين add a paganation for the students if there are more than 10 students..
+
+--------------
+
+in the table of the admin students page and in the students dashboard page, we to make some major changes,
+
+- i want to add a new column, wich will be for Test, when the student click on the test button it opens model that says are you ready for the test.. and when clicks yes, it opens a new page that has a test for the student based on the مهارة that this test is for, and the test will be only 5 questions for each مهارة and the questions will be added by the teacher from the إدارة المهارات section.
+
+- in the إدارة المهارات section for each مهارة add a button that says "إضافة أسئلة الاختبار" and when i click on it it should open a model that has the ability to add/edit/delete the questions of the test for this مهارة, and these questions will be shown for the student when they click on the test button.
+
+Note1: for each test it must have maximum of 5 questions. Also the questions can be only one type which is true or false questions, and the teacher can choose for each question if the answer is true or false. Also the score for all the questions is 10 points combined, so each question is 2 points, and the student must get at least 6 points to pass the test for the مهارة. Also if the student pass the test for the مهارة then it should automatically mark this مهارة as ✅ تم for the student, and if the student didn't pass the test for the مهارة then it should show a message that says "لم تجتاز الاختبار، حاول مرة أخرى لديك 2 محاولا متبقية" and it should allow the student to retake the test again until they pass it or until they use all their attempts for the test which is 3 attempts or the teacher can add how many attempts he wants for the test from the إدارة المهارات, also the teacher can reset the attempts for the students from the إدارة المهارات as well, also if the student didnt pass the test and used all his attempts then it should automatically mark this مهارة as لم تكتمل for the student.
+
+Note2: when the student opens a test it should opens a new page but not in a new tab, and when he pass or fail the test it should goes him back to the dashboard table page and show the message above the table with the result of the test like "مبروك! لقد اجتزت الاختبار بنجاح!" or "لم تجتاز الاختبار، حاول مرة أخرى لديك 2 محاولا متبقية" and it should also update the status of the مهارة in the table to ✅ تم with how much points the student got for the test if he passed or to ❌ لم تكتمل if he failed with how much points he got for the test if he failed. also if he refresh the page after while there is a message above the table it should disappear and the message should not be shown again until he takes the test again. Also when the student press the test button it opens the model with the message of are you ready? also add how many attempts the student have for this test.
+
+Note3: you can change anything you want in the code to implement these features and make sure to optimize and reflect the changes in the code and make it efficient and fast, also make sure to not break any existing functionality while implementing these features.

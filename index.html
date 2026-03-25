@@ -241,11 +241,15 @@
                     <table class="w-full text-right border-collapse">
                         <thead>
                             <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
-                                <th class="p-3 sm:p-4 font-bold text-sm sm:text-base">المهارة</th>
-                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الرابط</th>
-                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">جاهز ✅</th>
-                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الشواهد</th>
-                                <th class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">الحالة</th>
+                                <th data-col="المهارة" class="p-3 sm:p-4 font-bold text-sm sm:text-base">المهارة</th>
+                                <th data-col="الرابط" class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">
+                                    الرابط</th>
+                                <th data-col="جاهز" class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">جاهز ✅
+                                </th>
+                                <th data-col="الشواهد" class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">
+                                    الشواهد</th>
+                                <th data-col="الحالة" class="p-3 sm:p-4 font-bold text-center text-sm sm:text-base">
+                                    الحالة</th>
                             </tr>
                         </thead>
                         <tbody id="studentSkillsTable"></tbody>
@@ -783,46 +787,62 @@
     <!-- Teacher Settings Modal -->
     <div id="teacherSettingsModal"
         class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 class="text-xl font-bold mb-4">⚙️ إعدادات المعلم</h3>
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-5">⚙️ إعدادات المعلم</h3>
 
-            <!-- Update Name Section -->
-            <div class="mb-6">
-                <h4 class="text-lg font-semibold mb-3 text-slate-700">تغيير الاسم</h4>
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">الاسم الجديد</label>
-                    <input type="text" id="teacherNewName" placeholder="أدخل الاسم الجديد"
-                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                </div>
-                <button onclick="updateTeacherName()" id="updateNameBtn"
-                    class="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 font-medium transition">
-                    حفظ الاسم
-                </button>
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <hr class="my-6 border-slate-200">
+                <!-- Right column (first in RTL): Column visibility settings -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <h4 class="text-base font-semibold mb-1 text-slate-700">👁️ أعمدة صفحة الطالب</h4>
+                    <p class="text-xs text-slate-500 mb-4">اختر الأعمدة المرئية للطلاب في صفحتهم</p>
+                    <div id="columnVisibilityToggles" class="space-y-2">
+                        <div class="text-center text-slate-400 text-sm py-4">جاري التحميل...</div>
+                    </div>
+                </div>
 
-            <!-- Update Password Section -->
-            <div class="mb-6">
-                <h4 class="text-lg font-semibold mb-3 text-slate-700">تغيير كلمة المرور</h4>
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">كلمة المرور الحالية</label>
-                    <input type="password" id="teacherCurrentPassword" placeholder="أدخل كلمة المرور الحالية"
-                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                <!-- Left column (second in RTL): Name and Password settings -->
+                <div>
+                    <!-- Update Name Section -->
+                    <div class="mb-5">
+                        <h4 class="text-base font-semibold mb-3 text-slate-700">تغيير الاسم</h4>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">الاسم الجديد</label>
+                            <input type="text" id="teacherNewName" placeholder="أدخل الاسم الجديد"
+                                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        </div>
+                        <button onclick="updateTeacherName()" id="updateNameBtn"
+                            class="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 font-medium transition">
+                            حفظ الاسم
+                        </button>
+                    </div>
+
+                    <hr class="my-5 border-slate-200">
+
+                    <!-- Update Password Section -->
+                    <div>
+                        <h4 class="text-base font-semibold mb-3 text-slate-700">تغيير كلمة المرور</h4>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">كلمة المرور الحالية</label>
+                            <input type="password" id="teacherCurrentPassword" placeholder="أدخل كلمة المرور الحالية"
+                                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">كلمة المرور الجديدة</label>
+                            <input type="password" id="teacherNewPassword" placeholder="أدخل كلمة المرور الجديدة"
+                                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        </div>
+                        <button onclick="updateTeacherPassword()" id="updatePasswordBtn"
+                            class="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 font-medium transition">
+                            حفظ كلمة المرور
+                        </button>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">كلمة المرور الجديدة</label>
-                    <input type="password" id="teacherNewPassword" placeholder="أدخل كلمة المرور الجديدة"
-                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                </div>
-                <button onclick="updateTeacherPassword()" id="updatePasswordBtn"
-                    class="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 font-medium transition">
-                    حفظ كلمة المرور
-                </button>
+
             </div>
 
             <button onclick="closeTeacherSettingsModal()"
-                class="w-full bg-slate-200 text-slate-700 py-2.5 rounded-lg font-medium hover:bg-slate-300 transition">
+                class="w-full mt-6 bg-slate-200 text-slate-700 py-2.5 rounded-lg font-medium hover:bg-slate-300 transition">
                 إغلاق
             </button>
         </div>

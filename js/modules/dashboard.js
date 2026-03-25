@@ -1,5 +1,33 @@
 // Dashboard and Statistics Functions
 
+// ===== Student Column Visibility =====
+// Shared cache accessible from teacher-settings.js via window._columnVisibilityCache
+window._columnVisibilityCache = null;
+
+async function getColumnVisibility() {
+    if (window._columnVisibilityCache !== null) return window._columnVisibilityCache;
+    try {
+        const r = await fetch('/api/settings/column-visibility');
+        const d = await r.json();
+        window._columnVisibilityCache = d.success ? (d.column_visibility || {}) : {};
+    } catch {
+        window._columnVisibilityCache = {};
+    }
+    return window._columnVisibilityCache;
+}
+
+function applyStudentColumnVisibility(visibility) {
+    const container = document.getElementById('studentSkillsTableContainer');
+    if (!container) return;
+    ['الرابط', 'جاهز', 'الشواهد', 'الحالة'].forEach(col => {
+        const show = visibility[col] !== false; // default: visible
+        container.querySelectorAll(`[data-col="${col}"]`).forEach(el => {
+            el.classList.toggle('hidden', !show);
+        });
+    });
+}
+// ==========================================
+
 async function updateStatistics() {
     const result = await adminAPI.getStatistics();
     if (!result.success || !result.statistics) return;
@@ -127,30 +155,22 @@ function renderBadges(earnedBadges) {
 
 // Simple Student View (Single Page)
 async function loadSimpleStudentView(studentId, showLoading = true) {
-    // Show loading indicator
-    if (showLoading) {
-        const loadingEl = document.getElementById('studentSkillsLoading');
-        const tableContainer = document.getElementById('studentSkillsTableContainer');
-        if (loadingEl && tableContainer) {
-            loadingEl.classList.remove('hidden');
-            tableContainer.classList.add('hidden');
-        }
-    }
-    
-    // Use cached skill templates
-    const skillTemplatesMap = await getSkillTemplatesMap();
-    
-    const skillsResult = await studentAPI.getSkills();
-    
-    // Hide loading indicator
-    if (showLoading) {
-        const loadingEl = document.getElementById('studentSkillsLoading');
-        const tableContainer = document.getElementById('studentSkillsTableContainer');
-        if (loadingEl && tableContainer) {
-            loadingEl.classList.add('hidden');
-            tableContainer.classList.remove('hidden');
-        }
-    }
+    const loadingEl = document.getElementById('studentSkillsLoading');
+    const tableContainer = document.getElementById('studentSkillsTableContainer');
+
+    // Always keep table hidden until visibility is applied (prevents any flash)
+    if (tableContainer) tableContainer.classList.add('hidden');
+    if (showLoading && loadingEl) loadingEl.classList.remove('hidden');
+
+    // Fetch skills, templates AND column visibility all in parallel
+    const [skillTemplatesMap, skillsResult, visibility] = await Promise.all([
+        getSkillTemplatesMap(),
+        studentAPI.getSkills(),
+        getColumnVisibility()
+    ]);
+
+    // Hide loading indicator — table stays hidden until after visibility is applied below
+    if (loadingEl) loadingEl.classList.add('hidden');
     
     // Check if student was deleted
     if (skillsResult.student_deleted === true) {
@@ -185,6 +205,7 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
     }
     
     if (!skillsResult.success || !skillsResult.data) {
+        if (tableContainer) tableContainer.classList.remove('hidden');
         return;
     }
 
@@ -203,6 +224,10 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
 
     // Render skills table with templates
     renderSimpleSkillsTable(skillsResult.data.skills, skillTemplatesMap);
+
+    // Apply column visibility BEFORE revealing the table — zero flash guaranteed
+    applyStudentColumnVisibility(visibility);
+    if (tableContainer) tableContainer.classList.remove('hidden');
 }
 
 // Helper function to get skill templates map with caching
@@ -307,24 +332,24 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         const isStudentReady = skill.is_student_ready || false;
 
         row.innerHTML = `
-            <td class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
+            <td data-col="المهارة" class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
                 <span>${skillName}</span>
             </td>
-            <td class="p-2 sm:p-4 text-center">
+            <td data-col="الرابط" class="p-2 sm:p-4 text-center">
                 <a href="${skillUrl}" target="_blank" class="hover:scale-110 transition-transform inline-block" title="فتح الرابط">
                     ${skillLinkIcon}
                 </a>
             </td>
-            <td class="p-2 sm:p-4 text-center">
+            <td data-col="جاهز" class="p-2 sm:p-4 text-center">
                 <input type="checkbox" id="ready_simple_${skill.id}" ${isStudentReady ? 'checked' : ''}
                     onchange="handleSkillReadyChange('${skill.id}', this.checked)"
                     class="w-5 h-5 accent-green-500 cursor-pointer rounded"
                     title="ضع علامة إذا كنت جاهزاً لهذه المهارة">
             </td>
-            <td class="p-2 sm:p-4 text-center">
+            <td data-col="الشواهد" class="p-2 sm:p-4 text-center">
                 ${evidenceHtml}
             </td>
-            <td class="p-2 sm:p-4 text-center">
+            <td data-col="الحالة" class="p-2 sm:p-4 text-center">
                 <span class="${statusColor} font-bold text-xs sm:text-sm">
                     ${statusText}
                 </span>

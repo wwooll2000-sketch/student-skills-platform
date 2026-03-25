@@ -47,6 +47,26 @@ def init_db_endpoint():
             'message': f'Database initialization failed: {str(e)}'
         }), 500
 
+@health_bp.route('/api/settings/column-visibility', methods=['GET'])
+def get_column_visibility():
+    """Public endpoint: get teacher's column visibility settings (used by student view)"""
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from database import execute_query
+        teacher = execute_query(
+            'SELECT column_visibility FROM teacher LIMIT 1',
+            fetch_one=True
+        )
+        visibility = {}
+        if teacher and teacher.get('column_visibility'):
+            visibility = teacher['column_visibility']
+        return jsonify({'success': True, 'column_visibility': visibility})
+    except Exception:
+        return jsonify({'success': True, 'column_visibility': {}})
+
+
 @health_bp.route('/')
 def serve_index():
     """Serve index.html"""
