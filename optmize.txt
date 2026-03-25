@@ -550,6 +550,10 @@ in the admin page in قائمة الطلاب المضافين add a paganation f
 
 --------------
 
+for the 📝 آخر النشاطات section in the admin page, add more futures as you think.. also add filters + add filter by dates.. etc.. add anything usefull 
+
+--------------
+
 in the table of the admin students page and in the students dashboard page, we to make some major changes,
 
 - i want to add a new column, wich will be for Test, when the student click on the test button it opens model that says are you ready for the test.. and when clicks yes, it opens a new page that has a test for the student based on the مهارة that this test is for, and the test will be only 5 questions for each مهارة and the questions will be added by the teacher from the إدارة المهارات section.

@@ -30,5 +30,8 @@ function applySortAndFilter() {
         }
     });
 
+    // Reset to page 1 whenever filter/sort changes
+    currentStudentPage = 1;
+
     renderFilteredStudents(filteredStudents);
 }

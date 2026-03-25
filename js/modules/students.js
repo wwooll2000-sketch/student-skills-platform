@@ -1,5 +1,8 @@
 // Student Management Functions
 
+const STUDENTS_PER_PAGE = 10;
+let currentStudentPage = 1;
+
 function generateRandomCode() {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -195,17 +198,25 @@ async function showStudentSkills(id) {
 function renderFilteredStudents(students) {
     const container = document.getElementById('adminStudentsList');
     const countDisplay = document.getElementById('studentCountDisplay');
-    
+
     container.innerHTML = '';
+
+    const totalCount = allStudentsCache.length;
+    const filteredCount = students.length;
+    const totalPages = Math.ceil(filteredCount / STUDENTS_PER_PAGE);
+
+    // Clamp page in case a deletion reduced the total
+    if (currentStudentPage > totalPages && totalPages > 0) {
+        currentStudentPage = totalPages;
+    }
 
     // Update count display
     if (countDisplay) {
-        const totalCount = allStudentsCache.length;
-        const shownCount = students.length;
-        if (shownCount < totalCount) {
-            countDisplay.textContent = `عرض ${shownCount} من ${totalCount} طالب`;
+        const pageInfo = totalPages > 1 ? ` — صفحة ${currentStudentPage} من ${totalPages}` : '';
+        if (filteredCount < totalCount) {
+            countDisplay.textContent = `عرض ${filteredCount} من ${totalCount} طالب${pageInfo}`;
         } else {
-            countDisplay.textContent = `إجمالي: ${totalCount} طالب`;
+            countDisplay.textContent = `إجمالي: ${totalCount} طالب${pageInfo}`;
         }
     }
 
@@ -214,7 +225,11 @@ function renderFilteredStudents(students) {
         return;
     }
 
-    students.forEach(student => {
+    // Slice the current page
+    const startIndex = (currentStudentPage - 1) * STUDENTS_PER_PAGE;
+    const pageStudents = students.slice(startIndex, startIndex + STUDENTS_PER_PAGE);
+
+    pageStudents.forEach(student => {
         const div = document.createElement('div');
         div.className = "p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-50 transition gap-2 sm:gap-0";
         div.innerHTML = `
@@ -230,6 +245,76 @@ function renderFilteredStudents(students) {
         `;
         container.appendChild(div);
     });
+
+    // Render pagination if needed
+    if (totalPages > 1) {
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = "flex items-center justify-center gap-1 p-3 border-t border-slate-100 flex-wrap";
+
+        // Prev button
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '→';
+        prevBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentStudentPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`;
+        prevBtn.disabled = currentStudentPage === 1;
+        prevBtn.onclick = () => { currentStudentPage--; renderFilteredStudents(students); };
+        paginationDiv.appendChild(prevBtn);
+
+        // Page number buttons
+        // Show at most 5 page buttons centered around current page
+        let startPage = Math.max(1, currentStudentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+        if (startPage > 1) {
+            const firstBtn = document.createElement('button');
+            firstBtn.textContent = '1';
+            firstBtn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition';
+            firstBtn.onclick = () => { currentStudentPage = 1; renderFilteredStudents(students); };
+            paginationDiv.appendChild(firstBtn);
+            if (startPage > 2) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                dots.className = 'px-1 text-slate-400 text-sm';
+                paginationDiv.appendChild(dots);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            const isActive = i === currentStudentPage;
+            pageBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`;
+            if (!isActive) {
+                const pageNum = i;
+                pageBtn.onclick = () => { currentStudentPage = pageNum; renderFilteredStudents(students); };
+            }
+            paginationDiv.appendChild(pageBtn);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                dots.className = 'px-1 text-slate-400 text-sm';
+                paginationDiv.appendChild(dots);
+            }
+            const lastBtn = document.createElement('button');
+            lastBtn.textContent = totalPages;
+            lastBtn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition';
+            lastBtn.onclick = () => { currentStudentPage = totalPages; renderFilteredStudents(students); };
+            paginationDiv.appendChild(lastBtn);
+        }
+
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '←';
+        nextBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentStudentPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`;
+        nextBtn.disabled = currentStudentPage === totalPages;
+        nextBtn.onclick = () => { currentStudentPage++; renderFilteredStudents(students); };
+        paginationDiv.appendChild(nextBtn);
+
+        container.appendChild(paginationDiv);
+    }
 }
 
 async function deleteAllStudents() {
