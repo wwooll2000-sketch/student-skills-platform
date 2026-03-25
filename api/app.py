@@ -35,11 +35,21 @@ def create_app():
     # Import and register blueprints
     try:
         from routes.admin import admin_bp
+        from routes.admin_students import admin_students_bp
+        from routes.admin_skills import admin_skills_bp
+        from routes.admin_evidence import admin_evidence_bp
+        from routes.admin_teacher import admin_teacher_bp
+        from routes.admin_activities import admin_activities_bp
         from routes.student import student_bp
         from routes.custom_skills import custom_skills_bp
         from routes.health import health_bp
-        
+
         app.register_blueprint(admin_bp)
+        app.register_blueprint(admin_students_bp)
+        app.register_blueprint(admin_skills_bp)
+        app.register_blueprint(admin_evidence_bp)
+        app.register_blueprint(admin_teacher_bp)
+        app.register_blueprint(admin_activities_bp)
         app.register_blueprint(student_bp)
         app.register_blueprint(custom_skills_bp)
         app.register_blueprint(health_bp)

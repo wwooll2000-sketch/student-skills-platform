@@ -261,7 +261,7 @@ in the إدارة المهارات section for the المهارات for the titl
 
 when i 📥 تصدير البيانات the name of the files is not the right date! students_data_2026-02-11.json while we are in 2026-02-12.. please fix this.
 
--------------- not done (it's complcated)
+--------------
 
 major change:
 i noticed that in this app we use APIs for everything even for things that we can do with the database directly without the need for APIs, we can use prisma to handle all the database operations directly without the need for APIs, so please make sure to remove any API implementation+files that we have in this project and use prisma to handle all the database operations directly without the need for APIs, also make sure to remove any code related to APIs and also make sure to optmize the prisma schema and queries indexes to make it more efficient and faster.
@@ -570,6 +570,10 @@ the admin.py and index.html are getting little bit big, can you split them into 
 
 --------------
 
+there is some issue that related to the الأيقونة for the المهارات, for example in the إدارة المهارات section when i click view the مهارة it shows like this for the title "youtube أن يميز الطالب الجملة الاسمية من بين الجمل" the youtube should be an icon not text, also this happens in the admin students page in the إضافة مهارة section, also make sure to find any other place in the app that has the same issue and fix it!
+
+--------------
+
 in the table of the admin students page and in the students dashboard page, we need to make some major changes,
 
 - i want to add a new column, wich will be for Test, when the student click on the test button it opens model that says are you ready for the test.. and when clicks yes, it opens a new page that has a test for the student based on the مهارة that this test is for, and the test will be only 5 questions for each مهارة and the questions will be added by the teacher from the إدارة المهارات section.
@@ -591,3 +595,11 @@ in the admin dashboard page,
 - also add more statistics in the 📊 إحصائيات عامة section as you think..
 
 - move the title "لوحة تحكم المعلم" with "مرحباً بك أ. سلطان" to be in the top right at the same line with the تسجيل خروج المعلم button and the settings and mute notifications buttons, to make it more organized and to free some space in the dashboard.
+
+--------------
+
+we didnt update the 🏆 إنجازاتك in the students dashboard from a long time from the start of devoloping this app.. so we need to update it to reflect the changes that we made in this app, but first read everything and plan and then start implementing the changes!
+
+--------------
+
+in the admin page add a new future section, and it is gonna be for announcements, so the teacher can add announcements and show them for the students
