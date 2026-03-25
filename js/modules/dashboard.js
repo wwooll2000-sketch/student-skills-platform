@@ -374,9 +374,9 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
             <td data-col="الاختبار" class="p-2 sm:p-4 text-center">
                 ${isDone
                     ? `<span class="text-green-600 font-bold text-xs">✅ تم</span>`
-                    : template
+                    : template && (template.question_count > 0)
                         ? `<button onclick="openTestConfirmModal('${skill.id}', '${skillName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded text-xs font-medium transition">📝 قم بالإختبار</button>`
-                        : `<span class="text-slate-300 text-xs">—</span>`
+                        : `<span class="text-slate-400 text-xs">لا يوجد اختبار</span>`
                 }
             </td>
         `;

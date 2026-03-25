@@ -28,9 +28,10 @@ def get_skill_templates():
         is_active = request.args.get('is_active', 'true')
         
         query = '''
-            SELECT st.id, st.name, st.description, st.url, st.category, 
-                   st.icon, st.color, st.is_active, st.usage_count, 
-                   st.created_at, st.updated_at
+            SELECT st.id, st.name, st.description, st.url, st.category,
+                   st.icon, st.color, st.is_active, st.usage_count,
+                   st.created_at, st.updated_at,
+                   (SELECT COUNT(*) FROM skill_test_questions q WHERE q.template_id = st.id) AS question_count
             FROM skill_templates st
             WHERE st.is_active = %s
         '''
@@ -59,6 +60,7 @@ def get_skill_templates():
                 'color': row['color'] or 'indigo',
                 'is_active': row['is_active'],
                 'usage_count': row['usage_count'] or 0,
+                'question_count': int(row['question_count'] or 0),
                 'created_at': str(row['created_at']) if row['created_at'] else None,
                 'updated_at': str(row['updated_at']) if row['updated_at'] else None
             })
