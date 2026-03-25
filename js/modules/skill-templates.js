@@ -4,6 +4,9 @@ let localSkillTemplatesCache = [];
 let currentEditingTemplateId = null;
 let currentDetailsTemplateId = null;
 
+const SKILLS_PER_PAGE = 9;
+let currentSkillPage = 1;
+
 // Load skill templates
 async function loadSkillTemplates() {
     try {
@@ -23,6 +26,7 @@ async function loadSkillTemplates() {
         const data = await response.json();
         if (data.success) {
             localSkillTemplatesCache = data.templates || [];
+            currentSkillPage = 1;  // reset to first page whenever data reloads
             renderSkillTemplates(localSkillTemplatesCache);
         }
     } catch (error) {
@@ -34,8 +38,27 @@ async function loadSkillTemplates() {
 // Render skill templates
 function renderSkillTemplates(templates) {
     const container = document.getElementById('skillTemplatesList');
+    const paginationContainer = document.getElementById('skillTemplatesPagination');
+    const countDisplay = document.getElementById('skillTemplatesCountDisplay');
     if (!container) return;
-    
+
+    const total = localSkillTemplatesCache.length;
+    const filtered = templates ? templates.length : 0;
+    const totalPages = Math.ceil(filtered / SKILLS_PER_PAGE);
+
+    // Clamp page in case filtered results shrank
+    if (currentSkillPage > totalPages && totalPages > 0) currentSkillPage = totalPages;
+
+    // Update count display
+    if (countDisplay) {
+        const pageInfo = totalPages > 1 ? ` — صفحة ${currentSkillPage} من ${totalPages}` : '';
+        if (filtered < total) {
+            countDisplay.textContent = `عرض ${filtered} من ${total} مهارة${pageInfo}`;
+        } else {
+            countDisplay.textContent = `إجمالي: ${total} مهارة${pageInfo}`;
+        }
+    }
+
     if (!templates || templates.length === 0) {
         container.innerHTML = `
             <div class="col-span-full text-center py-12 text-slate-400">
@@ -43,11 +66,16 @@ function renderSkillTemplates(templates) {
                 <p>لا توجد مهارات</p>
             </div>
         `;
+        if (paginationContainer) paginationContainer.innerHTML = '';
         return;
     }
-    
-    container.innerHTML = templates.map(template => `
-        <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group">
+
+    // Slice current page
+    const startIndex = (currentSkillPage - 1) * SKILLS_PER_PAGE;
+    const pageTemplates = templates.slice(startIndex, startIndex + SKILLS_PER_PAGE);
+
+    container.innerHTML = pageTemplates.map(template => `
+        <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group" data-template-id="${template.id}">
             <div class="flex items-start justify-between mb-2">
                 <div class="flex items-center gap-2 flex-1">
                     <span class="flex-shrink-0">${getSkillLinkIcon(template.icon || 'file')}</span>
@@ -81,6 +109,76 @@ function renderSkillTemplates(templates) {
             </div>
         </div>
     `).join('');
+
+    // Pagination
+    if (!paginationContainer) return;
+    paginationContainer.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'flex items-center justify-center gap-1 mt-4 flex-wrap';
+
+    // Prev button
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '→';
+    prevBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentSkillPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`;
+    prevBtn.disabled = currentSkillPage === 1;
+    prevBtn.onclick = () => { currentSkillPage--; renderSkillTemplates(templates); };
+    paginationDiv.appendChild(prevBtn);
+
+    let startPage = Math.max(1, currentSkillPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+    if (startPage > 1) {
+        const firstBtn = document.createElement('button');
+        firstBtn.textContent = '1';
+        firstBtn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition';
+        firstBtn.onclick = () => { currentSkillPage = 1; renderSkillTemplates(templates); };
+        paginationDiv.appendChild(firstBtn);
+        if (startPage > 2) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            dots.className = 'px-1 text-slate-400 text-sm';
+            paginationDiv.appendChild(dots);
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        const isActive = i === currentSkillPage;
+        pageBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`;
+        if (!isActive) {
+            const pageNum = i;
+            pageBtn.onclick = () => { currentSkillPage = pageNum; renderSkillTemplates(templates); };
+        }
+        paginationDiv.appendChild(pageBtn);
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            dots.className = 'px-1 text-slate-400 text-sm';
+            paginationDiv.appendChild(dots);
+        }
+        const lastBtn = document.createElement('button');
+        lastBtn.textContent = totalPages;
+        lastBtn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition';
+        lastBtn.onclick = () => { currentSkillPage = totalPages; renderSkillTemplates(templates); };
+        paginationDiv.appendChild(lastBtn);
+    }
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = '←';
+    nextBtn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentSkillPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`;
+    nextBtn.disabled = currentSkillPage === totalPages;
+    nextBtn.onclick = () => { currentSkillPage++; renderSkillTemplates(templates); };
+    paginationDiv.appendChild(nextBtn);
+
+    paginationContainer.appendChild(paginationDiv);
 }
 
 // Search skill templates
@@ -91,6 +189,47 @@ function searchSkillTemplates() {
 // Filter skill templates
 function filterSkillTemplates() {
     loadSkillTemplates();
+}
+
+// Scroll to and highlight a skill template card by name (called from activity feed)
+function scrollToSkillTemplate(skillName) {
+    // Make sure the admin home view is visible (not skills detail view)
+    const detailView = document.getElementById('skillsDetailView');
+    const dashboardView = document.getElementById('adminDashboardView');
+    if (detailView && !detailView.classList.contains('hidden')) {
+        detailView.classList.add('hidden');
+        if (dashboardView) dashboardView.classList.remove('hidden');
+    }
+
+    // Find the template in the cache by name (case-insensitive)
+    const idx = localSkillTemplatesCache.findIndex(
+        t => t.name.trim().toLowerCase() === skillName.trim().toLowerCase()
+    );
+    if (idx === -1) return; // template not found
+
+    const templateId = localSkillTemplatesCache[idx].id;
+
+    // Calculate the page it lives on
+    const targetPage = Math.floor(idx / SKILLS_PER_PAGE) + 1;
+    if (currentSkillPage !== targetPage) {
+        currentSkillPage = targetPage;
+        renderSkillTemplates(localSkillTemplatesCache);
+    }
+
+    // Scroll the section into view, then highlight the card
+    const section = document.getElementById('skillTemplatesList');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Wait a tick for DOM to settle after any re-render
+    setTimeout(() => {
+        const card = document.querySelector(`[data-template-id="${templateId}"]`);
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('skill-highlight-glow');
+        setTimeout(() => card.classList.remove('skill-highlight-glow'), 2500);
+    }, 80);
 }
 
 // Show add skill template modal

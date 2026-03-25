@@ -548,13 +548,29 @@ there is a small issue that when i for example hide the الشواهد column fo
 
 in the admin page in قائمة الطلاب المضافين add a paganation for the students if there are more than 10 students..
 
+---
+
+also add the same pagination that we added in the قائمة الطلاب المضافين to the إدارة المهارات section that more than 9 مهارات.
+
 --------------
 
-for the 📝 آخر النشاطات section in the admin page, add more futures as you think.. also add filters + add filter by dates.. etc.. add anything usefull 
+for the 📝 آخر النشاطات section in the admin page, add more futures as you think.. also add filters + add filter by dates.. etc.. add anything usefull
 
 --------------
 
-in the table of the admin students page and in the students dashboard page, we to make some major changes,
+in the 📝 آخر النشاطات, i want to add an ability to be able to click on the المهاره name and then it scrolls me to the المهاره in the إدارة المهارات and if the المهاره in page 2 it should automaticly go to page 2 and then add a border glow to the المهاره that shows for a few seconds to let the teacher knows that this is the المهاره.
+
+---
+
+in the 📝 آخر النشاطات section there is load more button, i want when i click it, it should show and repleace to a loading spinner in the button till the data finishs.
+
+--------------
+
+the admin.py and index.html are getting little bit big, can you split them into smaller files to make the code cleaner and more efficient.
+
+--------------
+
+in the table of the admin students page and in the students dashboard page, we need to make some major changes,
 
 - i want to add a new column, wich will be for Test, when the student click on the test button it opens model that says are you ready for the test.. and when clicks yes, it opens a new page that has a test for the student based on the مهارة that this test is for, and the test will be only 5 questions for each مهارة and the questions will be added by the teacher from the إدارة المهارات section.
 
@@ -565,3 +581,13 @@ Note1: for each test it must have maximum of 5 questions. Also the questions can
 Note2: when the student opens a test it should opens a new page but not in a new tab, and when he pass or fail the test it should goes him back to the dashboard table page and show the message above the table with the result of the test like "مبروك! لقد اجتزت الاختبار بنجاح!" or "لم تجتاز الاختبار، حاول مرة أخرى لديك 2 محاولا متبقية" and it should also update the status of the مهارة in the table to ✅ تم with how much points the student got for the test if he passed or to ❌ لم تكتمل if he failed with how much points he got for the test if he failed. also if he refresh the page after while there is a message above the table it should disappear and the message should not be shown again until he takes the test again. Also when the student press the test button it opens the model with the message of are you ready? also add how many attempts the student have for this test.
 
 Note3: you can change anything you want in the code to implement these features and make sure to optimize and reflect the changes in the code and make it efficient and fast, also make sure to not break any existing functionality while implementing these features.
+
+--------------
+
+in the admin dashboard page,
+
+- update or add new more details events in the 📝 آخر النشاطات section like about the test of the users..
+
+- also add more statistics in the 📊 إحصائيات عامة section as you think..
+
+- move the title "لوحة تحكم المعلم" with "مرحباً بك أ. سلطان" to be in the top right at the same line with the تسجيل خروج المعلم button and the settings and mute notifications buttons, to make it more organized and to free some space in the dashboard.

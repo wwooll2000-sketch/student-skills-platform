@@ -302,13 +302,21 @@ class AdminAPI {
         }
     }
 
-    async getRecentActivities() {
+    async getRecentActivities(filters = {}) {
         if (!this.isAuthorized()) {
             return { success: false, message: "غير مصرح" };
         }
 
         try {
-            const response = await fetch(`${this.baseURL}/recent-activities`, {
+            const params = new URLSearchParams();
+            if (filters.type && filters.type !== 'all') params.set('type', filters.type);
+            if (filters.date_from) params.set('date_from', filters.date_from);
+            if (filters.date_to) params.set('date_to', filters.date_to);
+            if (filters.student) params.set('student', filters.student);
+            if (filters.limit) params.set('limit', String(filters.limit));
+
+            const qs = params.toString() ? `?${params.toString()}` : '';
+            const response = await fetch(`${this.baseURL}/recent-activities${qs}`, {
                 headers: { Authorization: `Bearer ${this.authToken}` }
             });
 

@@ -55,172 +55,249 @@ async function saveStudentNotes() {
 }
 
 async function loadRecentActivity() {
-    const container = document.getElementById('recentActivityList');
-    if (!container) return;
+    await _fetchAndRenderActivities(true);
+}
 
-    container.innerHTML = '<div class="text-center text-slate-400 p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
+// ─── Activity feed filter state ───────────────────────────────────────────────
+const _activityFilters = {
+    type: 'all',
+    date_from: '',
+    date_to: '',
+    student: '',
+    limit: 20,
+};
+let _activitySearchDebounce = null;
 
-    const result = await adminAPI.getRecentActivities();
-    if (!result.success || !result.activities || result.activities.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-400 p-4">لا توجد نشاطات حديثة</div>';
-        return;
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+function refreshActivityFeed() {
+    activitiesCache.data = null;
+    activitiesCache.timestamp = 0;
+    _fetchAndRenderActivities(true);
+}
+
+function setActivityTypeFilter(type) {
+    _activityFilters.type = type;
+    _activityFilters.limit = 20;          // reset pagination on new filter
+
+    // Update chip active state
+    document.querySelectorAll('.activity-type-chip').forEach(btn => {
+        btn.classList.toggle('activity-chip-active', btn.dataset.type === type);
+    });
+
+    _updateClearBtnVisibility();
+    activitiesCache.data = null;
+    activitiesCache.timestamp = 0;
+    _fetchAndRenderActivities(true);
+}
+
+function onActivityFilterChange() {
+    _activityFilters.date_from = document.getElementById('activityDateFrom')?.value || '';
+    _activityFilters.date_to   = document.getElementById('activityDateTo')?.value   || '';
+    _activityFilters.limit = 20;
+    _updateClearBtnVisibility();
+    activitiesCache.data = null;
+    activitiesCache.timestamp = 0;
+    _fetchAndRenderActivities(true);
+}
+
+function onActivitySearchInput() {
+    clearTimeout(_activitySearchDebounce);
+    _activitySearchDebounce = setTimeout(() => {
+        _activityFilters.student = document.getElementById('activityStudentSearch')?.value?.trim() || '';
+        _activityFilters.limit = 20;
+        _updateClearBtnVisibility();
+        activitiesCache.data = null;
+        activitiesCache.timestamp = 0;
+        _fetchAndRenderActivities(true);
+    }, 350);
+}
+
+function loadMoreActivities() {
+    const btn = document.getElementById('activityLoadMoreBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin rounded-full h-3.5 w-3.5 border-2 border-indigo-400 border-t-transparent align-middle"></span>';
     }
-
-    // Display top 10 recent activities
-    const recentActivities = result.activities.slice(0, 10);
-    
-    container.innerHTML = '';
-    recentActivities.forEach(activity => {
-        const div = document.createElement('div');
-        div.className = 'flex items-start gap-2 p-2 hover:bg-slate-50 rounded text-sm';
-        const timeAgo = getTimeAgo(activity.date);
-        
-        // Different display for login, logout, and completed skill
-        if (activity.type === 'login') {
-            div.innerHTML = `
-                <span class="text-lg">🔐</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">قام بتسجيل الدخول</span>
-                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'logout') {
-            div.innerHTML = `
-                <span class="text-lg">🚪</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">قام بتسجيل الخروج</span>
-                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'ready') {
-            div.innerHTML = `
-                <span class="text-lg">🙋</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">جاهز لمهارة</span>
-                    <span class="font-medium text-green-600">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'unready') {
-            div.innerHTML = `
-                <span class="text-lg">↩️</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">ألغى جاهزيته لمهارة</span>
-                    <span class="font-medium text-red-500">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else {
-            div.innerHTML = `
-                <span class="text-lg">✅</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">أكمل</span>
-                    <span class="font-medium text-indigo-600">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
+    _activityFilters.limit += 20;
+    activitiesCache.data = null;
+    activitiesCache.timestamp = 0;
+    _fetchAndRenderActivities(false).finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '⬇ تحميل المزيد';
         }
-        container.appendChild(div);
     });
 }
 
-// Optimized version with caching
+function clearActivityFilters() {
+    _activityFilters.type      = 'all';
+    _activityFilters.date_from = '';
+    _activityFilters.date_to   = '';
+    _activityFilters.student   = '';
+    _activityFilters.limit     = 20;
+
+    // Reset UI controls
+    const fromEl = document.getElementById('activityDateFrom');
+    const toEl   = document.getElementById('activityDateTo');
+    const srEl   = document.getElementById('activityStudentSearch');
+    if (fromEl) fromEl.value = '';
+    if (toEl)   toEl.value   = '';
+    if (srEl)   srEl.value   = '';
+
+    document.querySelectorAll('.activity-type-chip').forEach(btn => {
+        btn.classList.toggle('activity-chip-active', btn.dataset.type === 'all');
+    });
+
+    _updateClearBtnVisibility();
+    activitiesCache.data = null;
+    activitiesCache.timestamp = 0;
+    _fetchAndRenderActivities(true);
+}
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+function _updateClearBtnVisibility() {
+    const hasFilter = _activityFilters.type !== 'all'
+        || _activityFilters.date_from
+        || _activityFilters.date_to
+        || _activityFilters.student;
+    const btn = document.getElementById('activityClearFiltersBtn');
+    if (btn) btn.classList.toggle('hidden', !hasFilter);
+}
+
+async function _fetchAndRenderActivities(showLoader) {
+    const container = document.getElementById('recentActivityList');
+    if (!container) return;
+
+    if (showLoader) {
+        container.innerHTML = '<div class="text-center text-slate-400 py-6"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
+    }
+
+    const result = await adminAPI.getRecentActivities({
+        type:      _activityFilters.type,
+        date_from: _activityFilters.date_from,
+        date_to:   _activityFilters.date_to,
+        student:   _activityFilters.student,
+        limit:     _activityFilters.limit,
+    });
+
+    if (!result.success || !result.activities || result.activities.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 py-6">لا توجد نشاطات تطابق الفلاتر المحددة</div>';
+        _updateCountBadge(0);
+        _updateLoadMoreBtn(0);
+        return;
+    }
+
+    const activities = result.activities;
+    _updateCountBadge(activities.length);
+    renderActivities(container, activities);
+    _updateLoadMoreBtn(activities.length);
+}
+
+function _updateCountBadge(count) {
+    const badge = document.getElementById('activityCountBadge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function _updateLoadMoreBtn(count) {
+    const wrapper = document.getElementById('activityLoadMoreWrapper');
+    if (!wrapper) return;
+    // Show "load more" when we got a full page (meaning there might be more)
+    wrapper.classList.toggle('hidden', count < _activityFilters.limit);
+}
+
+// Optimized version with caching (called by init/dashboard)
 async function loadRecentActivityOptimized() {
     const container = document.getElementById('recentActivityList');
     if (!container) return null;
 
-    // Check if cache is valid
     if (isCacheValid(activitiesCache)) {
         renderActivities(container, activitiesCache.data);
+        _updateCountBadge(activitiesCache.data.length);
+        _updateLoadMoreBtn(activitiesCache.data.length);
         return activitiesCache.data;
     }
 
-    container.innerHTML = '<div class="text-center text-slate-400 p-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
+    container.innerHTML = '<div class="text-center text-slate-400 py-6"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div></div>';
 
-    // Use request deduplication
-    const result = await deduplicatedFetch('activities', () => adminAPI.getRecentActivities());
-    
+    const result = await deduplicatedFetch('activities', () => adminAPI.getRecentActivities({
+        limit: _activityFilters.limit,
+    }));
+
     if (!result.success || !result.activities || result.activities.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-400 p-4">لا توجد نشاطات حديثة</div>';
+        container.innerHTML = '<div class="text-center text-slate-400 py-6">لا توجد نشاطات حديثة</div>';
+        _updateCountBadge(0);
+        _updateLoadMoreBtn(0);
         return null;
     }
 
-    // Update cache
     activitiesCache.data = result.activities;
     activitiesCache.timestamp = Date.now();
-    
+
     renderActivities(container, result.activities);
+    _updateCountBadge(result.activities.length);
+    _updateLoadMoreBtn(result.activities.length);
     return result.activities;
 }
 
-// Helper function to render activities
+// ─── Render ───────────────────────────────────────────────────────────────────
+
+const _ACTIVITY_META = {
+    login:     { icon: '🔐', badge: 'bg-blue-100 text-blue-700',   label: 'تسجيل دخول' },
+    logout:    { icon: '🚪', badge: 'bg-slate-100 text-slate-600', label: 'تسجيل خروج' },
+    ready:     { icon: '🙋', badge: 'bg-green-100 text-green-700', label: 'جاهز' },
+    unready:   { icon: '↩️', badge: 'bg-red-100 text-red-600',     label: 'إلغاء جاهزية' },
+    completed: { icon: '✅', badge: 'bg-indigo-100 text-indigo-700', label: 'إنجاز مهارة' },
+};
+
 function renderActivities(container, activities) {
-    const recentActivities = activities.slice(0, 10);
-    
     container.innerHTML = '';
-    recentActivities.forEach(activity => {
-        const div = document.createElement('div');
-        div.className = 'flex items-start gap-2 p-2 hover:bg-slate-50 rounded text-sm';
+
+    activities.forEach(activity => {
+        const meta = _ACTIVITY_META[activity.type] || _ACTIVITY_META.completed;
         const timeAgo = getTimeAgo(activity.date);
-        
-        // Different display for login, logout, and completed skill
-        if (activity.type === 'login') {
-            div.innerHTML = `
-                <span class="text-lg">🔐</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">قام بتسجيل الدخول</span>
-                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'logout') {
-            div.innerHTML = `
-                <span class="text-lg">🚪</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">قام بتسجيل الخروج</span>
-                    <span class="text-xs text-slate-500">(رقم: ${activity.studentCode})</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'ready') {
-            div.innerHTML = `
-                <span class="text-lg">🙋</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">جاهز لمهارة</span>
-                    <span class="font-medium text-green-600">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
-        } else if (activity.type === 'unready') {
-            div.innerHTML = `
-                <span class="text-lg">↩️</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">ألغى جاهزيته لمهارة</span>
-                    <span class="font-medium text-red-500">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;        } else {
-            div.innerHTML = `
-                <span class="text-lg">✅</span>
-                <div class="flex-1">
-                    <span class="font-medium">${activity.studentName}</span>
-                    <span class="text-slate-600">أكمل</span>
-                    <span class="font-medium text-indigo-600">${activity.skillName}</span>
-                    <div class="text-xs text-slate-400">${timeAgo}</div>
-                </div>
-            `;
+        const exactDate = activity.date ? new Date(activity.date).toLocaleString('ar-SA', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        }) : '';
+
+        let detail = '';
+        if (activity.type === 'login' || activity.type === 'logout') {
+            detail = `<span class="text-slate-500">رقم: ${_esc(activity.studentCode)}</span>`;
+        } else if (activity.skillName) {
+            const colorClass = activity.type === 'unready' ? 'text-red-500 hover:text-red-700' : 'text-indigo-600 hover:text-indigo-800';
+            detail = `<button type="button" data-skill-name="${_esc(activity.skillName)}" onclick="scrollToSkillTemplate(this.dataset.skillName)" class="font-medium ${colorClass} underline decoration-dotted underline-offset-2 cursor-pointer transition" title="انتقل إلى المهارة في إدارة المهارات">${_esc(activity.skillName)}</button>`;
         }
+
+        const div = document.createElement('div');
+        div.className = 'flex items-start gap-3 p-2.5 hover:bg-slate-50 rounded-lg transition group';
+        div.innerHTML = `
+            <span class="text-lg flex-shrink-0 mt-0.5">${meta.icon}</span>
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-baseline gap-1.5">
+                    <span class="font-semibold text-slate-800 text-sm">${_esc(activity.studentName)}</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-full ${meta.badge} font-medium">${meta.label}</span>
+                    ${detail ? `<span class="text-sm">${detail}</span>` : ''}
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5" title="${exactDate}">${timeAgo}</div>
+            </div>
+        `;
         container.appendChild(div);
     });
+}
+
+function _esc(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }

@@ -447,126 +447,190 @@ def delete_all_student_skills(student_id):
 @admin_bp.route('/recent-activities', methods=['GET'])
 @verify_admin
 def get_recent_activities():
-    """Get recent activities (completed skills and student logins) from all students"""
+    """Get recent activities with optional filtering by type, date range, student name, and limit"""
     try:
-        # Get recent completed skills (level 2 or 3) joined with student info
-        skill_results = execute_query('''
-            SELECT 
-                s.name as student_name,
-                s.code as student_code,
-                sk.name as skill_name,
-                sk.updated_at AT TIME ZONE 'UTC' as activity_date,
-                'completed' as activity_type
-            FROM skills sk
-            JOIN students s ON sk.student_id = s.id
-            WHERE sk.level IN (2, 3)
-            ORDER BY sk.updated_at DESC
-            LIMIT 30
-        ''', fetch_all=True) or []
-        
-        # Get recent student logins - try with action_type first, fallback if column doesn't exist
-        login_results = []
-        try:
-            login_results = execute_query('''
-                SELECT 
-                    s.name as student_name,
-                    s.code as student_code,
-                    l.logged_in_at AT TIME ZONE 'UTC' as activity_date,
-                    l.action_type as activity_type
-                FROM student_login_logs l
-                JOIN students s ON l.student_id = s.id
-                ORDER BY l.logged_in_at DESC
-                LIMIT 30
-            ''', fetch_all=True) or []
-        except Exception as login_error:
-            # If table doesn't exist or action_type column missing, try simpler query or skip
-            error_msg = str(login_error).lower()
-            if 'does not exist' in error_msg or 'student_login_logs' in error_msg:
-                # Table doesn't exist yet - skip login logs
-                print(f"[INFO] student_login_logs table not found, skipping login activities")
-                login_results = []
-            elif 'action_type' in error_msg or 'column' in error_msg:
-                # Column doesn't exist - use old query without action_type
-                print(f"[INFO] action_type column not found, using default 'login' type")
-                try:
-                    login_results = execute_query('''
-                        SELECT 
-                            s.name as student_name,
-                            s.code as student_code,
-                            l.logged_in_at AT TIME ZONE 'UTC' as activity_date,
-                            'login' as activity_type
-                        FROM student_login_logs l
-                        JOIN students s ON l.student_id = s.id
-                        ORDER BY l.logged_in_at DESC
-                        LIMIT 30
-                    ''', fetch_all=True) or []
-                except:
-                    login_results = []
-            else:
-                print(f"[WARNING] Unexpected error fetching login logs: {login_error}")
-                login_results = []
-        
-        # Get recent student-initiated ready/unready events
-        ready_results = []
-        try:
-            ready_results = execute_query('''
-                SELECT
-                    s.name as student_name,
-                    s.code as student_code,
-                    rl.skill_name,
-                    rl.is_ready,
-                    rl.logged_at AT TIME ZONE 'UTC' as activity_date
-                FROM student_ready_log rl
-                JOIN students s ON rl.student_id = s.id
-                ORDER BY rl.logged_at DESC
-                LIMIT 30
-            ''', fetch_all=True) or []
-        except Exception as ready_err:
-            if 'student_ready_log' in str(ready_err).lower() or 'does not exist' in str(ready_err).lower():
-                print('[INFO] student_ready_log table not found, skipping ready activities')
-            else:
-                print(f'[WARNING] Unexpected error fetching ready log: {ready_err}')
+        # Parse query params (all validated server-side; user input only in parameterized placeholders)
+        activity_type = request.args.get('type', 'all')
+        if activity_type not in ('all', 'login', 'logout', 'ready', 'unready', 'completed'):
+            activity_type = 'all'
 
-        # Combine and sort all activities
+        date_from = request.args.get('date_from', '').strip()
+        date_to = request.args.get('date_to', '').strip()
+        student_search = request.args.get('student', '').strip()
+
+        try:
+            limit = min(int(request.args.get('limit', 50)), 500)
+        except (ValueError, TypeError):
+            limit = 50
+
+        # Fetch enough per source so merged+sorted result is still accurate
+        per_source = max(limit * 2, 100)
+
+        # Build shared params dict for parameterized queries
+        qp = {'per_source': per_source}
+        if date_from:
+            qp['date_from'] = date_from
+        if date_to:
+            qp['date_to'] = date_to
+        if student_search:
+            # Build safe LIKE pattern from user input - only used in %(…)s placeholder
+            qp['student_search'] = f'%{student_search.lower()}%'
+
+        def _date_cond(col):
+            """Return SQL date-range fragment for the given timestamp column."""
+            parts = []
+            if date_from:
+                parts.append(f"{col} >= %(date_from)s::date")
+            if date_to:
+                parts.append(f"{col} < (%(date_to)s::date + interval '1 day')")
+            return ('AND ' + ' AND '.join(parts)) if parts else ''
+
+        def _student_cond():
+            if student_search:
+                return "AND (LOWER(s.name) LIKE %(student_search)s OR LOWER(s.code) LIKE %(student_search)s)"
+            return ''
+
         all_activities = []
 
-        for row in ready_results:
-            activity_date = row['activity_date']
-            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
-            all_activities.append({
-                'studentName': row['student_name'],
-                'studentCode': row['student_code'],
-                'skillName': row['skill_name'],
-                'date': date_str,
-                'type': 'ready' if row['is_ready'] else 'unready'
-            })
+        # ── Completed skills ────────────────────────────────────────────────
+        if activity_type in ('all', 'completed'):
+            date_c = _date_cond('sk.updated_at')
+            stu_c = _student_cond()
+            skill_results = execute_query(f'''
+                SELECT
+                    s.name  AS student_name,
+                    s.code  AS student_code,
+                    sk.name AS skill_name,
+                    sk.updated_at AT TIME ZONE 'UTC' AS activity_date
+                FROM skills sk
+                JOIN students s ON sk.student_id = s.id
+                WHERE sk.level IN (2, 3)
+                  {date_c}
+                  {stu_c}
+                ORDER BY sk.updated_at DESC
+                LIMIT %(per_source)s
+            ''', qp, fetch_all=True) or []
 
-        for row in skill_results:
-            activity_date = row['activity_date']
-            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
-            all_activities.append({
-                'studentName': row['student_name'],
-                'studentCode': row['student_code'],
-                'skillName': row.get('skill_name'),
-                'date': date_str,
-                'type': 'completed'
-            })
-        
-        for row in login_results:
-            activity_date = row['activity_date']
-            date_str = activity_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if activity_date else None
-            all_activities.append({
-                'studentName': row['student_name'],
-                'studentCode': row['student_code'],
-                'date': date_str,
-                'type': row.get('activity_type', 'login')  # Use action_type from DB (login or logout)
-            })
-        
-        # Sort by date descending and limit to 50
+            for row in skill_results:
+                ad = row['activity_date']
+                all_activities.append({
+                    'studentName': row['student_name'],
+                    'studentCode': row['student_code'],
+                    'skillName': row.get('skill_name'),
+                    'date': ad.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if ad else None,
+                    'type': 'completed'
+                })
+
+        # ── Login / logout ──────────────────────────────────────────────────
+        if activity_type in ('all', 'login', 'logout'):
+            date_c = _date_cond('l.logged_in_at')
+            stu_c = _student_cond()
+            type_c = ''
+            if activity_type == 'login':
+                type_c = "AND l.action_type = 'login'"
+            elif activity_type == 'logout':
+                type_c = "AND l.action_type = 'logout'"
+
+            login_results = []
+            try:
+                login_results = execute_query(f'''
+                    SELECT
+                        s.name  AS student_name,
+                        s.code  AS student_code,
+                        l.logged_in_at AT TIME ZONE 'UTC' AS activity_date,
+                        l.action_type AS activity_type
+                    FROM student_login_logs l
+                    JOIN students s ON l.student_id = s.id
+                    WHERE 1=1
+                      {type_c}
+                      {date_c}
+                      {stu_c}
+                    ORDER BY l.logged_in_at DESC
+                    LIMIT %(per_source)s
+                ''', qp, fetch_all=True) or []
+            except Exception as login_error:
+                error_msg = str(login_error).lower()
+                if 'does not exist' in error_msg or 'student_login_logs' in error_msg:
+                    print('[INFO] student_login_logs table not found, skipping login activities')
+                elif 'action_type' in error_msg or 'column' in error_msg:
+                    print('[INFO] action_type column not found, using default login type')
+                    try:
+                        login_results = execute_query(f'''
+                            SELECT
+                                s.name  AS student_name,
+                                s.code  AS student_code,
+                                l.logged_in_at AT TIME ZONE 'UTC' AS activity_date,
+                                'login' AS activity_type
+                            FROM student_login_logs l
+                            JOIN students s ON l.student_id = s.id
+                            WHERE 1=1
+                              {date_c}
+                              {stu_c}
+                            ORDER BY l.logged_in_at DESC
+                            LIMIT %(per_source)s
+                        ''', qp, fetch_all=True) or []
+                    except Exception:
+                        login_results = []
+                else:
+                    print(f'[WARNING] Unexpected error fetching login logs: {login_error}')
+
+            for row in login_results:
+                ad = row['activity_date']
+                all_activities.append({
+                    'studentName': row['student_name'],
+                    'studentCode': row['student_code'],
+                    'date': ad.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if ad else None,
+                    'type': row.get('activity_type', 'login')
+                })
+
+        # ── Ready / unready ─────────────────────────────────────────────────
+        if activity_type in ('all', 'ready', 'unready'):
+            date_c = _date_cond('rl.logged_at')
+            stu_c = _student_cond()
+            ready_c = ''
+            if activity_type == 'ready':
+                ready_c = 'AND rl.is_ready = TRUE'
+            elif activity_type == 'unready':
+                ready_c = 'AND rl.is_ready = FALSE'
+
+            ready_results = []
+            try:
+                ready_results = execute_query(f'''
+                    SELECT
+                        s.name   AS student_name,
+                        s.code   AS student_code,
+                        rl.skill_name,
+                        rl.is_ready,
+                        rl.logged_at AT TIME ZONE 'UTC' AS activity_date
+                    FROM student_ready_log rl
+                    JOIN students s ON rl.student_id = s.id
+                    WHERE 1=1
+                      {ready_c}
+                      {date_c}
+                      {stu_c}
+                    ORDER BY rl.logged_at DESC
+                    LIMIT %(per_source)s
+                ''', qp, fetch_all=True) or []
+            except Exception as ready_err:
+                err = str(ready_err).lower()
+                if 'student_ready_log' not in err and 'does not exist' not in err:
+                    print(f'[WARNING] Unexpected error fetching ready log: {ready_err}')
+
+            for row in ready_results:
+                ad = row['activity_date']
+                all_activities.append({
+                    'studentName': row['student_name'],
+                    'studentCode': row['student_code'],
+                    'skillName': row['skill_name'],
+                    'date': ad.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if ad else None,
+                    'type': 'ready' if row['is_ready'] else 'unready'
+                })
+
+        # Sort by date descending and apply limit
         all_activities.sort(key=lambda x: x['date'] if x['date'] else '', reverse=True)
-        all_activities = all_activities[:50]
-        
-        return jsonify({'success': True, 'activities': all_activities})
+        all_activities = all_activities[:limit]
+
+        return jsonify({'success': True, 'activities': all_activities, 'total': len(all_activities)})
     except Exception as e:
         print(f"[ERROR] get_recent_activities: {str(e)}")
         import traceback
