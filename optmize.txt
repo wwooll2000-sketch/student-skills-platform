@@ -620,6 +620,10 @@ there is a bug, in the admin students page, when i add a new مهارة to a stu
 
 perfect! now in the admin page, for the 🙋 الطلاب الجاهزين للمهارة in the same line of this section at the left side, add a yellow warning icon that shows only if the teacher disable the جاهز columen from the settings.. also when i hover over it it shows a toltip that says somthing like this futere is disabled for the students in the setting!
 
+---
+
+there is an issue in the app that when i login as admin, the warn icon that must show next to the 🙋 الطلاب الجاهزين للمهارة if the teacher disable the جاهز column from the settings doesn't show until i refresh the page, so please make sure to fix this issue and make sure to fix any related issues that looks like this in the app..
+
 --------------
 
 in the admin page add a new future section, and it is gonna be for announcements, so the teacher can add announcements and show them for the students in the students dashboard page, and in the announcements the teacher can choose the type of the announcement if like basic wich it has own icon and color like blue, and warning which has its own icon and color like yellow, and danger which has its own icon and color like red, also the teacher can add a title and description for the announcement, also the teacher can choose to show the announcement for all the students or just for specific students by selecting them from a list, also the teacher can edit or delete the announcement at any time.
@@ -638,7 +642,7 @@ perfect! now let's do some other tweaks:
 
 - in the آخر النشاطات it shows نجح (6%) , it should show like this نجح (6/10) also show عدد المحاولات
 
--------------- not done
+--------------
 
 add a new feature to hide/unhide the المهارة from the students, so in the إدارة المهارات for each مهارة add a small icon button on the top left of each مهارة card, when i hover over this icon it should show a tooltip that says "إخفاء المهارة عن الطلاب" or reverse it for when the مهارة is hidden, and when i click on this icon it should toggle between hide and unhide the مهارة for the students.
 

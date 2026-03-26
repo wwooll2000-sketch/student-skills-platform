@@ -53,6 +53,13 @@ async function verifyAdminLogin() {
         if (typeof populateReadySkillSelect === 'function') {
             populateReadySkillSelect();
         }
+
+        // Initialize ready-feature warning icon
+        if (typeof getColumnVisibility === 'function' && typeof updateReadyFeatureWarning === 'function') {
+            getColumnVisibility().then(visibility => {
+                updateReadyFeatureWarning(visibility);
+            });
+        }
         
         // Initialize skill templates management
         if (typeof initSkillTemplatesManagement === 'function') {
