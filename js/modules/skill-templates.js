@@ -75,7 +75,17 @@ function renderSkillTemplates(templates) {
     const pageTemplates = templates.slice(startIndex, startIndex + SKILLS_PER_PAGE);
 
     container.innerHTML = pageTemplates.map(template => `
-        <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition group" data-template-id="${template.id}">
+        <div class="relative ${template.is_hidden_from_students ? 'bg-slate-50 border-amber-200' : 'bg-white border-slate-200'} border rounded-lg p-4 hover:shadow-md transition group" data-template-id="${template.id}">
+            <div class="absolute top-1 left-1 z-10 group/vis">
+                <button type="button"
+                    onclick="toggleSkillTemplateVisibility('${template.id}', ${!!template.is_hidden_from_students})"
+                    class="p-1.5 rounded-lg transition-all ${template.is_hidden_from_students ? 'text-amber-500 bg-amber-100 hover:bg-amber-200' : 'text-slate-300 opacity-0 group-hover:opacity-100 hover:text-slate-600 hover:bg-slate-100'}">
+                    <span class="text-sm leading-none">${template.is_hidden_from_students ? '🙈' : '👁️'}</span>
+                </button>
+                <span class="pointer-events-none absolute top-full mt-1 left-0 whitespace-nowrap rounded-md bg-slate-800 text-white text-xs px-2 py-1 opacity-0 group-hover/vis:opacity-100 transition-opacity shadow-md">
+                    ${template.is_hidden_from_students ? 'إظهار المهارة للطلاب' : 'إخفاء المهارة عن الطلاب'}
+                </span>
+            </div>
             <div class="flex items-start justify-between mb-2">
                 <div class="flex items-center gap-2 flex-1">
                     <span class="flex-shrink-0">${getSkillLinkIcon(template.icon || 'file')}</span>
@@ -85,7 +95,7 @@ function renderSkillTemplates(templates) {
                     </div>
                 </div>
             </div>
-            
+            ${template.is_hidden_from_students ? '<div class="mb-2"><span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">🙈 مخفية عن الطلاب</span></div>' : ''}
             <div class="flex items-center gap-2 mb-3 text-xs text-slate-600">
                 <span class="flex items-center gap-1">
                     <span class="text-lg">👥</span>
@@ -193,6 +203,38 @@ function searchSkillTemplates() {
 // Filter skill templates
 function filterSkillTemplates() {
     loadSkillTemplates();
+}
+
+// Toggle hide/show a skill template from student view
+async function toggleSkillTemplateVisibility(templateId, isCurrentlyHidden) {
+    const newHidden = !isCurrentlyHidden;
+    try {
+        const response = await fetch(`/api/admin/skill-templates/${templateId}/hidden`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+            },
+            body: JSON.stringify({ is_hidden: newHidden })
+        });
+        const data = await response.json();
+        if (data.success) {
+            const idx = localSkillTemplatesCache.findIndex(t => t.id === templateId);
+            if (idx !== -1) {
+                localSkillTemplatesCache[idx].is_hidden_from_students = newHidden;
+            }
+            renderSkillTemplates(localSkillTemplatesCache);
+            showToast(
+                newHidden ? 'تم إخفاء المهارة عن الطلاب' : 'تمت إعادة إظهار المهارة للطلاب',
+                { icon: newHidden ? '🙈' : '👁️', type: newHidden ? 'warning' : 'success' }
+            );
+        } else {
+            customAlert(data.message || 'خطأ في تحديث الحالة', { icon: '❌', title: 'خطأ' });
+        }
+    } catch (error) {
+        console.error('Error toggling skill visibility:', error);
+        customAlert('خطأ في الاتصال', { icon: '❌', title: 'خطأ' });
+    }
 }
 
 // Scroll to and highlight a skill template card by name (called from activity feed)

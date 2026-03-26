@@ -18,9 +18,23 @@ except ImportError:
 
 custom_skills_bp = Blueprint('custom_skills', __name__, url_prefix='/api/skill-templates')
 
+_hidden_col_ensured = False
+
+def _ensure_hidden_col():
+    global _hidden_col_ensured
+    if _hidden_col_ensured:
+        return
+    try:
+        execute_query('ALTER TABLE skill_templates ADD COLUMN IF NOT EXISTS is_hidden_from_students BOOLEAN DEFAULT FALSE')
+    except Exception as e:
+        print(f'[INFO] _ensure_hidden_col: {e}')
+    _hidden_col_ensured = True
+
+
 @custom_skills_bp.route('', methods=['GET'])
 def get_skill_templates():
     """Get all skill templates with statistics - optimized"""
+    _ensure_hidden_col()
     try:
         # Get filter parameters
         category = request.args.get('category')
@@ -30,6 +44,7 @@ def get_skill_templates():
         query = '''
             SELECT st.id, st.name, st.description, st.url, st.category,
                    st.icon, st.color, st.is_active, st.usage_count,
+                   st.is_hidden_from_students,
                    st.created_at, st.updated_at,
                    (SELECT COUNT(*) FROM skill_test_questions q WHERE q.template_id = st.id) AS question_count
             FROM skill_templates st
@@ -60,6 +75,7 @@ def get_skill_templates():
                 'color': row['color'] or 'indigo',
                 'is_active': row['is_active'],
                 'usage_count': row['usage_count'] or 0,
+                'is_hidden_from_students': bool(row.get('is_hidden_from_students', False)),
                 'question_count': int(row['question_count'] or 0),
                 'created_at': str(row['created_at']) if row['created_at'] else None,
                 'updated_at': str(row['updated_at']) if row['updated_at'] else None

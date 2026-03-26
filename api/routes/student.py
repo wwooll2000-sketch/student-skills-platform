@@ -15,6 +15,16 @@ try:
 except ImportError:
     from api.database import get_db, execute_query, get_student_by_code_cached, get_student_skills_cached, invalidate_cache
 
+import jwt
+try:
+    from auth import get_jwt_secret
+except ImportError:
+    try:
+        from api.auth import get_jwt_secret
+    except ImportError:
+        def get_jwt_secret():
+            return os.environ.get('JWT_SECRET', 'secret')
+
 student_bp = Blueprint('student', __name__, url_prefix='/api/student')
 
 def verify_student_exists(f):
@@ -151,7 +161,29 @@ def get_student_skills(student_id):
     try:
         # Use cached query for much faster response
         skills_data = get_student_skills_cached(student_id)
-        
+
+        # Filter hidden skills for student requests; admin sees everything
+        try:
+            auth_header = request.headers.get('Authorization', '')
+            _is_admin = False
+            if auth_header.startswith('Bearer '):
+                _payload = jwt.decode(auth_header[7:], get_jwt_secret(), algorithms=['HS256'])
+                _is_admin = _payload.get('role') == 'admin'
+        except Exception:
+            _is_admin = False
+
+        if not _is_admin:
+            try:
+                hidden_rows = execute_query(
+                    'SELECT name FROM skill_templates WHERE is_hidden_from_students = TRUE',
+                    fetch_all=True
+                ) or []
+                hidden_names = {r['name'] for r in hidden_rows}
+                if hidden_names:
+                    skills_data = [s for s in skills_data if s['name'] not in hidden_names]
+            except Exception:
+                pass  # Column may not exist yet; show all skills
+
         skills = []
         for row in skills_data:
             # Convert timestamps to proper UTC format with Z suffix

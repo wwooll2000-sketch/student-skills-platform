@@ -376,6 +376,35 @@ def admin_toggle_skill_ready(skill_id):
         return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
 
 
+# ─── Skill Template Visibility ──────────────────────────────────────────────
+
+@admin_skills_bp.route('/skill-templates/<template_id>/hidden', methods=['PATCH'])
+@verify_admin
+def toggle_skill_template_hidden(template_id):
+    """Toggle is_hidden_from_students for a skill template"""
+    data = request.json or {}
+    is_hidden = bool(data.get('is_hidden', False))
+    try:
+        t = execute_query(
+            'UPDATE skill_templates SET is_hidden_from_students = %s, updated_at = CURRENT_TIMESTAMP '
+            'WHERE id = %s RETURNING id, is_hidden_from_students',
+            (is_hidden, template_id),
+            fetch_one=True
+        )
+        if not t:
+            return jsonify({'success': False, 'message': 'المهارة غير موجودة'}), 404
+        # Invalidate all caches — hidden state affects every student
+        invalidate_cache()
+        return jsonify({
+            'success': True,
+            'is_hidden_from_students': t['is_hidden_from_students'],
+            'message': 'تم تحديث حالة المهارة'
+        })
+    except Exception as e:
+        print(f'[ERROR] toggle_skill_template_hidden: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 # ─── Test Questions CRUD ─────────────────────────────────────────────────────
 
 @admin_skills_bp.route('/skill-templates/<template_id>/test-questions', methods=['GET'])
