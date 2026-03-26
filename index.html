@@ -103,6 +103,9 @@
                 </div>
             </div>
 
+            <!-- Announcements Section (student) -->
+            <div id="studentAnnouncementsSection" class="hidden mb-4 space-y-3"></div>
+
             <!-- Skills List -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200">
@@ -350,6 +353,29 @@
                     </div>
                 </div>
                 <div id="adminStudentsList" class="divide-y divide-slate-100"></div>
+            </div>
+
+            <!-- Announcements Management Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6 sm:mt-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-indigo-900">📢 الإعلانات</h3>
+                        <p class="text-xs text-slate-500 mt-1">أضف إعلانات تظهر في لوحة الطلاب</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadAdminAnnouncements()"
+                            class="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-200 transition text-sm">
+                            🔄 تحديث
+                        </button>
+                        <button onclick="openAddAnnouncementModal()"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                            ➕ إضافة إعلان
+                        </button>
+                    </div>
+                </div>
+                <div id="adminAnnouncementsList">
+                    <div class="text-center py-8 text-slate-400">جاري التحميل...</div>
+                </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6 sm:mt-8">
@@ -742,6 +768,97 @@
         </div>
     </div>
 
+    <!-- Announcement Add/Edit Modal -->
+    <div id="announcementModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 id="announcementModalTitle" class="text-xl font-bold mb-5">إضافة إعلان جديد</h3>
+
+            <div class="space-y-4 mb-4">
+                <!-- Title -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">عنوان الإعلان *</label>
+                    <input id="announcementTitleInput" type="text" placeholder="مثال: تذكير بموعد الاختبار..."
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">التفاصيل (اختياري)</label>
+                    <textarea id="announcementDescInput" rows="3"
+                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        placeholder="أضف تفاصيل إضافية للإعلان..."></textarea>
+                </div>
+
+                <!-- Type -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">نوع الإعلان</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="announcementType" id="announcementTypeSelect" value="basic"
+                                class="hidden peer" checked>
+                            <div
+                                class="peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:bg-blue-50 border rounded-lg p-3 text-center transition hover:bg-blue-50">
+                                <div class="text-2xl mb-1">ℹ️</div>
+                                <div class="text-xs font-medium text-blue-700">تنبيه</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="announcementType" value="warning" class="hidden peer">
+                            <div
+                                class="peer-checked:ring-2 peer-checked:ring-yellow-500 peer-checked:bg-yellow-50 border rounded-lg p-3 text-center transition hover:bg-yellow-50">
+                                <div class="text-2xl mb-1">⚠️</div>
+                                <div class="text-xs font-medium text-yellow-700">تحذير</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="announcementType" value="danger" class="hidden peer">
+                            <div
+                                class="peer-checked:ring-2 peer-checked:ring-red-500 peer-checked:bg-red-50 border rounded-lg p-3 text-center transition hover:bg-red-50">
+                                <div class="text-2xl mb-1">🚨</div>
+                                <div class="text-xs font-medium text-red-700">هام</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Target -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">الجمهور المستهدف</label>
+                    <label
+                        class="flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-slate-50 transition">
+                        <input type="checkbox" id="announcementTargetAll" checked
+                            onchange="onAnnouncementTargetChange()" class="rounded">
+                        <div>
+                            <div class="text-sm font-medium">جميع الطلاب</div>
+                            <div class="text-xs text-slate-500">سيظهر الإعلان لجميع الطلاب المسجلين</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Student picker (shown when target_all is unchecked) -->
+                <div id="announcementStudentPicker" class="hidden">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">اختر الطلاب:</label>
+                    <label class="flex items-center gap-2 mb-2 cursor-pointer text-sm text-indigo-600">
+                        <input type="checkbox" id="announcementSelectAllStudents"
+                            onchange="toggleSelectAllAnnouncementStudents()" class="rounded">
+                        <span>تحديد الكل</span>
+                    </label>
+                    <div id="announcementStudentList"
+                        class="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-1 bg-slate-50"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="announcementSaveBtn" onclick="saveAnnouncement()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium transition">حفظ
+                    الإعلان</button>
+                <button onclick="closeAnnouncementModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- API Layer -->
     <script src="js/api/security.js"></script>
     <script src="js/api/backup.js"></script>
@@ -764,6 +881,7 @@
     <script src="js/modules/filters.js"></script>
     <script src="js/modules/bulk-operations.js"></script>
     <script src="js/modules/notes-activity.js"></script>
+    <script src="js/modules/announcements.js"></script>
     <script src="js/modules/test.js"></script>
 
     <!-- Teacher Settings Modal -->

@@ -43,6 +43,11 @@ async function verifyAdminLogin() {
         document.getElementById('adminDashboardView').classList.remove('hidden');
 
         renderAdminStudents();
+
+        // Load announcements
+        if (typeof loadAdminAnnouncements === 'function') {
+            loadAdminAnnouncements();
+        }
         
         // Populate the ready-students skill filter dropdown
         if (typeof populateReadySkillSelect === 'function') {

@@ -44,6 +44,10 @@ window.addEventListener('load', async function () {
             document.getElementById('studentLoginView').classList.add('hidden');
             document.getElementById('adminDashboardView').classList.remove('hidden');
             renderAdminStudents();
+            // Load announcements for admin
+            if (typeof loadAdminAnnouncements === 'function') {
+                loadAdminAnnouncements();
+            }
             // Populate skill-ready filter dropdown
             if (typeof populateReadySkillSelect === 'function') {
                 populateReadySkillSelect();

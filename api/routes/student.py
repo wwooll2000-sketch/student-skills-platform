@@ -411,3 +411,41 @@ def submit_test(student_id, skill_id):
     except Exception as e:
         print(f"[ERROR] submit_test: {str(e)}")
         return jsonify({'success': False, 'message': f'خطأ: {str(e)}'}), 500
+
+
+# ─── Announcements Route ──────────────────────────────────────────────────────
+
+@student_bp.route('/<student_id>/announcements', methods=['GET'])
+@verify_student_exists
+def get_student_announcements(student_id):
+    """Get announcements visible to this student (target_all or specifically targeted)"""
+    try:
+        rows = execute_query(
+            """
+            SELECT DISTINCT a.id, a.title, a.description, a.type, a.created_at
+            FROM announcements a
+            LEFT JOIN announcement_students ans ON ans.announcement_id = a.id
+            WHERE a.target_all = TRUE
+               OR ans.student_id = %s
+            ORDER BY a.created_at DESC
+            """,
+            (student_id,),
+            fetch_all=True
+        ) or []
+
+        announcements = []
+        for r in rows:
+            announcements.append({
+                'id': str(r['id']),
+                'title': r['title'],
+                'description': r['description'] or '',
+                'type': r['type'],
+                'created_at': r['created_at'].strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if r['created_at'] else None,
+            })
+
+        return jsonify({'success': True, 'announcements': announcements})
+    except Exception as e:
+        # Gracefully handle missing table (migration not run yet)
+        if 'announcements' in str(e).lower() and ('does not exist' in str(e).lower() or 'not exist' in str(e).lower()):
+            return jsonify({'success': True, 'announcements': []})
+        return jsonify({'success': False, 'message': str(e)}), 500

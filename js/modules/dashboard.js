@@ -237,6 +237,11 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
     applyStudentColumnVisibility(visibility);
     if (tableContainer) tableContainer.classList.remove('hidden');
 
+    // Load announcements for this student
+    if (typeof loadStudentAnnouncements === 'function') {
+        loadStudentAnnouncements(studentId);
+    }
+
     // Show pending test result banner from sessionStorage
     const pendingResult = sessionStorage.getItem('pendingTestResult');
     if (pendingResult) {
