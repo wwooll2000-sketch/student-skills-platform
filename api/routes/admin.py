@@ -79,14 +79,51 @@ def get_statistics():
         completed_skills = stats['completed_skills'] if stats['completed_skills'] else 0
         
         completion_rate = round((completed_skills / total_skills * 100), 1) if total_skills > 0 else 0
-        
+
+        # Students who have at least one skill and all skills completed
+        completed_students = 0
+        try:
+            cs_row = execute_query('''
+                SELECT COUNT(DISTINCT s.id) AS count
+                FROM students s
+                WHERE EXISTS (
+                    SELECT 1 FROM skills sk WHERE sk.student_id = s.id
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM skills sk WHERE sk.student_id = s.id AND sk.level NOT IN (2, 3)
+                )
+            ''', fetch_one=True)
+            completed_students = cs_row['count'] if cs_row else 0
+        except Exception:
+            pass
+
+        # Test attempt statistics
+        total_tests = 0
+        test_pass_rate = 0
+        try:
+            test_row = execute_query('''
+                SELECT
+                    COUNT(*) AS total,
+                    COUNT(CASE WHEN passed THEN 1 END) AS passed
+                FROM skill_test_attempts
+            ''', fetch_one=True)
+            if test_row:
+                total_tests = test_row['total'] or 0
+                passed_tests = test_row['passed'] or 0
+                test_pass_rate = round((passed_tests / total_tests * 100), 1) if total_tests > 0 else 0
+        except Exception:
+            pass
+
         return jsonify({
             'success': True,
             'statistics': {
                 'totalStudents': total_students,
                 'totalSkills': total_skills,
                 'completedSkills': completed_skills,
-                'completionRate': completion_rate
+                'completionRate': completion_rate,
+                'completedStudents': completed_students,
+                'totalTests': total_tests,
+                'testPassRate': test_pass_rate,
             }
         })
     except Exception as e:

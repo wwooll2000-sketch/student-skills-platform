@@ -250,11 +250,12 @@ async function loadRecentActivityOptimized() {
 // ─── Render ───────────────────────────────────────────────────────────────────
 
 const _ACTIVITY_META = {
-    login:     { icon: '🔐', badge: 'bg-blue-100 text-blue-700',   label: 'تسجيل دخول' },
-    logout:    { icon: '🚪', badge: 'bg-slate-100 text-slate-600', label: 'تسجيل خروج' },
-    ready:     { icon: '🙋', badge: 'bg-green-100 text-green-700', label: 'جاهز' },
-    unready:   { icon: '↩️', badge: 'bg-red-100 text-red-600',     label: 'إلغاء جاهزية' },
+    login:     { icon: '🔐', badge: 'bg-blue-100 text-blue-700',    label: 'تسجيل دخول' },
+    logout:    { icon: '🚪', badge: 'bg-slate-100 text-slate-600',  label: 'تسجيل خروج' },
+    ready:     { icon: '🙋', badge: 'bg-green-100 text-green-700',  label: 'جاهز' },
+    unready:   { icon: '↩️', badge: 'bg-red-100 text-red-600',      label: 'إلغاء جاهزية' },
     completed: { icon: '✅', badge: 'bg-indigo-100 text-indigo-700', label: 'إنجاز مهارة' },
+    test:      { icon: '🧪', badge: 'bg-amber-100 text-amber-700',  label: 'اختبار' },
 };
 
 function renderActivities(container, activities) {
@@ -271,6 +272,15 @@ function renderActivities(container, activities) {
         let detail = '';
         if (activity.type === 'login' || activity.type === 'logout') {
             detail = `<span class="text-slate-500">رقم: ${_esc(activity.studentCode)}</span>`;
+        } else if (activity.type === 'test') {
+            const passClass = activity.passed ? 'text-green-600' : 'text-red-500';
+            const passLabel = activity.passed ? '✅ نجح' : '❌ رسب';
+            const scoreText = activity.score !== null && activity.score !== undefined ? ` (${activity.score}/10)` : '';
+            const attemptText = activity.attemptNum ? ` · <span class="text-slate-500">محاولة ${activity.attemptNum}</span>` : '';
+            const skillLink = activity.skillName
+                ? `<button type="button" data-skill-name="${_esc(activity.skillName)}" onclick="scrollToSkillTemplate(this.dataset.skillName)" class="font-medium text-indigo-600 hover:text-indigo-800 underline decoration-dotted underline-offset-2 cursor-pointer transition">${_esc(activity.skillName)}</button>`
+                : '';
+            detail = `<span class="font-medium ${passClass}">${passLabel}${scoreText}</span>${attemptText}${skillLink ? ' · ' + skillLink : ''}`;
         } else if (activity.skillName) {
             const colorClass = activity.type === 'unready' ? 'text-red-500 hover:text-red-700' : 'text-indigo-600 hover:text-indigo-800';
             detail = `<button type="button" data-skill-name="${_esc(activity.skillName)}" onclick="scrollToSkillTemplate(this.dataset.skillName)" class="font-medium ${colorClass} underline decoration-dotted underline-offset-2 cursor-pointer transition" title="انتقل إلى المهارة في إدارة المهارات">${_esc(activity.skillName)}</button>`;

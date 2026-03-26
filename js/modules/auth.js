@@ -77,6 +77,8 @@ function updateAdminUI() {
     document.getElementById('adminSettingsBtn').classList.remove('hidden');
     document.getElementById('adminLogoutBtn').classList.remove('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');
+    const adminTitleBar = document.getElementById('adminTitleBar');
+    if (adminTitleBar) adminTitleBar.classList.remove('hidden');
     const adminControls = document.getElementById('adminControls');
     if (adminControls) adminControls.classList.remove('hidden');
     
@@ -96,6 +98,8 @@ function resetToLoginUI() {
     document.getElementById('adminSettingsBtn').classList.add('hidden');
     document.getElementById('adminLogoutBtn').classList.add('hidden');
     document.getElementById('studentLogoutBtn').classList.add('hidden');
+    const adminTitleBar = document.getElementById('adminTitleBar');
+    if (adminTitleBar) adminTitleBar.classList.add('hidden');
 }
 
 function logoutAdmin() {

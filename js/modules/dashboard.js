@@ -46,6 +46,13 @@ async function updateStatistics() {
     document.getElementById('totalSkillsCount').textContent = stats.totalSkills;
     document.getElementById('completedSkillsCount').textContent = stats.completedSkills;
     document.getElementById('completionRate').textContent = stats.completionRate + '%';
+
+    const csEl = document.getElementById('completedStudentsCount');
+    if (csEl) csEl.textContent = stats.completedStudents ?? 0;
+    const ttEl = document.getElementById('totalTestsCount');
+    if (ttEl) ttEl.textContent = stats.totalTests ?? 0;
+    const tpEl = document.getElementById('testPassRate');
+    if (tpEl) tpEl.textContent = (stats.testPassRate ?? 0) + '%';
 }
 
 // Optimized version with caching
@@ -75,6 +82,13 @@ async function updateStatisticsOptimized() {
     document.getElementById('totalSkillsCount').textContent = stats.totalSkills;
     document.getElementById('completedSkillsCount').textContent = stats.completedSkills;
     document.getElementById('completionRate').textContent = stats.completionRate + '%';
+
+    const csEl = document.getElementById('completedStudentsCount');
+    if (csEl) csEl.textContent = stats.completedStudents ?? 0;
+    const ttEl = document.getElementById('totalTestsCount');
+    if (ttEl) ttEl.textContent = stats.totalTests ?? 0;
+    const tpEl = document.getElementById('testPassRate');
+    if (tpEl) tpEl.textContent = (stats.testPassRate ?? 0) + '%';
     
     return stats;
 }

@@ -40,22 +40,29 @@
         </div>
     </div>
     <div id="app" class="max-w-4xl mx-auto" style="display: none;">
-        <div class="flex justify-end mb-4 sm:mb-6 gap-2">
-            <button id="adminLoginBtn" type="button" onclick="toggleAdminLoginModal()"
-                class="text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
-                title="دخول المعلم">⚙️</button>
-            <button id="notificationMuteBtn" type="button" onclick="toggleNotificationMute()"
-                class="hidden text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
-                title="كتم الصوت">🔊</button>
-            <button id="adminSettingsBtn" type="button" onclick="openTeacherSettingsModal()"
-                class="hidden text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
-                title="الإعدادات">⚙️</button>
-            <button id="adminLogoutBtn" type="button" onclick="logoutAdmin()"
-                class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
-                خروج المعلم</button>
-            <button id="studentLogoutBtn" type="button" onclick="logoutStudent()"
-                class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">←
-                تسجيل خروج</button>
+        <div class="flex justify-between items-center mb-4 sm:mb-6">
+            <!-- Admin title bar — shown only when admin is logged in -->
+            <div id="adminTitleBar" class="hidden">
+                <h1 class="text-base sm:text-lg font-bold text-slate-800">لوحة تحكم المعلم</h1>
+                <p id="teacherWelcomeMessage" class="text-slate-500 text-xs sm:text-sm leading-tight mt-0.5"></p>
+            </div>
+            <div class="flex gap-2 items-center ms-auto">
+                <button id="adminLoginBtn" type="button" onclick="toggleAdminLoginModal()"
+                    class="text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
+                    title="دخول المعلم">⚙️</button>
+                <button id="notificationMuteBtn" type="button" onclick="toggleNotificationMute()"
+                    class="hidden text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
+                    title="كتم الصوت">🔊</button>
+                <button id="adminSettingsBtn" type="button" onclick="openTeacherSettingsModal()"
+                    class="hidden text-xl sm:text-2xl hover:scale-110 transition-transform p-2 cursor-pointer"
+                    title="الإعدادات">⚙️</button>
+                <button id="adminLogoutBtn" type="button" onclick="logoutAdmin()"
+                    class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">تسجيل
+                    خروج المعلم</button>
+                <button id="studentLogoutBtn" type="button" onclick="logoutStudent()"
+                    class="hidden text-xs sm:text-sm bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-red-600 transition">←
+                    تسجيل خروج</button>
+            </div>
         </div>
 
         <div id="studentLoginView"
@@ -140,11 +147,6 @@
         </div>
 
         <div id="adminDashboardView" class="hidden">
-            <header class="text-center mb-6 sm:mb-10">
-                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">لوحة تحكم المعلم</h1>
-                <p id="teacherWelcomeMessage" class="text-slate-600 mt-2 text-sm sm:text-base"></p>
-            </header>
-
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6 sm:mb-8">
                 <h3 class="text-base sm:text-lg font-bold text-indigo-900 mb-3 sm:mb-4">إضافة طالب جديد</h3>
                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -215,6 +217,10 @@
                             class="activity-type-chip text-xs px-2.5 py-1 rounded-full border transition font-medium">
                             🚪 خروج
                         </button>
+                        <button onclick="setActivityTypeFilter('test')" data-type="test"
+                            class="activity-type-chip text-xs px-2.5 py-1 rounded-full border transition font-medium">
+                            🧪 اختبار
+                        </button>
                     </div>
 
                     <!-- Date range + student search row -->
@@ -270,6 +276,18 @@
                     <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
                         <div class="text-2xl sm:text-3xl font-bold" id="completionRate">0%</div>
                         <div class="text-xs sm:text-sm opacity-90">نسبة الإنجاز</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="completedStudentsCount">0</div>
+                        <div class="text-xs sm:text-sm opacity-90">أنجزوا كل المهارات</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="totalTestsCount">0</div>
+                        <div class="text-xs sm:text-sm opacity-90">محاولات الاختبارات</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3 text-center">
+                        <div class="text-2xl sm:text-3xl font-bold" id="testPassRate">0%</div>
+                        <div class="text-xs sm:text-sm opacity-90">نسبة النجاح في الاختبارات</div>
                     </div>
                 </div>
             </div>

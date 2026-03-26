@@ -23,7 +23,7 @@ def get_recent_activities():
     """Get recent activities with optional filtering by type, date range, student name, and limit"""
     try:
         activity_type = request.args.get('type', 'all')
-        if activity_type not in ('all', 'login', 'logout', 'ready', 'unready', 'completed'):
+        if activity_type not in ('all', 'login', 'logout', 'ready', 'unready', 'completed', 'test'):
             activity_type = 'all'
 
         date_from = request.args.get('date_from', '').strip()
@@ -192,6 +192,49 @@ def get_recent_activities():
                     'skillName': row['skill_name'],
                     'date': ad.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if ad else None,
                     'type': 'ready' if row['is_ready'] else 'unready'
+                })
+
+        # ── Test attempts ─────────────────────────────────────────────────────
+        if activity_type in ('all', 'test'):
+            date_c = _date_cond('ta.created_at')
+            stu_c = _student_cond()
+
+            test_results = []
+            try:
+                test_results = execute_query(f'''
+                    SELECT
+                        s.name   AS student_name,
+                        s.code   AS student_code,
+                        sk.name  AS skill_name,
+                        ta.score,
+                        ta.passed,
+                        ta.attempt_number,
+                        ta.created_at AT TIME ZONE 'UTC' AS activity_date
+                    FROM skill_test_attempts ta
+                    JOIN students s  ON ta.student_id = s.id
+                    JOIN skills   sk ON ta.skill_id   = sk.id
+                    WHERE 1=1
+                      {date_c}
+                      {stu_c}
+                    ORDER BY ta.created_at DESC
+                    LIMIT %(per_source)s
+                ''', qp, fetch_all=True) or []
+            except Exception as test_err:
+                err = str(test_err).lower()
+                if 'skill_test_attempts' not in err and 'does not exist' not in err:
+                    print(f'[WARNING] Unexpected error fetching test attempts: {test_err}')
+
+            for row in test_results:
+                ad = row['activity_date']
+                all_activities.append({
+                    'studentName': row['student_name'],
+                    'studentCode': row['student_code'],
+                    'skillName':   row['skill_name'],
+                    'score':       row.get('score'),
+                    'passed':      row.get('passed'),
+                    'attemptNum':  row.get('attempt_number'),
+                    'date':        ad.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' if ad else None,
+                    'type':        'test',
                 })
 
         all_activities.sort(key=lambda x: x['date'] if x['date'] else '', reverse=True)

@@ -626,13 +626,21 @@ in the admin page add a new future section, and it is gonna be for announcements
 
 -------------- not done
 
-let's do some tweaks:
+perfect! now let's do some other tweaks:
 
 - update the events in the 📝 آخر النشاطات section to add our new features we added like about the user Test.
 
 - add more statistics in the 📊 إحصائيات عامة section as you think..
 
 - move the title "لوحة تحكم المعلم" with "مرحباً بك أ. سلطان" to be in the top right at the same line with the تسجيل خروج المعلم button and the settings and mute notifications buttons, to make it more organized and to free some space in the dashboard.
+
+---
+
+- in the آخر النشاطات it shows نجح (6%) , it should show like this نجح (6/10) also show عدد المحاولات
+
+-------------- not done
+
+add a new feature to hide/unhide the المهارة from the students, so in the إدارة المهارات for each مهارة add a small icon button on the top left of each مهارة card, when i hover over this icon it should show a tooltip that says "إخفاء المهارة عن الطلاب" or reverse it for when the مهارة is hidden, and when i click on this icon it should toggle between hide and unhide the مهارة for the students.
 
 -------------- not done
 
