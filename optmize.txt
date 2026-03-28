@@ -650,7 +650,7 @@ add a new feature to hide/unhide the المهارة from the students, so in the
 
 it should show a tooltip and not the browser default title attribute when i hover over the icon.
 
--------------- not done
+--------------
 
 perfect! let's do somthing else now,
 

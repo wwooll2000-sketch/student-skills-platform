@@ -48,6 +48,11 @@ async function verifyAdminLogin() {
         if (typeof loadAdminAnnouncements === 'function') {
             loadAdminAnnouncements();
         }
+
+        // Load badges
+        if (typeof loadAdminBadges === 'function') {
+            loadAdminBadges();
+        }
         
         // Populate the ready-students skill filter dropdown
         if (typeof populateReadySkillSelect === 'function') {
