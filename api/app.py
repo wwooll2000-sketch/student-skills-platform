@@ -41,6 +41,7 @@ def create_app():
         from routes.admin_teacher import admin_teacher_bp
         from routes.admin_activities import admin_activities_bp
         from routes.admin_announcements import admin_announcements_bp
+        from routes.admin_badges import admin_badges_bp
         from routes.student import student_bp
         from routes.custom_skills import custom_skills_bp
         from routes.health import health_bp
@@ -52,6 +53,7 @@ def create_app():
         app.register_blueprint(admin_teacher_bp)
         app.register_blueprint(admin_activities_bp)
         app.register_blueprint(admin_announcements_bp)
+        app.register_blueprint(admin_badges_bp)
         app.register_blueprint(student_bp)
         app.register_blueprint(custom_skills_bp)
         app.register_blueprint(health_bp)

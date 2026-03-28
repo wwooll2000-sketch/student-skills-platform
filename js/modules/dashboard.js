@@ -3,6 +3,7 @@
 // ===== Student Column Visibility =====
 // Shared cache accessible from teacher-settings.js via window._columnVisibilityCache
 window._columnVisibilityCache = null;
+window._badgeDisplayModeCache = null;
 
 async function getColumnVisibility() {
     if (window._columnVisibilityCache !== null) return window._columnVisibilityCache;
@@ -14,6 +15,18 @@ async function getColumnVisibility() {
         window._columnVisibilityCache = {};
     }
     return window._columnVisibilityCache;
+}
+
+async function getBadgeDisplayMode() {
+    if (window._badgeDisplayModeCache !== null) return window._badgeDisplayModeCache;
+    try {
+        const r = await fetch('/api/settings/badge-display-mode');
+        const d = await r.json();
+        window._badgeDisplayModeCache = d.success ? (d.mode || 'show_all') : 'show_all';
+    } catch {
+        window._badgeDisplayModeCache = 'show_all';
+    }
+    return window._badgeDisplayModeCache;
 }
 
 function applyStudentColumnVisibility(visibility) {
@@ -110,9 +123,12 @@ async function loadStudentDashboard(studentId) {
     document.getElementById('dashCompletedSkills').textContent = completedSkills;
     document.getElementById('dashCompletionRate').textContent = completionRate + '%';
 
-    // Award and display badges
-    const earnedBadges = checkAndAwardBadges(totalSkills, completedSkills, skillsResult.data.skills);
-    renderBadges(earnedBadges);
+    // Load and display badges from the server
+    const [badgesResult, badgeMode] = await Promise.all([
+        studentAPI.getEarnedBadges(),
+        getBadgeDisplayMode()
+    ]);
+    renderBadges(badgesResult.success ? badgesResult.badges : [], badgeMode);
 }
 
 function viewMySkills() {
@@ -121,58 +137,41 @@ function viewMySkills() {
     renderStudentSkillsFromDB(selectedStudentId);
 }
 
-// Achievement Badges System
-const BADGES = [
-    { id: 'first_skill', name: 'البداية', icon: '🌟', description: 'أول مهارة', requirement: 1 },
-    { id: 'five_skills', name: 'المجتهد', icon: '⭐', description: '5 مهارات', requirement: 5 },
-    { id: 'ten_skills', name: 'المثابر', icon: '🔥', description: '10 مهارات', requirement: 10 },
-    { id: 'twenty_skills', name: 'النجم', icon: '💫', description: '20 مهارة', requirement: 20 },
-    { id: 'half_complete', name: 'في منتصف الطريق', icon: '🎯', description: '50% إنجاز', requirement: 50, isPercentage: true },
-    { id: 'most_complete', name: 'شبه مكتمل', icon: '🏅', description: '75% إنجاز', requirement: 75, isPercentage: true },
-    { id: 'perfect', name: 'التميز المطلق', icon: '👑', description: '100% إنجاز', requirement: 100, isPercentage: true },
-    { id: 'fast_learner', name: 'سريع التعلم', icon: '⚡', description: '10 مهارات في يوم', requirement: 10, isDaily: true }
-];
-
-function checkAndAwardBadges(totalSkills, completedSkills, skillsData) {
-    const earnedBadges = [];
-    const completionRate = totalSkills > 0 ? (completedSkills / totalSkills) * 100 : 0;
-
-    BADGES.forEach(badge => {
-        if (badge.isPercentage) {
-            if (completionRate >= badge.requirement) {
-                earnedBadges.push(badge);
-            }
-        } else {
-            if (completedSkills >= badge.requirement) {
-                earnedBadges.push(badge);
-            }
-        }
-    });
-
-    return earnedBadges;
-}
-
-function renderBadges(earnedBadges) {
-    const container = document.getElementById('badgesContainer');
+// Achievement Badges — renders badges received from the server API
+function renderBadges(badges, mode = 'show_all') {
+    const section = document.getElementById('studentBadgesSection');
+    const container = document.getElementById('studentBadges');
     if (!container) return;
+
+    // Mode: hidden — hide the entire section
+    if (mode === 'hidden') {
+        if (section) section.classList.add('hidden');
+        return;
+    }
+    if (section) section.classList.remove('hidden');
 
     container.innerHTML = '';
 
-    BADGES.forEach(badge => {
-        const isEarned = earnedBadges.some(b => b.id === badge.id);
+    // Mode: hide_unearned — only show earned badges
+    const visibleBadges = mode === 'hide_unearned'
+        ? (badges || []).filter(b => b.earned)
+        : (badges || []);
+
+    if (!visibleBadges.length) {
+        container.innerHTML = '<div class="col-span-full text-center text-slate-400 py-4 text-sm">لا توجد إنجازات محددة بعد. أكمل مهاراتك لفتح الإنجازات!</div>';
+        return;
+    }
+
+    visibleBadges.forEach(badge => {
         const div = document.createElement('div');
-        div.className = `text-center p-3 rounded-lg border-2 transition ${isEarned ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50 opacity-40'}`;
+        div.className = `text-center p-3 rounded-lg border-2 transition ${badge.earned ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50 opacity-40'}`;
         div.innerHTML = `
-            <div class="text-3xl mb-1 ${isEarned ? 'badge-unlock' : ''}">${badge.icon}</div>
-            <div class="text-xs font-bold ${isEarned ? 'text-indigo-700' : 'text-slate-400'}">${badge.name}</div>
-            <div class="text-xs ${isEarned ? 'text-slate-600' : 'text-slate-400'}">${badge.description}</div>
+            <div class="text-3xl mb-1 ${badge.earned ? 'badge-unlock' : ''}">${badge.icon}</div>
+            <div class="text-xs font-bold ${badge.earned ? 'text-indigo-700' : 'text-slate-400'}">${badge.name}</div>
+            <div class="text-xs ${badge.earned ? 'text-slate-600' : 'text-slate-400'}">${badge.description}</div>
         `;
         container.appendChild(div);
     });
-
-    if (earnedBadges.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center text-slate-400 py-4">ابدأ بإكمال المهارات لفتح الإنجازات!</div>';
-    }
 }
 
 // Simple Student View (Single Page)
@@ -186,11 +185,13 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
         if (loadingEl) loadingEl.classList.remove('hidden');
     }
 
-    // Fetch skills, templates AND column visibility all in parallel
-    const [skillTemplatesMap, skillsResult, visibility] = await Promise.all([
+    // Fetch skills, templates, column visibility AND badges all in parallel
+    const [skillTemplatesMap, skillsResult, visibility, badgesResult, badgeMode] = await Promise.all([
         getSkillTemplatesMap(),
         studentAPI.getSkills(),
-        getColumnVisibility()
+        getColumnVisibility(),
+        studentAPI.getEarnedBadges(),
+        getBadgeDisplayMode()
     ]);
 
     // Hide loading indicator — table stays hidden until after visibility is applied below
@@ -242,9 +243,8 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
     document.getElementById('studentCompletedSkills').textContent = completedSkills;
     document.getElementById('studentCompletionRate').textContent = completionRate + '%';
 
-    // Award and display badges
-    const earnedBadges = checkAndAwardBadges(totalSkills, completedSkills, skillsResult.data.skills);
-    renderSimpleBadges(earnedBadges);
+    // Display badges from the server
+    renderBadges(badgesResult.success ? badgesResult.badges : [], badgeMode);
 
     // Render skills table with templates
     renderSimpleSkillsTable(skillsResult.data.skills, skillTemplatesMap);
@@ -304,29 +304,6 @@ async function getSkillTemplatesMap() {
     }
     
     return {};
-}
-
-function renderSimpleBadges(earnedBadges) {
-    const container = document.getElementById('studentBadges');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    BADGES.forEach(badge => {
-        const isEarned = earnedBadges.some(b => b.id === badge.id);
-        const div = document.createElement('div');
-        div.className = `text-center p-3 rounded-lg border-2 transition ${isEarned ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50 opacity-40'}`;
-        div.innerHTML = `
-            <div class="text-3xl mb-1 ${isEarned ? 'badge-unlock' : ''}">${badge.icon}</div>
-            <div class="text-xs font-bold ${isEarned ? 'text-indigo-700' : 'text-slate-400'}">${badge.name}</div>
-            <div class="text-xs ${isEarned ? 'text-slate-600' : 'text-slate-400'}">${badge.description}</div>
-        `;
-        container.appendChild(div);
-    });
-
-    if (earnedBadges.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center text-slate-400 py-4">ابدأ بإكمال المهارات لفتح الإنجازات!</div>';
-    }
 }
 
 function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {

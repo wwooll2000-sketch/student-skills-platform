@@ -652,11 +652,34 @@ it should show a tooltip and not the browser default title attribute when i hove
 
 -------------- not done
 
+perfect! let's do somthing else now,
+
 we didnt update the 🏆 إنجازاتك in the students dashboard from a long time from the start of devoloping this app.. so we need to update it to insure it reflect the changes that we made in this app, but first read everything and plan and then start implementing the changes,
 
 - remove the سريع التعلم badge because it's says 10 مهارات في يوم, and this can't be happened because the teacher adds 1 or 2 مهارات in a day and it's depends on the teacher and how many مهارات he adds in a day, so it's better to remove this badge because it doesn't make sense.
 
 - add a new section in the admin dashboard page to manage the badges, so the teacher can add new badges and set the criteria for each badge and also edit or delete the badges at any time, and then in the students dashboard page in the إنجازاتك section it should show the badges that the student earned based on the criteria that the teacher set for each badge. Also add a list of criteria to let the teacher choose from when he creates a new badge, add a list of icons to choose from for the badge icon.
+
+---
+
+perfect! now do these,
+
+- add more predefined criteria, look into the app and find any action that the student can do and add it as a criteria for the badges.
+- add default predefined achievements to the database.
+
+---
+
+perfect! let's do some adjustments,
+
+- the فع 3 شواهد أو صور دليلية badge is wrong, because the teacher him self only that can add the شواهد for the students and not the students, so remove this badge and replace it with somthing else!. Also same with أضاف 15 مهارة, أضاف 30 مهارة, رفع 10 شواهد أو صور دليلية, these badges are based on the teacher actions and not the student actions.
+
+---
+
+- add delete all button in the manage badges section to delete all the badges at once.
+
+---
+
+- in the same manage badges section, add the ability to toggle between 3 options, one for show the badge for all the students but in low opacity and when the student earn it it shows in full opacity as it is now, the second option is to hide the badge completely from the students until they earn it, and the third option is just to hide the badge system completely and not show it for the students at all.
 
 -------------- not done
 
@@ -664,7 +687,7 @@ TODO:
 - add animations.
 - design/font/background of www.creem.io.
 
--------------- not done
+--------------
 
 perfect! let's do somthing else now,
 

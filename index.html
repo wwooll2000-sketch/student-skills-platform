@@ -104,7 +104,7 @@
                 </div>
 
                 <!-- Achievement Badges -->
-                <div class="mt-6">
+                <div id="studentBadgesSection" class="mt-6">
                     <h3 class="text-lg font-bold text-slate-800 mb-3 text-center">🏆 إنجازاتك</h3>
                     <div id="studentBadges" class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3"></div>
                 </div>
@@ -388,6 +388,52 @@
                 </div>
                 <div id="adminAnnouncementsList">
                     <div class="text-center py-8 text-slate-400">جاري التحميل...</div>
+                </div>
+            </div>
+
+            <!-- Badges Management Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6 sm:mt-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-indigo-900">🏆 إدارة الإنجازات</h3>
+                        <p class="text-xs text-slate-500 mt-1">أضف وعدّل الإنجازات التي تظهر في لوحة الطلاب</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadAdminBadges()"
+                            class="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-200 transition text-sm">
+                            🔄 تحديث
+                        </button>
+                        <button onclick="confirmDeleteAllBadges()"
+                            class="bg-red-50 text-red-600 border border-red-200 px-3 py-2 rounded-lg hover:bg-red-100 transition text-sm">
+                            🗑️ حذف الكل
+                        </button>
+                        <button onclick="openAddBadgeModal()"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                            ➕ إضافة إنجاز
+                        </button>
+                    </div>
+                </div>
+                <div id="adminBadgesList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="col-span-full text-center py-6 text-slate-400 text-sm">جاري التحميل...</div>
+                </div>
+
+                <!-- Badge display mode toggle -->
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <p class="text-xs font-semibold text-slate-500 mb-2">طريقة عرض الإنجازات للطلاب:</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="bdm-show_all" onclick="setBadgeDisplayMode('show_all')"
+                            class="bdm-btn px-3 py-2 rounded-lg border text-xs font-medium transition">
+                            👁️ عرض الكل (غير المكتسبة بشفافية منخفضة)
+                        </button>
+                        <button id="bdm-hide_unearned" onclick="setBadgeDisplayMode('hide_unearned')"
+                            class="bdm-btn px-3 py-2 rounded-lg border text-xs font-medium transition">
+                            🔒 إخفاء غير المكتسبة
+                        </button>
+                        <button id="bdm-hidden" onclick="setBadgeDisplayMode('hidden')"
+                            class="bdm-btn px-3 py-2 rounded-lg border text-xs font-medium transition">
+                            🚫 إخفاء قسم الإنجازات كلياً
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -872,6 +918,75 @@
         </div>
     </div>
 
+    <!-- Badge Add / Edit Modal -->
+    <div id="badgeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 id="badgeModalTitle" class="text-xl font-bold mb-5">إضافة إنجاز جديد</h3>
+
+            <!-- Name -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">اسم الإنجاز <span
+                        class="text-red-500">*</span></label>
+                <input id="badgeNameInput" type="text" placeholder="مثال: النجم المتألق"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">الوصف (اختياري)</label>
+                <input id="badgeDescInput" type="text" placeholder="وصف مختصر يظهر للطالب"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+            </div>
+
+            <!-- Icon Picker -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">أيقونة الإنجاز</label>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-4xl" id="badgeSelectedIcon">🏅</span>
+                    <span class="text-sm text-slate-500">الأيقونة المختارة</span>
+                </div>
+                <div id="badgeIconGrid"
+                    class="grid grid-cols-9 gap-1 p-2 bg-slate-50 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
+                    <!-- Icons built by badges.js -->
+                </div>
+            </div>
+
+            <!-- Criteria Type -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">معيار الحصول على الإنجاز <span
+                        class="text-red-500">*</span></label>
+                <select id="badgeCriteriaType"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
+                    <option value="skills_completed">عدد المهارات المكتملة (مستوى 2 أو 3)</option>
+                    <option value="completion_percent">نسبة الإنجاز الكلية (%)</option>
+                    <option value="tests_passed">عدد الاختبارات التي اجتازها</option>
+                    <option value="level3_skills">عدد المهارات بالمستوى الثالث</option>
+                    <option value="tests_attempted">عدد محاولات الاختبار (ناجح أو فاشل)</option>
+                    <option value="perfect_tests">اختبارات بعلامة كاملة (10/10)</option>
+                    <option value="ready_actions">عدد مرات الضغط على "جاهز"</option>
+                    <option value="login_count">عدد مرات تسجيل الدخول</option>
+                </select>
+            </div>
+
+            <!-- Criteria Value -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-slate-700 mb-1">القيمة المطلوبة <span
+                        class="text-red-500">*</span></label>
+                <input id="badgeCriteriaValue" type="number" min="1" value="1"
+                    class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                <p class="text-xs text-slate-400 mt-1">مثال: 5 يعني "أكمل 5 مهارات" أو "وصل إلى 5%"</p>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="saveBadge()"
+                    class="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-medium transition">حفظ
+                    الإنجاز</button>
+                <button onclick="closeBadgeModal()"
+                    class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-medium">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- API Layer -->
     <script src="js/api/security.js"></script>
     <script src="js/api/backup.js"></script>
@@ -895,6 +1010,7 @@
     <script src="js/modules/bulk-operations.js"></script>
     <script src="js/modules/notes-activity.js"></script>
     <script src="js/modules/announcements.js"></script>
+    <script src="js/modules/badges.js"></script>
     <script src="js/modules/test.js"></script>
 
     <!-- Teacher Settings Modal -->

@@ -48,6 +48,10 @@ window.addEventListener('load', async function () {
             if (typeof loadAdminAnnouncements === 'function') {
                 loadAdminAnnouncements();
             }
+            // Load badges for admin
+            if (typeof loadAdminBadges === 'function') {
+                loadAdminBadges();
+            }
             // Populate skill-ready filter dropdown
             if (typeof populateReadySkillSelect === 'function') {
                 populateReadySkillSelect();

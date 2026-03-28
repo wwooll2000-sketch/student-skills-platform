@@ -39,6 +39,25 @@ def get_teacher_profile():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@admin_teacher_bp.route('/teacher/badge-display-mode', methods=['PUT'])
+@verify_admin
+def update_badge_display_mode():
+    """Update how badges are displayed to students"""
+    data = request.json or {}
+    mode = data.get('mode', 'show_all')
+    if mode not in ('show_all', 'hide_unearned', 'hidden'):
+        return jsonify({'success': False, 'message': 'وضع غير صحيح'}), 400
+    try:
+        execute_query(
+            'UPDATE teacher SET badge_display_mode = %s WHERE id = (SELECT id FROM teacher LIMIT 1)',
+            (mode,)
+        )
+        invalidate_cache('teacher')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @admin_teacher_bp.route('/teacher/column-visibility', methods=['PUT'])
 @verify_admin
 def update_column_visibility():

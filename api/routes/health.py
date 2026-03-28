@@ -67,6 +67,26 @@ def get_column_visibility():
         return jsonify({'success': True, 'column_visibility': {}})
 
 
+@health_bp.route('/api/settings/badge-display-mode', methods=['GET'])
+def get_badge_display_mode():
+    """Public endpoint: get badge display mode (used by student view)"""
+    try:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from database import execute_query
+        teacher = execute_query(
+            'SELECT badge_display_mode FROM teacher LIMIT 1',
+            fetch_one=True
+        )
+        mode = 'show_all'
+        if teacher and teacher.get('badge_display_mode'):
+            mode = teacher['badge_display_mode']
+        return jsonify({'success': True, 'mode': mode})
+    except Exception:
+        return jsonify({'success': True, 'mode': 'show_all'})
+
+
 @health_bp.route('/')
 def serve_index():
     """Serve index.html"""

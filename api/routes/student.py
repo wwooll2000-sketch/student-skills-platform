@@ -484,3 +484,122 @@ def get_student_announcements(student_id):
         if 'announcements' in str(e).lower() and ('does not exist' in str(e).lower() or 'not exist' in str(e).lower()):
             return jsonify({'success': True, 'announcements': []})
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ─── Badges Route ─────────────────────────────────────────────────────────────
+
+@student_bp.route('/<student_id>/badges', methods=['GET'])
+@verify_student_exists
+def get_student_badges(student_id):
+    """Return all badges with earned=true/false evaluated against the student's data"""
+    try:
+        # Auto-create table if migration hasn't run yet
+        try:
+            execute_query("""
+                CREATE TABLE IF NOT EXISTS badges (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(255) NOT NULL,
+                    icon VARCHAR(20) NOT NULL DEFAULT '🏅',
+                    description TEXT,
+                    criteria_type VARCHAR(50) NOT NULL DEFAULT 'skills_completed',
+                    criteria_value INTEGER NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        except Exception:
+            pass
+
+        badges = execute_query(
+            'SELECT id, name, icon, description, criteria_type, criteria_value '
+            'FROM badges ORDER BY created_at ASC',
+            fetch_all=True
+        ) or []
+
+        if not badges:
+            return jsonify({'success': True, 'badges': []})
+
+        # Gather student stats needed for all criteria types in one pass
+        stats = execute_query(
+            """
+            SELECT
+                COUNT(*) FILTER (WHERE level >= 2) AS skills_completed,
+                COUNT(*) FILTER (WHERE level = 3)  AS level3_skills,
+                COUNT(*)                            AS total_skills
+            FROM skills WHERE student_id = %s
+            """,
+            (student_id,),
+            fetch_one=True
+        )
+        tests_row = execute_query(
+            'SELECT COUNT(*) AS cnt FROM skill_test_attempts WHERE student_id = %s AND passed = TRUE',
+            (student_id,),
+            fetch_one=True
+        )
+        tests_attempted_row = execute_query(
+            'SELECT COUNT(*) AS cnt FROM skill_test_attempts WHERE student_id = %s',
+            (student_id,),
+            fetch_one=True
+        )
+        perfect_row = execute_query(
+            'SELECT COUNT(*) AS cnt FROM skill_test_attempts WHERE student_id = %s AND score >= 10',
+            (student_id,),
+            fetch_one=True
+        )
+        ready_row = execute_query(
+            'SELECT COUNT(*) AS cnt FROM student_ready_log WHERE student_id = %s AND is_ready = TRUE',
+            (student_id,),
+            fetch_one=True
+        )
+        login_row = execute_query(
+            'SELECT COUNT(*) AS cnt FROM student_login_logs WHERE student_id = %s AND action_type = %s',
+            (student_id, 'login'),
+            fetch_one=True
+        )
+
+        completed       = int(stats['skills_completed'])    if stats else 0
+        level3          = int(stats['level3_skills'])        if stats else 0
+        passed_tests    = int(tests_row['cnt'])              if tests_row else 0
+        tests_attempted = int(tests_attempted_row['cnt'])    if tests_attempted_row else 0
+        perfect_tests   = int(perfect_row['cnt'])            if perfect_row else 0
+        ready_count     = int(ready_row['cnt'])              if ready_row else 0
+        login_count     = int(login_row['cnt'])              if login_row else 0
+        total           = int(stats['total_skills'])         if stats else 0
+        completion_pct  = round(completed / total * 100)     if total > 0 else 0
+
+        result = []
+        for b in badges:
+            ctype = b['criteria_type']
+            cval  = int(b['criteria_value'])
+            if ctype == 'skills_completed':
+                earned = completed >= cval
+            elif ctype == 'completion_percent':
+                earned = completion_pct >= cval
+            elif ctype == 'tests_passed':
+                earned = passed_tests >= cval
+            elif ctype == 'level3_skills':
+                earned = level3 >= cval
+            elif ctype == 'tests_attempted':
+                earned = tests_attempted >= cval
+            elif ctype == 'perfect_tests':
+                earned = perfect_tests >= cval
+            elif ctype == 'ready_actions':
+                earned = ready_count >= cval
+            elif ctype == 'login_count':
+                earned = login_count >= cval
+            else:
+                earned = False
+
+            result.append({
+                'id':             str(b['id']),
+                'name':           b['name'],
+                'icon':           b['icon'],
+                'description':    b['description'] or '',
+                'criteria_type':  b['criteria_type'],
+                'criteria_value': int(b['criteria_value']),
+                'earned':         earned,
+            })
+
+        return jsonify({'success': True, 'badges': result})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

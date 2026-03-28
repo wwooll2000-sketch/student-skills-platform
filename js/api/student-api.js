@@ -270,6 +270,16 @@ class StudentAPI {
             return { success: false, message: "خطأ في الاتصال بالخادم" };
         }
     }
+
+    async getEarnedBadges() {
+        if (!this.isAuthorized()) return { success: false, message: "غير مصرح" };
+        try {
+            const res = await fetch(`${this.baseURL}/${this.studentId}/badges`);
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: "خطأ في الاتصال بالخادم" };
+        }
+    }
 }
 
 const studentAPI = new StudentAPI();

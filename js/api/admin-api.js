@@ -762,6 +762,88 @@ class AdminAPI {
         }
     }
 
+    // ─── Badge CRUD ───────────────────────────────────────────────────────────
+
+    async getBadges() {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/badges`, {
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
+    async createBadge(data) {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/badges`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
+    async updateBadge(id, data) {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/badges/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.authToken}` },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
+    async deleteBadge(id) {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/badges/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
+    async deleteAllBadges() {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/badges`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${this.authToken}` }
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
+    async updateBadgeDisplayMode(mode) {
+        if (!this.isAuthorized()) return { success: false, message: 'غير مصرح' };
+        try {
+            const res = await fetch(`${this.baseURL}/teacher/badge-display-mode`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${this.authToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode })
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, message: 'خطأ في الاتصال بالخادم' };
+        }
+    }
+
 }
 
 const adminAPI = new AdminAPI();
