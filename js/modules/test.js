@@ -94,9 +94,11 @@ function showTestPage(skillId, skillName, questions, remaining) {
     if (!testView) return;
     testView.classList.remove('hidden');
 
-    // Hide footer while in test view
+    // Hide footer and logout button while in test view
     const footer = document.getElementById('siteFooter');
     if (footer) footer.classList.add('hidden');
+    const logoutBtn = document.getElementById('studentLogoutBtn');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
 
     const titleEl = document.getElementById('testViewTitle');
     if (titleEl) titleEl.textContent = `اختبار: ${skillName}`;
@@ -183,9 +185,11 @@ function backToDashboard(result) {
     const testView = document.getElementById('testView');
     if (testView) testView.classList.add('hidden');
 
-    // Restore footer
+    // Restore footer and logout button
     const footer = document.getElementById('siteFooter');
     if (footer) footer.classList.remove('hidden');
+    const logoutBtn = document.getElementById('studentLogoutBtn');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
 
     // Show student view
     const studentView = document.getElementById('studentView');

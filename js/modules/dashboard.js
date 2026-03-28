@@ -180,9 +180,11 @@ async function loadSimpleStudentView(studentId, showLoading = true) {
     const loadingEl = document.getElementById('studentSkillsLoading');
     const tableContainer = document.getElementById('studentSkillsTableContainer');
 
-    // Always keep table hidden until visibility is applied (prevents any flash)
-    if (tableContainer) tableContainer.classList.add('hidden');
-    if (showLoading && loadingEl) loadingEl.classList.remove('hidden');
+    // Only hide table on first/explicit load — silent background refreshes keep it visible
+    if (showLoading) {
+        if (tableContainer) tableContainer.classList.add('hidden');
+        if (loadingEl) loadingEl.classList.remove('hidden');
+    }
 
     // Fetch skills, templates AND column visibility all in parallel
     const [skillTemplatesMap, skillsResult, visibility] = await Promise.all([
@@ -345,7 +347,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         const skillName = skill.name || 'مهارة بدون عنوان';
         const skillUrl = skill.description || '#';
         const isDone = skill.level === 3 || skill.level === 2;
-        
+
         // Get icon from template if available
         const template = skillTemplatesMap[skillName];
         const skillLinkIcon = getSkillLinkIcon(template?.icon || 'file');
@@ -356,16 +358,30 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
         // Evidence display for students
         const evidenceCount = skill.evidence_count || 0;
         const firstEvidenceUrl = skill.first_evidence_url;
-        const evidenceHtml = evidenceCount > 0 && firstEvidenceUrl ? 
+        const evidenceHtml = evidenceCount > 0 && firstEvidenceUrl ?
             `<button onclick="viewSkillEvidenceStudent('${skill.id}')" class="relative hover:scale-105 transition-transform" title="عرض الشواهد">
-                <img src="${firstEvidenceUrl}" alt="شاهد" class="w-12 h-16 object-cover rounded border-2 border-slate-300" 
+                <img src="${firstEvidenceUrl}" alt="شاهد" class="w-10 h-12 sm:w-12 sm:h-16 object-cover rounded border-2 border-slate-300"
                      oncontextmenu="return false;" ondragstart="return false;" style="user-select: none;">
                 ${evidenceCount > 1 ? `<span class="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">${evidenceCount}</span>` : ''}
-            </button>` : 
+            </button>` :
             `<span class="text-slate-300 text-xl">—</span>`;
 
         // Student ready checkbox
         const isStudentReady = skill.is_student_ready || false;
+
+        // Test cell
+        let testHtml;
+        if (isDone) {
+            testHtml = `<span class="text-green-600 font-bold text-xs">✅ تم</span>`;
+        } else if (skill.question_count > 0 || (template && template.question_count > 0)) {
+            if (skill.attempts_used >= (skill.max_test_attempts || 3)) {
+                testHtml = `<span class="text-red-400 text-xs font-medium">انتهت محاولاتك</span>`;
+            } else {
+                testHtml = `<button onclick="openTestConfirmModal('${skill.id}', '${skillName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded text-xs font-medium transition">📝 قم بالإختبار</button>`;
+            }
+        } else {
+            testHtml = `<span class="text-slate-400 text-xs">لا يوجد اختبار</span>`;
+        }
 
         row.innerHTML = `
             <td data-col="المهارة" class="p-2 sm:p-4 text-slate-700 text-xs sm:text-base">
@@ -391,12 +407,7 @@ function renderSimpleSkillsTable(skills, skillTemplatesMap = {}) {
                 </span>
             </td>
             <td data-col="الاختبار" class="p-2 sm:p-4 text-center">
-                ${isDone
-                    ? `<span class="text-green-600 font-bold text-xs">✅ تم</span>`
-                    : template && (template.question_count > 0)
-                        ? `<button onclick="openTestConfirmModal('${skill.id}', '${skillName.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded text-xs font-medium transition">📝 قم بالإختبار</button>`
-                        : `<span class="text-slate-400 text-xs">لا يوجد اختبار</span>`
-                }
+                ${testHtml}
             </td>
         `;
         tbody.appendChild(row);

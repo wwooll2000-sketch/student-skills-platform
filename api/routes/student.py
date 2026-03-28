@@ -202,6 +202,9 @@ def get_student_skills(student_id):
                 'evidence_count': row['evidence_count'],
                 'first_evidence_url': row.get('first_evidence_url'),
                 'is_student_ready': row.get('is_student_ready', False) or False,
+                'question_count': int(row.get('question_count', 0) or 0),
+                'max_test_attempts': int(row.get('max_test_attempts', 3) or 3),
+                'attempts_used': int(row.get('attempts_used', 0) or 0),
                 'created_at': created_at, 
                 'updated_at': updated_at
             })

@@ -104,13 +104,16 @@ class StudentAPI {
                     id: skill.id,
                     name: skill.name,
                     level: skill.level,
-                    status: skill.level === 3 ? "مكتمل" : "قيد التطوير",
+                    status: (skill.level === 3 || skill.level === 2) ? "مكتمل" : "قيد التطوير",
                     description: skill.description,
                     category: skill.category,
                     evidence_url: skill.evidence_url,
                     evidence_count: skill.evidence_count || 0,
                     first_evidence_url: skill.first_evidence_url,
                     is_student_ready: skill.is_student_ready || false,
+                    question_count: skill.question_count || 0,
+                    max_test_attempts: skill.max_test_attempts || 3,
+                    attempts_used: skill.attempts_used || 0,
                     addedDate: skill.created_at,
                     completedDate: skill.updated_at
                 }));
@@ -125,7 +128,7 @@ class StudentAPI {
                         pendingSkills: skills.length - completedSkills,
                         skills,
                         completionRate: skills.length > 0 
-                            ? ((completedSkills / skills.length) * 100).toFixed(2) 
+                            ? Math.round((completedSkills / skills.length) * 100) 
                             : 0
                     }
                 };

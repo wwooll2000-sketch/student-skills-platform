@@ -186,8 +186,12 @@ def get_student_skills_cached(student_id: str) -> List[Dict]:
                s.created_at AT TIME ZONE 'UTC' as created_at,
                s.updated_at AT TIME ZONE 'UTC' as updated_at,
                (SELECT COUNT(*) FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%')) as evidence_count,
-               (SELECT se.evidence_url FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%') ORDER BY se.created_at ASC LIMIT 1) as first_evidence_url
+               (SELECT se.evidence_url FROM skill_evidence se WHERE se.skill_id = s.id AND (se.evidence_url NOT LIKE '%%youtube%%' AND se.evidence_url NOT LIKE '%%youtu.be%%') ORDER BY se.created_at ASC LIMIT 1) as first_evidence_url,
+               COALESCE(stmpl.max_test_attempts, 3) as max_test_attempts,
+               COALESCE((SELECT COUNT(*) FROM skill_test_questions stq WHERE stq.template_id = stmpl.id), 0) as question_count,
+               COALESCE((SELECT COUNT(*) FROM skill_test_attempts sta WHERE sta.skill_id = s.id AND sta.student_id = s.student_id), 0) as attempts_used
         FROM skills s
+        LEFT JOIN skill_templates stmpl ON stmpl.name = s.name
         WHERE s.student_id = %s 
         ORDER BY s.level DESC, s.created_at DESC
     '''

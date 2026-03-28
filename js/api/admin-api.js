@@ -281,7 +281,7 @@ class AdminAPI {
                 // Transform the data to match the expected format
                 const completedSkills = result.skills.filter(s => s.level === 3 || s.level === 2).length;
                 const totalSkills = result.skills.length;
-                const completionRate = totalSkills > 0 ? ((completedSkills / totalSkills) * 100).toFixed(1) : 0;
+                const completionRate = totalSkills > 0 ? Math.round((completedSkills / totalSkills) * 100) : 0;
 
                 return {
                     success: true,

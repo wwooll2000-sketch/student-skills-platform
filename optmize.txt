@@ -628,7 +628,7 @@ there is an issue in the app that when i login as admin, the warn icon that must
 
 in the admin page add a new future section, and it is gonna be for announcements, so the teacher can add announcements and show them for the students in the students dashboard page, and in the announcements the teacher can choose the type of the announcement if like basic wich it has own icon and color like blue, and warning which has its own icon and color like yellow, and danger which has its own icon and color like red, also the teacher can add a title and description for the announcement, also the teacher can choose to show the announcement for all the students or just for specific students by selecting them from a list, also the teacher can edit or delete the announcement at any time.
 
--------------- not done
+--------------
 
 perfect! now let's do some other tweaks:
 
@@ -652,10 +652,38 @@ it should show a tooltip and not the browser default title attribute when i hove
 
 -------------- not done
 
-we didnt update the 🏆 إنجازاتك in the students dashboard from a long time from the start of devoloping this app.. so we need to update it to reflect the changes that we made in this app, but first read everything and plan and then start implementing the changes!
+we didnt update the 🏆 إنجازاتك in the students dashboard from a long time from the start of devoloping this app.. so we need to update it to insure it reflect the changes that we made in this app, but first read everything and plan and then start implementing the changes,
+
+- remove the سريع التعلم badge because it's says 10 مهارات في يوم, and this can't be happened because the teacher adds 1 or 2 مهارات in a day and it's depends on the teacher and how many مهارات he adds in a day, so it's better to remove this badge because it doesn't make sense.
+
+- add a new section in the admin dashboard page to manage the badges, so the teacher can add new badges and set the criteria for each badge and also edit or delete the badges at any time, and then in the students dashboard page in the إنجازاتك section it should show the badges that the student earned based on the criteria that the teacher set for each badge. Also add a list of criteria to let the teacher choose from when he creates a new badge, add a list of icons to choose from for the badge icon.
 
 -------------- not done
 
 TODO:
 - add animations.
 - design/font/background of www.creem.io.
+
+-------------- not done
+
+perfect! let's do somthing else now,
+
+in the أسئلة اختبار model, for each question we have delete and edit buttons, also add a new future for sorting the questions, like 2 buttons in one column one for move the question up and one for move the question down, and when i click on the move up button it should move the question up in the list and when i click on the move down button it should move the question down in the list, also make sure to save the order of the questions in the database so when i open the model again it shows the questions in the same order that i set. Also update the student test page to reflect the changes.
+
+--------------
+
+let's do some tweaks and optimizations to the students dashboard page:
+
+- before we implement a system the refreshs the data every amount of time to reflect any changes that the teacher make for the students, but it's kinda buggy, each time the data refreshes it removes the table completely and then shows it again which is not good, it should refresh the data silently without changing the UI for the students.
+
+- in the الاختبار column, if a مهارة that i have no محاولات for it shows the 📝 قم بالإختبار button, but insted it should say somthing like you have used all your attempts for this test or something like that but in short also without a button!
+
+- in the statistics section, it dosent reflect the changes, please make sure to update the statistics section immediately after any changes! find the issue or imrove it!
+
+---
+
+perfect! now let's do some optimizations and improvements,
+
+- optimize all the students dashboard pages for mobile devices, because most students will access it from their phones, so make sure to make the design responsive and user-friendly for mobile devices.
+
+- remove the ← تسجيل خروج button from the students test page.

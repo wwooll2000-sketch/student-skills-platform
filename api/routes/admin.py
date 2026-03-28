@@ -78,7 +78,7 @@ def get_statistics():
         total_skills = stats['total_skills'] if stats['total_skills'] else 0
         completed_skills = stats['completed_skills'] if stats['completed_skills'] else 0
         
-        completion_rate = round((completed_skills / total_skills * 100), 1) if total_skills > 0 else 0
+        completion_rate = round(completed_skills / total_skills * 100) if total_skills > 0 else 0
 
         # Students who have at least one skill and all skills completed
         completed_students = 0
@@ -110,7 +110,7 @@ def get_statistics():
             if test_row:
                 total_tests = test_row['total'] or 0
                 passed_tests = test_row['passed'] or 0
-                test_pass_rate = round((passed_tests / total_tests * 100), 1) if total_tests > 0 else 0
+                test_pass_rate = round(passed_tests / total_tests * 100) if total_tests > 0 else 0
         except Exception:
             pass
 
