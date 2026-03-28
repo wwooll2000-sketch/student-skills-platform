@@ -678,9 +678,10 @@ function renderTestQuestions() {
     if (_testQuestionsList.length === 0) {
         container.innerHTML = '<p class="text-center text-slate-400 py-4 text-sm">لا توجد أسئلة بعد. أضف أول سؤال أدناه.</p>';
     } else {
+        const last = _testQuestionsList.length - 1;
         container.innerHTML = _testQuestionsList.map((q, i) => `
             <div class="flex items-start gap-2 p-3 rounded-lg border ${q._isNew ? 'bg-blue-50 border-blue-200' : q._isDirty ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-200'}">
-                <span class="text-slate-500 text-sm font-bold mt-1">${i + 1}.</span>
+                <span class="text-slate-500 text-sm font-bold mt-1 w-5 shrink-0">${i + 1}.</span>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm text-slate-800 break-words">${_escHtml(q.question)}</p>
                     <div class="flex items-center gap-2 mt-1 flex-wrap">
@@ -690,7 +691,13 @@ function renderTestQuestions() {
                         ${q._isNew ? '<span class="text-xs text-blue-600 font-medium">• جديد</span>' : ''}
                     </div>
                 </div>
-                <div class="flex gap-1 flex-shrink-0">
+                <div class="flex flex-col gap-0.5 shrink-0">
+                    <button onclick="moveTestQuestion('${q.id}', 'up')" ${i === 0 ? 'disabled' : ''}
+                        class="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed text-xs leading-none px-1 py-0.5 rounded hover:bg-indigo-50 transition" title="تحريك لأعلى">▲</button>
+                    <button onclick="moveTestQuestion('${q.id}', 'down')" ${i === last ? 'disabled' : ''}
+                        class="text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed text-xs leading-none px-1 py-0.5 rounded hover:bg-indigo-50 transition" title="تحريك لأسفل">▼</button>
+                </div>
+                <div class="flex gap-1 shrink-0">
                     <button onclick="editTestQuestion('${q.id}')" class="text-blue-600 hover:text-blue-800 text-sm p-1" title="تعديل">✏️</button>
                     <button onclick="deleteTestQuestion('${q.id}')" class="text-red-500 hover:text-red-700 text-sm p-1" title="حذف">🗑️</button>
                 </div>
@@ -731,6 +738,25 @@ function editTestQuestion(questionId) {
 function cancelEditQuestion() {
     _editingQuestionId = null;
     resetTestQuestionForm();
+    renderTestQuestions();
+}
+
+function moveTestQuestion(questionId, direction) {
+    const idx = _testQuestionsList.findIndex(q => q.id === questionId);
+    if (idx === -1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= _testQuestionsList.length) return;
+
+    // Swap the two questions
+    [_testQuestionsList[idx], _testQuestionsList[swapIdx]] =
+        [_testQuestionsList[swapIdx], _testQuestionsList[idx]];
+
+    // Reassign order_num to match current positions, mark existing as dirty so they get saved
+    _testQuestionsList.forEach((q, i) => {
+        q.order_num = i;
+        if (!q._isNew) q._isDirty = true;
+    });
+
     renderTestQuestions();
 }
 
